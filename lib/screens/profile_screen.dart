@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
+import 'edit_profile_screen.dart';
+import 'personal_details_screen.dart';
+import 'saved_medicines_screen.dart';
+import 'reminders_screen.dart';
+import 'privacy_policy_screen.dart';
+import 'account_center_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -52,17 +58,57 @@ class ProfileScreen extends StatelessWidget {
               _SettingsTile(
                 icon: Icons.person_outline,
                 title: "Edit Profile",
-                onTap: () {},
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                ),
               ),
               _SettingsTile(
-                icon: Icons.notifications_none_rounded,
-                title: "Notifications",
-                onTap: () {},
+                icon: Icons.badge_outlined,
+                title: "Personal Details",
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const PersonalDetailsScreen()),
+                ),
+              ),
+              _SettingsTile(
+                icon: Icons.bookmark_border_rounded,
+                title: "Saved Medicines",
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const SavedMedicinesScreen()),
+                ),
+              ),
+              _SettingsTile(
+                icon: Icons.alarm_rounded,
+                title: "Reminders",
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const RemindersScreen()),
+                ),
+              ),
+              _SettingsTile(
+                icon: Icons.language_rounded,
+                title: "Language",
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Language settings coming soon!'),
+                      backgroundColor: AppColors.primaryTeal,
+                    ),
+                  );
+                },
               ),
               _SettingsTile(
                 icon: Icons.lock_outline_rounded,
-                title: "Privacy",
-                onTap: () {},
+                title: "Privacy Policy",
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const PrivacyPolicyScreen()),
+                ),
               ),
               _SettingsTile(
                 icon: Icons.help_outline_rounded,
@@ -70,9 +116,13 @@ class ProfileScreen extends StatelessWidget {
                 onTap: () {},
               ),
               _SettingsTile(
-                icon: Icons.info_outline_rounded,
-                title: "About",
-                onTap: () {},
+                icon: Icons.settings_outlined,
+                title: "Account Center",
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const AccountCenterScreen()),
+                ),
               ),
               const SizedBox(height: 12),
               _SettingsTile(
