@@ -158,7 +158,7 @@ class _ScanScreenState extends State<ScanScreen> {
               child: GestureDetector(
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const _ScanCameraScreen()),
+                  MaterialPageRoute(builder: (_) => const ScanCameraScreen()),
                 ),
                 child: Container(
                   padding: const EdgeInsets.all(20),
@@ -353,13 +353,13 @@ class _ScanScreenState extends State<ScanScreen> {
 // =============================================================================
 // SCAN CAMERA SCREEN — simulated camera scanner with overlay
 // =============================================================================
-class _ScanCameraScreen extends StatefulWidget {
-  const _ScanCameraScreen();
+class ScanCameraScreen extends StatefulWidget {
+  const ScanCameraScreen({super.key});
   @override
-  State<_ScanCameraScreen> createState() => _ScanCameraScreenState();
+  State<ScanCameraScreen> createState() => _ScanCameraScreenState();
 }
 
-class _ScanCameraScreenState extends State<_ScanCameraScreen>
+class _ScanCameraScreenState extends State<ScanCameraScreen>
     with SingleTickerProviderStateMixin {
   bool _isScanning = true;
   bool _isLoading = false;
