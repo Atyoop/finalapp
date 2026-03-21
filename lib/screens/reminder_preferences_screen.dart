@@ -12,6 +12,79 @@ class _ReminderPreferencesScreenState extends State<ReminderPreferencesScreen> {
   bool _earlyReminder = true;
   bool _missedDose = true;
 
+  void _showSnoozeDurationBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const SizedBox(width: 48), // Balancing for close button
+                  const Text("Snooze Duration", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textDark)),
+                  IconButton(icon: const Icon(Icons.close, color: AppColors.textDark), onPressed: () => Navigator.pop(context)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 150, // Fixed height for simple picker
+                child: ListWheelScrollView(
+                  itemExtent: 50,
+                  physics: const FixedExtentScrollPhysics(),
+                  children: [
+                    Container(height: 50, alignment: Alignment.center, child: const Text("15 min", style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.w400))),
+                    Container(height: 50, alignment: Alignment.center, child: const Text("20 min", style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.w400))),
+                    Container(
+                      height: 50,
+                      alignment: Alignment.center,
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          top: BorderSide(color: Color(0xFFEEEEEE), width: 1),
+                          bottom: BorderSide(color: Color(0xFFEEEEEE), width: 1),
+                        ),
+                      ),
+                      child: const Text("5 min", style: TextStyle(fontSize: 18, color: AppColors.textDark, fontWeight: FontWeight.w500)),
+                    ),
+                    Container(height: 50, alignment: Alignment.center, child: const Text("10 min", style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.w400))),
+                    Container(height: 50, alignment: Alignment.center, child: const Text("15 min", style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.w400))),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryTeal,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: const Text("Done", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -37,7 +110,7 @@ class _ReminderPreferencesScreenState extends State<ReminderPreferencesScreen> {
               icon: Icons.alarm_rounded,
               title: "Snooze Duration",
               subtitle: "select your Preferred snooze time.",
-              onTap: () {},
+              onTap: () => _showSnoozeDurationBottomSheet(context),
             ),
             const SizedBox(height: 16),
             _buildToggleCard(

@@ -5,6 +5,8 @@ import 'notification_setting_screen.dart';
 import 'reminder_preferences_screen.dart';
 import 'privacy_policy_screen.dart';
 import 'auth_screens.dart'; // To log out to WelcomeScreen if needed
+import 'appearance_screen.dart';
+import 'privacy_security_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -52,12 +54,15 @@ class ProfileScreen extends StatelessWidget {
                       ),
                       title: const Text("Mom", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark)),
                     ),
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.add, color: AppColors.textDark),
-                      title: const Text("Add another account", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: AppColors.textDark)),
-                      onTap: () {},
-                    ),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.add, color: AppColors.textDark),
+                        title: const Text("Add another account", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: AppColors.textDark)),
+                        onTap: () {
+                          Navigator.pop(context); // close bottom sheet
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+                        },
+                      ),
                   ],
                 ),
               ),
@@ -176,8 +181,8 @@ class ProfileScreen extends StatelessWidget {
               _buildTile(
                 icon: Icons.remove_red_eye_outlined,
                 title: "Appearance",
-                subtitle: "Select the preffered zoom for the app.",
-                onTap: () {},
+                subtitle: "Select the preferred zoom for the app.",
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AppearanceScreen())),
               ),
             ]),
 
@@ -186,9 +191,9 @@ class ProfileScreen extends StatelessWidget {
             _buildSettingsCard([
               _buildTile(
                 icon: Icons.lock_outline_rounded,
-                title: "Privacy Policy",
-                subtitle: "Review our privacy policy.",
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen())),
+                title: "Privacy & Security",
+                subtitle: "Manage password and account privacy.",
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacySecurityScreen())),
               ),
               const Divider(height: 1, indent: 56, color: Color(0xFFEEEEEE)),
               _buildTile(
