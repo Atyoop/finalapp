@@ -2,9 +2,18 @@ import 'dart:async';
 import 'package:final88/screens/auth_screens.dart';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'providers/medicine_provider.dart';
 
 void main() {
-  runApp(const DrugSafeApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => MedicineProvider()),
+      ],
+      child: const DrugSafeApp(),
+    ),
+  );
 }
 
 // --- 1. Colors & Theme ---

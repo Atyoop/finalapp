@@ -1,366 +1,99 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../main.dart';
+import '../models/medicine.dart';
+import '../providers/medicine_provider.dart';
 
 class AddReminderScreen extends StatefulWidget {
-  const AddReminderScreen({super.key});
+  final String? initialDrugName;
+  const AddReminderScreen({super.key, this.initialDrugName});
+
   @override
   State<AddReminderScreen> createState() => _AddReminderScreenState();
 }
 
 class _AddReminderScreenState extends State<AddReminderScreen> {
-  final _drugController = TextEditingController();
-  int _selectedHour = 8;
-  int _selectedMinute = 0;
-  bool _isAM = true;
-  String _frequency = 'Daily';
-  int _duration = 7;
+  late TextEditingController _nameController;
+  bool _isActive = true;
 
-  final List<String> _frequencies = [
-    'Daily',
-    'Every 8 hours',
-    'Every 12 hours',
-    'Weekly',
-    'As needed',
-  ];
+  DateTime _startDate = DateTime.now();
+  DateTime _endDate = DateTime.now().add(const Duration(days: 30));
+  TimeOfDay _time = const TimeOfDay(hour: 9, minute: 45);
+  String _frequency = "Every 6 Hours , 3 times a day";
+  DateTime _expiryDate = DateTime(2026, 7, 19);
+  
+  String _doseAmount = "1 Tablet";
+  int _initialStock = 30;
+  final TextEditingController _noteController = TextEditingController();
 
-  void _showTimePicker() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        int tempHour = _selectedHour;
-        int tempMinute = _selectedMinute;
-        bool tempAM = _isAM;
-        return StatefulBuilder(
-          builder: (ctx, setModalState) {
-            return Container(
-              padding: const EdgeInsets.all(24),
-              height: 320,
-              child: Column(
-                children: [
-                  const Text(
-                    'Set Time',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 20),
-                  Expanded(
-                    child: Row(
-                      children: [
-                        // Hour
-                        Expanded(
-                          child: ListWheelScrollView.useDelegate(
-                            itemExtent: 48,
-                            physics: const FixedExtentScrollPhysics(),
-                            controller: FixedExtentScrollController(
-                              initialItem: tempHour - 1,
-                            ),
-                            onSelectedItemChanged: (i) =>
-                                setModalState(() => tempHour = i + 1),
-                            childDelegate: ListWheelChildBuilderDelegate(
-                              childCount: 12,
-                              builder: (ctx, i) => Center(
-                                child: Text(
-                                  '${i + 1}'.padLeft(2, '0'),
-                                  style: TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: tempHour == i + 1
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                    color: tempHour == i + 1
-                                        ? AppColors.primaryTeal
-                                        : AppColors.textGrey,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const Text(
-                          ':',
-                          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                        ),
-                        // Minute
-                        Expanded(
-                          child: ListWheelScrollView.useDelegate(
-                            itemExtent: 48,
-                            physics: const FixedExtentScrollPhysics(),
-                            controller: FixedExtentScrollController(
-                              initialItem: tempMinute,
-                            ),
-                            onSelectedItemChanged: (i) =>
-                                setModalState(() => tempMinute = i),
-                            childDelegate: ListWheelChildBuilderDelegate(
-                              childCount: 60,
-                              builder: (ctx, i) => Center(
-                                child: Text(
-                                  '$i'.padLeft(2, '0'),
-                                  style: TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: tempMinute == i
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                    color: tempMinute == i
-                                        ? AppColors.primaryTeal
-                                        : AppColors.textGrey,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        // AM/PM
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              GestureDetector(
-                                onTap: () => setModalState(() => tempAM = true),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 10),
-                                  decoration: BoxDecoration(
-                                    color: tempAM
-                                        ? AppColors.primaryTeal
-                                        : Colors.grey.shade100,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    'AM',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: tempAM ? Colors.white : AppColors.textGrey,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              GestureDetector(
-                                onTap: () => setModalState(() => tempAM = false),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 10),
-                                  decoration: BoxDecoration(
-                                    color: !tempAM
-                                        ? AppColors.primaryTeal
-                                        : Colors.grey.shade100,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    'PM',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color:
-                                          !tempAM ? Colors.white : AppColors.textGrey,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          _selectedHour = tempHour;
-                          _selectedMinute = tempMinute;
-                          _isAM = tempAM;
-                        });
-                        Navigator.pop(ctx);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryTeal,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(26),
-                        ),
-                      ),
-                      child: const Text(
-                        'Done',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _showFrequencyPicker() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          height: 350,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Set Frequency',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              ..._frequencies.map((f) => GestureDetector(
-                    onTap: () {
-                      setState(() => _frequency = f);
-                      Navigator.pop(ctx);
-                    },
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 18, vertical: 14),
-                      margin: const EdgeInsets.only(bottom: 8),
-                      decoration: BoxDecoration(
-                        color: _frequency == f
-                            ? AppColors.primaryTeal.withOpacity(0.08)
-                            : Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: _frequency == f
-                              ? AppColors.primaryTeal
-                              : Colors.grey.shade200,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _frequency == f
-                                ? Icons.radio_button_checked
-                                : Icons.radio_button_off,
-                            color: _frequency == f
-                                ? AppColors.primaryTeal
-                                : AppColors.textGrey,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            f,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: _frequency == f
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
-                              color: _frequency == f
-                                  ? AppColors.primaryTeal
-                                  : AppColors.textDark,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _showDurationPicker() {
-    int tempDuration = _duration;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setModalState) {
-            return Container(
-              padding: const EdgeInsets.all(24),
-              height: 300,
-              child: Column(
-                children: [
-                  const Text(
-                    'Set Duration',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: ListWheelScrollView.useDelegate(
-                      itemExtent: 48,
-                      physics: const FixedExtentScrollPhysics(),
-                      controller:
-                          FixedExtentScrollController(initialItem: tempDuration - 1),
-                      onSelectedItemChanged: (i) =>
-                          setModalState(() => tempDuration = i + 1),
-                      childDelegate: ListWheelChildBuilderDelegate(
-                        childCount: 90,
-                        builder: (ctx, i) => Center(
-                          child: Text(
-                            '${i + 1} ${i == 0 ? 'day' : 'days'}',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: tempDuration == i + 1
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                              color: tempDuration == i + 1
-                                  ? AppColors.primaryTeal
-                                  : AppColors.textGrey,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        setState(() => _duration = tempDuration);
-                        Navigator.pop(ctx);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryTeal,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(26),
-                        ),
-                      ),
-                      child: const Text(
-                        'Done',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.initialDrugName ?? "Metformin");
   }
 
   @override
   void dispose() {
-    _drugController.dispose();
+    _nameController.dispose();
+    _noteController.dispose();
     super.dispose();
   }
 
-  String get _timeString =>
-      '${_selectedHour.toString().padLeft(2, '0')}:${_selectedMinute.toString().padLeft(2, '0')} ${_isAM ? 'AM' : 'PM'}';
+  Future<void> _selectDate(BuildContext context, DateTime initialDate, Function(DateTime) onPicked) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2101),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primaryTeal,
+              onPrimary: Colors.white,
+              onSurface: AppColors.textDark,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != initialDate) {
+      setState(() {
+        onPicked(picked);
+      });
+    }
+  }
+
+  void _showFrequencyBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _FrequencySelector(
+        onDone: (freq) {
+          setState(() {
+            _frequency = freq;
+          });
+        },
+      ),
+    );
+  }
+
+  void _showDoseBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _DoseSelector(
+        onDone: (dose) {
+          setState(() {
+            _doseAmount = dose;
+          });
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -369,123 +102,236 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.textDark),
-        title: const Text(
-          'Add Reminder',
-          style: TextStyle(
-            color: AppColors.textDark,
-            fontWeight: FontWeight.bold,
-          ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: AppColors.textDark, size: 20),
+          onPressed: () => Navigator.pop(context),
         ),
-        centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Drug name
-            const Text(
-              'Drug Name',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textGrey,
-              ),
-            ),
-            const SizedBox(height: 8),
+            // Medicine Header Card
             Container(
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              child: TextField(
-                controller: _drugController,
-                decoration: InputDecoration(
-                  hintText: 'Enter drug name',
-                  hintStyle: TextStyle(color: AppColors.textGrey),
-                  prefixIcon:
-                      Icon(Icons.medication, color: AppColors.primaryTeal),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                ),
+              child: Row(
+                children: [
+                   Container(
+                    width: 70,
+                    height: 70,
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.backgroundCream,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Image.network(
+                      'https://www.metformin.ws/wp-content/uploads/2018/10/metformin-bottle.png', // Placeholder
+                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.medication, color: AppColors.primaryTeal, size: 40),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      _nameController.text,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  Switch(
+                    value: _isActive,
+                    onChanged: (val) => setState(() => _isActive = val),
+                    activeColor: AppColors.primaryTeal,
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
 
-            // Set Time
-            _SettingOption(
-              icon: Icons.access_time_rounded,
-              title: 'Set Time',
-              value: _timeString,
-              onTap: _showTimePicker,
+            const Text("Schedule", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            
+            Row(
+              children: [
+                Expanded(
+                  child: _buildInfoCard(
+                    title: "Start date",
+                    value: DateFormat('d MMMM').format(_startDate),
+                    icon: Icons.calendar_today_outlined,
+                    onTap: () => _selectDate(context, _startDate, (d) => _startDate = d),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildInfoCard(
+                    title: "End date",
+                    value: DateFormat('d MMMM').format(_endDate),
+                    icon: Icons.calendar_today_outlined,
+                    onTap: () => _selectDate(context, _endDate, (d) => _endDate = d),
+                  ),
+                ),
+              ],
             ),
+            const SizedBox(height: 16),
 
-            // Frequency
-            _SettingOption(
-              icon: Icons.repeat_rounded,
-              title: 'Frequency',
+            _buildInfoCard(
+              title: "Time",
+              value: _time.format(context),
+              icon: Icons.access_time,
+              onTap: () async {
+                final TimeOfDay? picked = await showTimePicker(
+                  context: context,
+                  initialTime: _time,
+                );
+                if (picked != null) setState(() => _time = picked);
+              },
+            ),
+            const SizedBox(height: 16),
+
+            _buildInfoCard(
+              title: "Frequency",
               value: _frequency,
-              onTap: _showFrequencyPicker,
+              icon: Icons.alarm,
+              onTap: _showFrequencyBottomSheet,
             ),
+            const SizedBox(height: 16),
 
-            // Duration
-            _SettingOption(
-              icon: Icons.date_range_rounded,
-              title: 'Duration',
-              value: '$_duration days',
-              onTap: _showDurationPicker,
+            _buildInfoCard(
+              title: "Expiry date",
+              value: DateFormat('d MMMM y').format(_expiryDate),
+              icon: Icons.calendar_today_outlined,
+              onTap: () => _selectDate(context, _expiryDate, (d) => _expiryDate = d),
             ),
+            
+            const SizedBox(height: 32),
+            const Text("Dose", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
 
-            const SizedBox(height: 40),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildInfoCard(
+                    title: "Dose amount",
+                    value: _doseAmount,
+                    icon: Icons.medication_rounded,
+                    onTap: _showDoseBottomSheet,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildInfoCard(
+                    title: "Initial stock",
+                    value: "$_initialStock Pills",
+                    icon: Icons.track_changes,
+                    onTap: () {
+                      // Logic for stock
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
 
-            // Save
+            const Text("Note", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textGrey)),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_today, color: AppColors.textGrey, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _noteController,
+                      decoration: const InputDecoration(
+                        hintText: "Optional note about the medication",
+                        hintStyle: TextStyle(color: AppColors.textGrey, fontSize: 14),
+                        border: InputBorder.none,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+
             SizedBox(
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
                 onPressed: () {
-                  if (_drugController.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please enter a drug name'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                    return;
-                  }
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Reminder Added Successfully!'),
-                      backgroundColor: Colors.green,
-                    ),
+                  final medicine = Medicine(
+                    id: DateTime.now().millisecondsSinceEpoch.toString(),
+                    name: _nameController.text,
+                    imageUrl: 'https://www.metformin.ws/wp-content/uploads/2018/10/metformin-bottle.png',
+                    startDate: _startDate,
+                    endDate: _endDate,
+                    deadlineDate: _expiryDate.subtract(const Duration(days: 14)), // 2 weeks before
+                    expiryDate: _expiryDate,
+                    frequency: _frequency,
+                    time: _time,
+                    doseAmount: _doseAmount,
+                    initialStock: _initialStock,
+                    note: _noteController.text,
                   );
+                  context.read<MedicineProvider>().addMedicine(medicine);
                   Navigator.pop(context);
+                  Navigator.pop(context); // Go back to Home
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryTeal,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                  elevation: 3,
-                  shadowColor: AppColors.primaryTeal.withOpacity(0.3),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
-                child: const Text(
-                  'Done',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                child: const Text("Add Medicine", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
               ),
+            ),
+            const SizedBox(height: 48),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoCard({required String title, required String value, required IconData icon, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                const Icon(Icons.chevron_right, size: 18, color: AppColors.textGrey),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(icon, color: AppColors.textGrey, size: 20),
+                const SizedBox(width: 8),
+                Text(value, style: const TextStyle(fontSize: 14, color: AppColors.textDark)),
+              ],
             ),
           ],
         ),
@@ -494,75 +340,163 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   }
 }
 
-class _SettingOption extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String value;
-  final VoidCallback onTap;
+class _FrequencySelector extends StatefulWidget {
+  final Function(String) onDone;
+  const _FrequencySelector({required this.onDone});
 
-  const _SettingOption({
-    required this.icon,
-    required this.title,
-    required this.value,
-    required this.onTap,
-  });
+  @override
+  State<_FrequencySelector> createState() => _FrequencySelectorState();
+}
+
+class _FrequencySelectorState extends State<_FrequencySelector> {
+  int _repeatEvery = 1;
+  String _unit = "Day";
+  int _timesPerDay = 3;
+  String _gap = "Every 8 Hours";
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      ),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const SizedBox(width: 40),
+              const Text("Set frequency", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryTeal)),
+              IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _buildRow("Repeat every:", Row(
+            children: [
+              Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(4)), child: Text("$_repeatEvery")),
+              const SizedBox(width: 8),
+              Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), decoration: BoxDecoration(color: AppColors.primaryTeal.withOpacity(0.1), borderRadius: BorderRadius.circular(4)), child: Text(_unit, style: const TextStyle(color: AppColors.primaryTeal))),
+            ],
+          )),
+          const SizedBox(height: 16),
+          _buildRow("Times per day:", Row(
+            children: [
+              IconButton(onPressed: () => setState(() => _timesPerDay--), icon: const Icon(Icons.remove_circle_outline, color: AppColors.textGrey)),
+              Text("$_timesPerDay"),
+              IconButton(onPressed: () => setState(() => _timesPerDay++), icon: const Icon(Icons.add_circle, color: AppColors.primaryTeal)),
+            ],
+          )),
+          const SizedBox(height: 16),
+          _buildRow("Gap between doses:", Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(8)),
+            child: Row(
+              children: [
+                Text(_gap, style: const TextStyle(fontSize: 12)),
+                const Icon(Icons.unfold_more, size: 16),
+              ],
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: AppColors.primaryTeal.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: AppColors.primaryTeal, size: 22),
+          )),
+          const SizedBox(height: 24),
+          const Text("Summary: Take 3 Times A Day, Every 8 Hours.", style: TextStyle(color: AppColors.textGrey, fontSize: 12)),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              onPressed: () {
+                widget.onDone("Every $_gap, $_timesPerDay times a day");
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryTeal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+              child: const Text("Done", style: TextStyle(color: Colors.white)),
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textDark,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRow(String label, Widget child) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+        child,
+      ],
+    );
+  }
+}
+
+class _DoseSelector extends StatefulWidget {
+  final Function(String) onDone;
+  const _DoseSelector({required this.onDone});
+
+  @override
+  State<_DoseSelector> createState() => _DoseSelectorState();
+}
+
+class _DoseSelectorState extends State<_DoseSelector> {
+  double _dose = 1.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+       decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      ),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const SizedBox(width: 40),
+              const Text("Select Dosage", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+            ],
+          ),
+          const SizedBox(height: 32),
+          SizedBox(
+            height: 150,
+            child: ListWheelScrollView.useDelegate(
+              itemExtent: 50,
+              physics: const FixedExtentScrollPhysics(),
+              onSelectedItemChanged: (i) => setState(() => _dose = (i + 1) * 0.5),
+              childDelegate: ListWheelChildBuilderDelegate(
+                childCount: 20,
+                builder: (context, index) => Center(
+                  child: Text(
+                    "${(index + 1) * 0.5}",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: _dose == (index + 1) * 0.5 ? FontWeight.bold : FontWeight.normal,
+                      color: _dose == (index + 1) * 0.5 ? AppColors.primaryTeal : AppColors.textGrey,
+                    ),
+                  ),
                 ),
               ),
             ),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.primaryTeal,
-                fontWeight: FontWeight.w500,
-              ),
+          ),
+          const SizedBox(height: 32),
+           SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              onPressed: () {
+                widget.onDone("$_dose Tablet");
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryTeal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+              child: const Text("Done", style: TextStyle(color: Colors.white)),
             ),
-            const SizedBox(width: 8),
-            Icon(
-              Icons.chevron_right_rounded,
-              color: AppColors.textGrey.withOpacity(0.4),
-              size: 22,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

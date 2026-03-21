@@ -239,7 +239,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const AddReminderScreen()),
+        MaterialPageRoute(builder: (_) => AddReminderScreen(initialDrugName: d['name'])),
       ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
