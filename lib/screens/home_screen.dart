@@ -92,7 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               height: 50,
                               decoration: BoxDecoration(
                                 color: userProvider.currentAvatarColor
-                                    .withOpacity(0.15),
+                                    .withValues(alpha: 0.15),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
@@ -266,8 +266,8 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? Colors.white.withOpacity(0.2)
-                    : AppColors.primaryTeal.withOpacity(0.1),
+                    ? Colors.white.withValues(alpha: 0.2)
+                    : AppColors.primaryTeal.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Text(
@@ -310,7 +310,7 @@ class _HomeScreenState extends State<HomeScreen> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
-              color: AppColors.textGrey.withOpacity(0.7),
+              color: AppColors.textGrey.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 32),
@@ -329,7 +329,7 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: isSelected
             ? BoxDecoration(
                 border: Border.all(
-                  color: AppColors.primaryTeal.withOpacity(0.3),
+                  color: AppColors.primaryTeal.withValues(alpha: 0.3),
                 ),
                 borderRadius: BorderRadius.circular(12),
               )
@@ -374,7 +374,7 @@ class _MedicationCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),

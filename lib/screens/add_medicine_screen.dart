@@ -90,7 +90,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                 borderRadius: BorderRadius.circular(28),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: Colors.black.withValues(alpha: 0.04),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -105,7 +105,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                       decoration: InputDecoration(
                         hintText: "Type medication name...",
                         hintStyle: TextStyle(
-                          color: AppColors.textGrey.withOpacity(0.6),
+                          color: AppColors.textGrey.withValues(alpha: 0.6),
                           fontSize: 14,
                         ),
                         prefixIcon: Icon(
@@ -190,7 +190,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 10,
               offset: const Offset(0, 3),
             ),
@@ -230,7 +230,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
             ),
             Icon(
               Icons.add_circle_outline_rounded,
-              color: AppColors.primaryTeal.withOpacity(0.6),
+              color: AppColors.primaryTeal.withValues(alpha: 0.6),
             ),
           ],
         ),

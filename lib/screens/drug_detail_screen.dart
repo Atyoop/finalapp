@@ -54,7 +54,7 @@ class DrugDetailScreen extends StatelessWidget {
                   ),
                   Switch(
                     value: isSaved,
-                    activeColor: Colors.white,
+                    activeThumbColor: Colors.white,
                     activeTrackColor: AppColors.primaryTeal,
                     onChanged: (val) {
                       provider.toggleSaved({
@@ -105,7 +105,7 @@ class DrugDetailScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: drugIconColor.withOpacity(0.2),
+                          color: drugIconColor.withValues(alpha: 0.2),
                           blurRadius: 16,
                           offset: const Offset(0, 4),
                         ),
@@ -129,7 +129,7 @@ class DrugDetailScreen extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: drugIconColor.withOpacity(0.15),
+                      color: drugIconColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -238,7 +238,7 @@ class DrugDetailScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(28),
                     ),
                     elevation: 3,
-                    shadowColor: AppColors.primaryTeal.withOpacity(0.3),
+                    shadowColor: AppColors.primaryTeal.withValues(alpha: 0.3),
                   ),
                 ),
               ),
@@ -274,7 +274,7 @@ class _SectionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -356,7 +356,7 @@ class _SideEffectRow extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
+              color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -454,7 +454,7 @@ class _InteractionCheckerScreenState extends State<_InteractionCheckerScreen> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: AppColors.primaryTeal.withOpacity(0.3),
+                  color: AppColors.primaryTeal.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
@@ -543,7 +543,7 @@ class _InteractionCheckerScreenState extends State<_InteractionCheckerScreen> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.04),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),

@@ -119,7 +119,7 @@ class _ScanScreenState extends State<ScanScreen> {
                   borderRadius: BorderRadius.circular(28),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.04),
                       blurRadius: 12,
                       offset: const Offset(0, 3),
                     ),
@@ -134,7 +134,7 @@ class _ScanScreenState extends State<ScanScreen> {
                         decoration: InputDecoration(
                           hintText: "Type medication name...",
                           hintStyle: TextStyle(
-                            color: AppColors.textGrey.withOpacity(0.6),
+                            color: AppColors.textGrey.withValues(alpha: 0.6),
                             fontSize: 14,
                           ),
                           prefixIcon: Icon(
@@ -445,8 +445,7 @@ class _ScanScreenState extends State<ScanScreen> {
               },
             ),
           ),
-        ),
-      ),
+      ],
     );
   }
 }
@@ -462,7 +461,6 @@ class ScanCameraScreen extends StatefulWidget {
 
 class _ScanCameraScreenState extends State<ScanCameraScreen>
     with SingleTickerProviderStateMixin {
-  bool _isScanning = true;
   bool _isLoading = false;
   bool _showResult = false;
   late AnimationController _animController;
@@ -488,7 +486,6 @@ class _ScanCameraScreenState extends State<ScanCameraScreen>
 
   void _simulateScan() {
     setState(() {
-      _isScanning = false;
       _isLoading = true;
     });
 
@@ -559,9 +556,9 @@ class _ScanCameraScreenState extends State<ScanCameraScreen>
                             gradient: LinearGradient(
                               colors: [
                                 Colors.transparent,
-                                AppColors.primaryTeal.withOpacity(0.8),
+                                AppColors.primaryTeal.withValues(alpha: 0.8),
                                 const Color(0xFF3A9EA5),
-                                AppColors.primaryTeal.withOpacity(0.8),
+                                AppColors.primaryTeal.withValues(alpha: 0.8),
                                 Colors.transparent,
                               ],
                             ),
@@ -576,7 +573,7 @@ class _ScanCameraScreenState extends State<ScanCameraScreen>
                     child: Icon(
                       Icons.medication_rounded,
                       size: 80,
-                      color: Colors.white.withOpacity(0.15),
+                      color: Colors.white.withValues(alpha: 0.15),
                     ),
                   ),
                 ],
@@ -682,7 +679,7 @@ class _ScanCameraScreenState extends State<ScanCameraScreen>
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
+                    color: Colors.black.withValues(alpha: 0.06),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -755,7 +752,7 @@ class _ScanCameraScreenState extends State<ScanCameraScreen>
                     borderRadius: BorderRadius.circular(28),
                   ),
                   elevation: 3,
-                  shadowColor: AppColors.primaryTeal.withOpacity(0.3),
+                  shadowColor: AppColors.primaryTeal.withValues(alpha: 0.3),
                 ),
                 child: const Text(
                   'View Full Details',
@@ -774,7 +771,6 @@ class _ScanCameraScreenState extends State<ScanCameraScreen>
               child: OutlinedButton(
                 onPressed: () {
                   setState(() {
-                    _isScanning = true;
                     _isLoading = false;
                     _showResult = false;
                   });

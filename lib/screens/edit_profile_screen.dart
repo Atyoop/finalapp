@@ -397,7 +397,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           onTap: () => setModalState(() => tempAvatar = i),
                           child: Container(
                             decoration: BoxDecoration(
-                              color: _avatarColors[i].withOpacity(0.15),
+                              color: _avatarColors[i].withValues(alpha: 0.15),
                               shape: BoxShape.circle,
                               border: isSelected
                                   ? Border.all(
@@ -491,11 +491,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     height: 100,
                     decoration: BoxDecoration(
                       color: _imagePath == null
-                          ? _avatarColors[_selectedAvatar].withOpacity(0.15)
+                          ? _avatarColors[_selectedAvatar].withValues(alpha: 0.15)
                           : AppColors.backgroundCream,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: AppColors.primaryTeal.withOpacity(0.3),
+                        color: AppColors.primaryTeal.withValues(alpha: 0.3),
                         width: 2,
                       ),
                       image: _imagePath != null
@@ -558,7 +558,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   borderRadius: BorderRadius.circular(30),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
+                      color: Colors.black.withValues(alpha: 0.03),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -605,7 +605,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   borderRadius: BorderRadius.circular(30),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
+                      color: Colors.black.withValues(alpha: 0.03),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -662,7 +662,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     borderRadius: BorderRadius.circular(28),
                   ),
                   elevation: 3,
-                  shadowColor: AppColors.primaryTeal.withOpacity(0.3),
+                  shadowColor: AppColors.primaryTeal.withValues(alpha: 0.3),
                 ),
                 child: const Text(
                   'Save',
@@ -705,7 +705,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -743,7 +743,7 @@ class _GenderOption extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.primaryTeal.withOpacity(0.08)
+              ? AppColors.primaryTeal.withValues(alpha: 0.08)
               : Colors.grey.shade50,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(

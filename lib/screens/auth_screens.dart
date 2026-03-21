@@ -318,6 +318,8 @@ class _LoginScreenState extends State<LoginScreen> {
         }),
       );
 
+      if (!mounted) return;
+
       if (response.statusCode == 200) {
         // --- SUCCESS ---
         ScaffoldMessenger.of(context).showSnackBar(

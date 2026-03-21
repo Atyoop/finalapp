@@ -37,7 +37,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 20,
               offset: const Offset(0, -4),
             ),
@@ -119,7 +119,7 @@ class _NavItem extends StatelessWidget {
             isActive ? activeIcon : icon,
             color: isActive
                 ? AppColors.primaryTeal
-                : AppColors.textGrey.withOpacity(0.6),
+                : AppColors.textGrey.withValues(alpha: 0.6),
             size: 26,
           ),
           const SizedBox(height: 4),
@@ -130,7 +130,7 @@ class _NavItem extends StatelessWidget {
               fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
               color: isActive
                   ? AppColors.primaryTeal
-                  : AppColors.textGrey.withOpacity(0.6),
+                  : AppColors.textGrey.withValues(alpha: 0.6),
             ),
           ),
         ],

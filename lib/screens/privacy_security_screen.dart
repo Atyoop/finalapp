@@ -87,7 +87,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -120,7 +120,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
             if (!hideChevron)
               Icon(
                 Icons.chevron_right_rounded,
-                color: AppColors.textGrey.withOpacity(0.5),
+                color: AppColors.textGrey.withValues(alpha: 0.5),
               ),
           ],
         ),
@@ -142,7 +142,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -175,7 +175,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: Colors.white,
+            activeThumbColor: Colors.white,
             activeTrackColor: AppColors.primaryTeal,
           ),
         ],

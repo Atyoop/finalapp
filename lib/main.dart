@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/medicine_provider.dart';
 import 'providers/user_provider.dart';
-import 'providers/theme_provider.dart';
 import 'providers/saved_medicines_provider.dart';
 
 void main() {
@@ -40,7 +39,7 @@ class PlaceholderImageWidget extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         shape: BoxShape.circle,
       ),
       child: Center(child: Icon(Icons.science, size: 100, color: color)),

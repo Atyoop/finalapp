@@ -164,7 +164,7 @@ class _AccountTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -177,8 +177,8 @@ class _AccountTile extends StatelessWidget {
               height: 42,
               decoration: BoxDecoration(
                 color: isDestructive
-                    ? Colors.red.withOpacity(0.08)
-                    : AppColors.primaryTeal.withOpacity(0.08),
+                    ? Colors.red.withValues(alpha: 0.08)
+                    : AppColors.primaryTeal.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: color, size: 22),
@@ -206,7 +206,7 @@ class _AccountTile extends StatelessWidget {
             ),
             Icon(
               Icons.chevron_right_rounded,
-              color: AppColors.textGrey.withOpacity(0.4),
+              color: AppColors.textGrey.withValues(alpha: 0.4),
               size: 22,
             ),
           ],

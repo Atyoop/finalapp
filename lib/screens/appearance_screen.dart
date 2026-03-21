@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../main.dart';
 
 class AppearanceScreen extends StatefulWidget {
@@ -164,7 +163,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
+                      color: Colors.black.withValues(alpha: 0.03),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -203,7 +202,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
                     ),
                     Icon(
                       Icons.chevron_right_rounded,
-                      color: AppColors.textGrey.withOpacity(0.5),
+                      color: AppColors.textGrey.withValues(alpha: 0.5),
                     ),
                   ],
                 ),

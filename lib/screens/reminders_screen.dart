@@ -98,7 +98,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -227,7 +227,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                     borderRadius: BorderRadius.circular(18),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
+                        color: Colors.black.withValues(alpha: 0.03),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -239,7 +239,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                         width: 46,
                         height: 46,
                         decoration: BoxDecoration(
-                          color: (r['color'] as Color).withOpacity(0.12),
+                          color: (r['color'] as Color).withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Icon(
@@ -293,7 +293,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                             border: Border.all(
                               color: taken
                                   ? AppColors.primaryTeal
-                                  : AppColors.textGrey.withOpacity(0.3),
+                                  : AppColors.textGrey.withValues(alpha: 0.3),
                               width: 2,
                             ),
                           ),
@@ -350,7 +350,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                   color: isSelected
                       ? AppColors.primaryTeal
                       : isToday
-                      ? AppColors.primaryTeal.withOpacity(0.1)
+                      ? AppColors.primaryTeal.withValues(alpha: 0.1)
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(10),
                 ),

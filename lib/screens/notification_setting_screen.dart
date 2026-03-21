@@ -13,7 +13,7 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
   bool _appNotification = true;
   bool _vibration = true;
   bool _showOnLockScreen = true;
-  String _notificationSound = "Default app sound";
+
 
   void _showSoundBottomSheet() {
     showModalBottomSheet(
@@ -65,7 +65,7 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
                   ),
                 ),
                 onTap: () {
-                  setState(() => _notificationSound = "Default app sound");
+                  Navigator.pop(context);
                   Navigator.pop(context);
                 },
               ),
@@ -78,7 +78,7 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
                   ),
                 ),
                 onTap: () {
-                  setState(() => _notificationSound = "Silent");
+                  Navigator.pop(context);
                   Navigator.pop(context);
                 },
               ),
@@ -194,7 +194,7 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -226,7 +226,7 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
             ),
             Icon(
               Icons.chevron_right_rounded,
-              color: AppColors.textGrey.withOpacity(0.5),
+              color: AppColors.textGrey.withValues(alpha: 0.5),
             ),
           ],
         ),
@@ -248,7 +248,7 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -281,7 +281,7 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: Colors.white,
+            activeThumbColor: Colors.white,
             activeTrackColor: AppColors.primaryTeal,
           ),
         ],

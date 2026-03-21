@@ -3,11 +3,10 @@ import '../main.dart';
 import 'dart:io';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
-import '../providers/theme_provider.dart';
+
 import 'edit_profile_screen.dart';
 import 'notification_setting_screen.dart';
 import 'reminder_preferences_screen.dart';
-import 'privacy_policy_screen.dart';
 import 'auth_screens.dart'; // To log out to WelcomeScreen if needed
 import 'appearance_screen.dart';
 import 'privacy_security_screen.dart';
@@ -183,12 +182,12 @@ class ProfileScreen extends StatelessWidget {
                       width: 70,
                       height: 70,
                       decoration: BoxDecoration(
-                        color: userProvider.currentAvatarColor.withOpacity(
-                          0.15,
+                        color: userProvider.currentAvatarColor.withValues(
+                          alpha: 0.15,
                         ),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: AppColors.primaryTeal.withOpacity(0.3),
+                          color: AppColors.primaryTeal.withValues(alpha: 0.3),
                           width: 2,
                         ),
                       ),
@@ -346,23 +345,19 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildSettingsCard(List<Widget> children) {
-    return Consumer<ThemeProvider>(
-      builder: (context, _, __) {
-        return Container(
-          decoration: BoxDecoration(
-            color: AppColors.cardColor,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          child: Column(children: children),
-        );
-      },
+        ],
+      ),
+      child: Column(children: children),
     );
   }
 
@@ -405,7 +400,7 @@ class ProfileScreen extends StatelessWidget {
             ),
             Icon(
               Icons.chevron_right_rounded,
-              color: AppColors.textGrey.withOpacity(0.5),
+              color: AppColors.textGrey.withValues(alpha: 0.5),
             ),
           ],
         ),

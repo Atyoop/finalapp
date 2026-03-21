@@ -40,7 +40,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                   borderRadius: BorderRadius.circular(36),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primaryTeal.withOpacity(0.3),
+                      color: AppColors.primaryTeal.withValues(alpha: 0.3),
                       blurRadius: 24,
                       offset: const Offset(0, 8),
                     ),
@@ -112,7 +112,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                       borderRadius: BorderRadius.circular(28),
                     ),
                     elevation: 4,
-                    shadowColor: AppColors.primaryTeal.withOpacity(0.3),
+                    shadowColor: AppColors.primaryTeal.withValues(alpha: 0.3),
                   ),
                   child: const Text(
                     "Start Chat",
@@ -158,7 +158,7 @@ class _QuickActionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -198,7 +198,7 @@ class _QuickActionCard extends StatelessWidget {
           ),
           Icon(
             Icons.chevron_right_rounded,
-            color: AppColors.textGrey.withOpacity(0.4),
+            color: AppColors.textGrey.withValues(alpha: 0.4),
           ),
         ],
       ),
@@ -299,7 +299,7 @@ class _ChatConversationState extends State<_ChatConversation> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
@@ -352,7 +352,7 @@ class _ChatConversationState extends State<_ChatConversation> {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, -2),
                 ),
@@ -431,7 +431,7 @@ class _MessageBubble extends StatelessWidget {
               width: 30,
               height: 30,
               decoration: BoxDecoration(
-                color: AppColors.primaryTeal.withOpacity(0.12),
+                color: AppColors.primaryTeal.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
@@ -455,7 +455,7 @@ class _MessageBubble extends StatelessWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: Colors.black.withValues(alpha: 0.04),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
