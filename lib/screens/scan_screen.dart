@@ -11,6 +11,7 @@ class ScanScreen extends StatefulWidget {
 class _ScanScreenState extends State<ScanScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+  final List<Map<String, dynamic>> _selectedMeds = [];
 
   final List<Map<String, dynamic>> _drugs = [
     {
@@ -183,198 +184,267 @@ class _ScanScreenState extends State<ScanScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            // Scan card
+            
+            Expanded(
+              child: _query.isNotEmpty ? _buildSearchResults() : _buildSelectedMeds(),
+            ),
+
+            // Check Interactions button
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: GestureDetector(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ScanCameraScreen()),
-                ),
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF2C6E72), Color(0xFF3A9EA5)],
+              padding: const EdgeInsets.all(20),
+              child: SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _selectedMeds.length >= 2 ? () {} : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _selectedMeds.length >= 2 ? AppColors.primaryTeal : Colors.grey[300],
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    "Check Interactions",
+                    style: TextStyle(
+                      color: _selectedMeds.length >= 2 ? Colors.white : Colors.grey[500],
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchResults() {
+    if (_filtered.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.search_off_rounded,
+              size: 56,
+              color: AppColors.textGrey.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "No results found",
+              style: TextStyle(
+                color: AppColors.textGrey,
+                fontSize: 15,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      itemCount: _filtered.length,
+      itemBuilder: (context, i) {
+        final d = _filtered[i];
+        final isSelected = _selectedMeds.contains(d);
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              if (isSelected) {
+                _selectedMeds.remove(d);
+              } else {
+                _selectedMeds.add(d);
+              }
+            });
+          },
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: isSelected ? AppColors.primaryTeal.withValues(alpha: 0.05) : Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+              border: isSelected ? Border.all(color: AppColors.primaryTeal.withValues(alpha: 0.3), width: 1.5) : null,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: d['color'],
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    d['icon'],
+                    color: d['iconColor'],
+                    size: 26,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        d['name'],
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "${d['type']} • ${d['form']}",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textGrey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  isSelected ? Icons.check_circle : Icons.add_circle_outline,
+                  color: isSelected ? AppColors.primaryTeal : AppColors.textGrey.withValues(alpha: 0.4),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSelectedMeds() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Text(
+            "Selected medications (${_selectedMeds.length})",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textDark,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (_selectedMeds.isEmpty)
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.medication_outlined,
+                    size: 64,
+                    color: AppColors.textGrey.withValues(alpha: 0.3),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    "No medications selected",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Search or scan a medication to add\nit to your check list.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.textGrey),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: _selectedMeds.length,
+              itemBuilder: (context, i) {
+                final d = _selectedMeds[i];
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primaryTeal.withOpacity(0.3),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
                       ),
                     ],
                   ),
                   child: Row(
                     children: [
                       Container(
-                        width: 52,
-                        height: 52,
+                        width: 50,
+                        height: 50,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(16),
+                          color: d['color'],
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                        child: const Icon(
-                          Icons.document_scanner_rounded,
-                          color: Colors.white,
-                          size: 28,
+                        child: Icon(
+                          d['icon'],
+                          color: d['iconColor'],
+                          size: 26,
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              "Scan Medication",
+                            Text(
+                              d['name'],
                               style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
+                                fontSize: 15,
                                 fontWeight: FontWeight.w600,
+                                color: AppColors.textDark,
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              "Use camera to identify a pill",
+                              "${d['type']} • ${d['form']}",
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.8),
                                 fontSize: 12,
+                                color: AppColors.textGrey,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        color: Colors.white70,
-                        size: 18,
+                      IconButton(
+                        icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
+                        onPressed: () {
+                          setState(() {
+                            _selectedMeds.remove(d);
+                          });
+                        },
                       ),
                     ],
                   ),
-                ),
-              ),
+                );
+              },
             ),
-            const SizedBox(height: 24),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                _query.isEmpty ? "All Medications" : "Results",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textDark,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            // Results
-            Expanded(
-              child: _filtered.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.search_off_rounded,
-                            size: 56,
-                            color: AppColors.textGrey.withOpacity(0.3),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            "No results found",
-                            style: TextStyle(
-                              color: AppColors.textGrey,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      itemCount: _filtered.length,
-                      itemBuilder: (context, i) {
-                        final d = _filtered[i];
-                        return GestureDetector(
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => DrugDetailScreen(
-                                drugName: d['name'],
-                                drugCategory: d['type'],
-                                drugColor: d['color'],
-                                drugIcon: d['icon'],
-                                drugIconColor: d['iconColor'],
-                              ),
-                            ),
-                          ),
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(18),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.03),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 50,
-                                  height: 50,
-                                  decoration: BoxDecoration(
-                                    color: d['color'],
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  child: Icon(
-                                    d['icon'],
-                                    color: d['iconColor'],
-                                    size: 26,
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        d['name'],
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.textDark,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        "${d['type']} • ${d['form']}",
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: AppColors.textGrey,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Icon(
-                                  Icons.chevron_right_rounded,
-                                  color: AppColors.textGrey.withOpacity(0.4),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
+          ),
         ),
       ),
     );

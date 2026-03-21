@@ -75,36 +75,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Identify Your Medication",
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textDark,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              "Choose a method to add your medication",
-              style: TextStyle(fontSize: 14, color: AppColors.textGrey),
-            ),
-            const SizedBox(height: 32),
-
-            // Scan Option
-            _buildOptionCard(
-              title: "Scan Prescription",
-              subtitle: "Use camera to identify medication (OCR)",
-              icon: Icons.camera_alt_rounded,
-              color: AppColors.primaryTeal,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ScanCameraScreen()),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Manual Search Option
-            Text(
-              "Or search manually",
+              "Search for your medication",
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -197,71 +168,6 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                   ),
                 ),
             ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOptionCard({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            ),
-          ],
-          border: Border.all(color: color.withOpacity(0.1), width: 1),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(icon, color: color, size: 28),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textDark,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(fontSize: 12, color: AppColors.textGrey),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.chevron_right_rounded,
-              color: AppColors.textGrey.withOpacity(0.4),
-            ),
           ],
         ),
       ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../main.dart';
-import '../providers/saved_medicines_provider.dart';
+import '../providers/medicine_provider.dart';
 import 'drug_detail_screen.dart';
 
 class SavedMedicinesScreen extends StatelessWidget {
@@ -16,7 +16,7 @@ class SavedMedicinesScreen extends StatelessWidget {
         elevation: 0,
         iconTheme: IconThemeData(color: AppColors.textDark),
         title: Text(
-          'Saved Medicines',
+          'My Meds',
           style: TextStyle(
             color: AppColors.textDark,
             fontWeight: FontWeight.bold,
@@ -24,9 +24,9 @@ class SavedMedicinesScreen extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: Consumer<SavedMedicinesProvider>(
+      body: Consumer<MedicineProvider>(
         builder: (context, provider, child) {
-          final savedMedicines = provider.savedMedicines;
+          final savedMedicines = provider.medicines;
           return savedMedicines.isEmpty
               ? Center(
                   child: Column(
@@ -35,11 +35,11 @@ class SavedMedicinesScreen extends StatelessWidget {
                       Icon(
                         Icons.bookmark_border_rounded,
                         size: 64,
-                        color: AppColors.textGrey.withOpacity(0.3),
+                        color: AppColors.textGrey.withValues(alpha: 0.3),
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'No saved medicines yet',
+                        'No medicines added yet',
                         style: TextStyle(
                           fontSize: 16,
                           color: AppColors.textGrey,
@@ -59,11 +59,11 @@ class SavedMedicinesScreen extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder: (_) => DrugDetailScreen(
-                              drugName: med['name'],
-                              drugCategory: med['type'],
-                              drugColor: med['color'],
-                              drugIcon: med['icon'],
-                              drugIconColor: med['iconColor'],
+                              drugName: med.name,
+                              drugCategory: "Personal Med",
+                              drugColor: AppColors.primaryTeal.withValues(alpha: 0.1),
+                              drugIcon: Icons.medication,
+                              drugIconColor: AppColors.primaryTeal,
                             ),
                           ),
                         );
@@ -88,12 +88,12 @@ class SavedMedicinesScreen extends StatelessWidget {
                               width: 50,
                               height: 50,
                               decoration: BoxDecoration(
-                                color: med['color'],
+                                color: AppColors.primaryTeal.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: Icon(
-                                med['icon'],
-                                color: med['iconColor'],
+                                Icons.medication,
+                                color: AppColors.primaryTeal,
                                 size: 26,
                               ),
                             ),
@@ -103,7 +103,7 @@ class SavedMedicinesScreen extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    med['name'],
+                                    med.name,
                                     style: TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w600,
@@ -112,7 +112,7 @@ class SavedMedicinesScreen extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '${med['type']} • ${med['form']}',
+                                    med.doseAmount,
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: AppColors.textGrey,
@@ -122,7 +122,7 @@ class SavedMedicinesScreen extends StatelessWidget {
                               ),
                             ),
                             Icon(
-                              Icons.bookmark_rounded,
+                              Icons.medication,
                               color: AppColors.primaryTeal,
                               size: 24,
                             ),

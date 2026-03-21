@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../main.dart';
-import '../providers/theme_provider.dart';
 
 class AppearanceScreen extends StatefulWidget {
   const AppearanceScreen({super.key});
@@ -209,67 +208,6 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Consumer<ThemeProvider>(
-              builder: (context, themeProvider, child) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.cardColor,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.dark_mode_outlined,
-                        color: AppColors.textDark,
-                        size: 24,
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Dark Mode",
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textDark,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              "Switch to dark theme.",
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textGrey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Switch(
-                        value: themeProvider.isDarkMode,
-                        onChanged: (v) => themeProvider.toggleTheme(v),
-                        activeColor: Colors.white,
-                        activeTrackColor: AppColors.primaryTeal,
-                      ),
-                    ],
-                  ),
-                );
-              },
             ),
           ],
         ),

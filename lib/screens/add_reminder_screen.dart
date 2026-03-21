@@ -24,7 +24,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   DateTime _expiryDate = DateTime(2026, 7, 19);
 
   String _doseAmount = "1 Tablet";
-  final int _initialStock = 30;
+  int _initialStock = 30;
   final TextEditingController _noteController = TextEditingController();
 
   @override
@@ -260,7 +260,40 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                     value: "$_initialStock Pills",
                     icon: Icons.track_changes,
                     onTap: () {
-                      // Logic for stock
+                      showDialog(
+                        context: context,
+                        builder: (context) {
+                          final TextEditingController stockController =
+                              TextEditingController(text: _initialStock.toString());
+                          return AlertDialog(
+                            title: const Text("Initial stock"),
+                            content: TextField(
+                              controller: stockController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                hintText: "Enter number of pills",
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: Text("Cancel", style: TextStyle(color: AppColors.textGrey)),
+                              ),
+                              ElevatedButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _initialStock = int.tryParse(stockController.text) ?? 0;
+                                  });
+                                  Navigator.pop(context);
+                                },
+                                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryTeal),
+                                child: const Text("Save", style: TextStyle(color: Colors.white)),
+                              ),
+                            ],
+                          );
+                        },
+                      );
                     },
                   ),
                 ),
@@ -429,10 +462,25 @@ class _FrequencySelector extends StatefulWidget {
 }
 
 class _FrequencySelectorState extends State<_FrequencySelector> {
-  final int _repeatEvery = 1;
-  final String _unit = "Day";
+  final TextEditingController _repeatController = TextEditingController(text: "1");
+  String _unit = "Day";
   int _timesPerDay = 3;
-  final String _gap = "Every 8 Hours";
+  String _gap = "Every 8 Hours";
+
+  final List<String> _units = ["Day", "Week", "Month"];
+  final List<String> _gaps = [
+    "Every 4 Hours",
+    "Every 6 Hours",
+    "Every 8 Hours",
+    "Every 12 Hours",
+    "Every 24 Hours"
+  ];
+
+  @override
+  void dispose() {
+    _repeatController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -441,7 +489,12 @@ class _FrequencySelectorState extends State<_FrequencySelector> {
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
       ),
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24, // adjust for keyboard
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -468,30 +521,45 @@ class _FrequencySelectorState extends State<_FrequencySelector> {
             "Repeat every:",
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
+                SizedBox(
+                  width: 50,
+                  height: 36,
+                  child: TextField(
+                    controller: _repeatController,
+                    keyboardType: TextInputType.number,
+                    textAlign: TextAlign.center,
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      filled: true,
+                      fillColor: Colors.grey[100],
+                    ),
+                    onChanged: (val) => setState(() {}),
                   ),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text("$_repeatEvery"),
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
-                  ),
+                  height: 36,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
                     color: AppColors.primaryTeal.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(
-                    _unit,
-                    style: TextStyle(color: AppColors.primaryTeal),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _unit,
+                      icon: Icon(Icons.keyboard_arrow_down, color: AppColors.primaryTeal),
+                      style: TextStyle(color: AppColors.primaryTeal, fontWeight: FontWeight.bold),
+                      onChanged: (String? newValue) {
+                        setState(() { _unit = newValue!; });
+                      },
+                      items: _units.map<DropdownMenuItem<String>>((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
+                    ),
                   ),
                 ),
               ],
@@ -503,13 +571,13 @@ class _FrequencySelectorState extends State<_FrequencySelector> {
             Row(
               children: [
                 IconButton(
-                  onPressed: () => setState(() => _timesPerDay--),
+                  onPressed: _timesPerDay > 1 ? () => setState(() => _timesPerDay--) : null,
                   icon: Icon(
                     Icons.remove_circle_outline,
-                    color: AppColors.textGrey,
+                    color: _timesPerDay > 1 ? AppColors.textGrey : Colors.grey[300],
                   ),
                 ),
-                Text("$_timesPerDay"),
+                Text("$_timesPerDay", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 IconButton(
                   onPressed: () => setState(() => _timesPerDay++),
                   icon: Icon(
@@ -524,22 +592,33 @@ class _FrequencySelectorState extends State<_FrequencySelector> {
           _buildRow(
             "Gap between doses:",
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              height: 36,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
                 color: Colors.grey[200],
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Row(
-                children: [
-                  Text(_gap, style: const TextStyle(fontSize: 12)),
-                  const Icon(Icons.unfold_more, size: 16),
-                ],
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _gap,
+                  icon: const Icon(Icons.unfold_more, size: 16),
+                  style: const TextStyle(fontSize: 12, color: Colors.black),
+                  onChanged: (String? newValue) {
+                    setState(() { _gap = newValue!; });
+                  },
+                  items: _gaps.map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                ),
               ),
             ),
           ),
           const SizedBox(height: 24),
           Text(
-            "Summary: Take 3 Times A Day, Every 8 Hours.",
+            "Summary: Take $_timesPerDay Times A Day, $_gap.",
             style: TextStyle(color: AppColors.textGrey, fontSize: 12),
           ),
           const SizedBox(height: 24),
