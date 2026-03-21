@@ -26,10 +26,10 @@ class DrugDetailScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.textDark),
+        iconTheme: IconThemeData(color: AppColors.textDark),
         title: Text(
           drugName,
-          style: const TextStyle(
+          style: TextStyle(
             color: AppColors.textDark,
             fontWeight: FontWeight.bold,
           ),
@@ -44,7 +44,14 @@ class DrugDetailScreen extends StatelessWidget {
               // Let's use a Switch widget.
               return Row(
                 children: [
-                  const Text("Save ", style: TextStyle(color: AppColors.textDark, fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text(
+                    "Save ",
+                    style: TextStyle(
+                      color: AppColors.textDark,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   Switch(
                     value: isSaved,
                     activeColor: Colors.white,
@@ -53,14 +60,17 @@ class DrugDetailScreen extends StatelessWidget {
                       provider.toggleSaved({
                         'name': drugName,
                         'type': drugCategory,
-                        'form': 'Tablet • 500mg', // mock form since it is not passed
+                        'form':
+                            'Tablet • 500mg', // mock form since it is not passed
                         'color': drugColor,
                         'icon': drugIcon,
                         'iconColor': drugIconColor,
                       });
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(val ? 'Medicine Added' : 'Medicine Deleted'),
+                          content: Text(
+                            val ? 'Medicine Added' : 'Medicine Deleted',
+                          ),
                           duration: const Duration(seconds: 1),
                         ),
                       );
@@ -106,7 +116,7 @@ class DrugDetailScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text(
                     drugName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: AppColors.textDark,
@@ -279,7 +289,7 @@ class _SectionCard extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textDark,
@@ -340,7 +350,7 @@ class _SideEffectRow extends StatelessWidget {
           Expanded(
             child: Text(
               name,
-              style: const TextStyle(fontSize: 14, color: AppColors.textDark),
+              style: TextStyle(fontSize: 14, color: AppColors.textDark),
             ),
           ),
           Container(
@@ -391,8 +401,8 @@ class _InteractionCheckerScreenState extends State<_InteractionCheckerScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.textDark),
-        title: const Text(
+        iconTheme: IconThemeData(color: AppColors.textDark),
+        title: Text(
           "Drug Interaction Checker",
           style: TextStyle(
             color: AppColors.textDark,
@@ -421,7 +431,7 @@ class _InteractionCheckerScreenState extends State<_InteractionCheckerScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               "Check Drug Interactions",
               style: TextStyle(
                 fontSize: 20,
@@ -453,7 +463,7 @@ class _InteractionCheckerScreenState extends State<_InteractionCheckerScreen> {
                   const SizedBox(width: 12),
                   Text(
                     widget.drugName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textDark,
@@ -465,7 +475,7 @@ class _InteractionCheckerScreenState extends State<_InteractionCheckerScreen> {
             const SizedBox(height: 12),
 
             // Compare icon
-            const Icon(
+            Icon(
               Icons.compare_arrows_rounded,
               color: AppColors.primaryTeal,
               size: 28,
@@ -547,7 +557,7 @@ class _InteractionCheckerScreenState extends State<_InteractionCheckerScreen> {
                       size: 36,
                     ),
                     const SizedBox(height: 12),
-                    const Text(
+                    Text(
                       "Moderate Interaction Found",
                       style: TextStyle(
                         fontSize: 16,
@@ -618,12 +628,12 @@ class _InteractionCheckerScreenState extends State<_InteractionCheckerScreen> {
                           });
                         },
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppColors.primaryTeal),
+                          side: BorderSide(color: AppColors.primaryTeal),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(24),
                           ),
                         ),
-                        child: const Text(
+                        child: Text(
                           "Check Another",
                           style: TextStyle(
                             color: AppColors.primaryTeal,

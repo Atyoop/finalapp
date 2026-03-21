@@ -24,7 +24,8 @@ class MedicineProvider extends ChangeNotifier {
     return _medicines.where((m) {
       // Logic to check if date is between start and end date
       // and potentially matches frequency (simplified: just check range)
-      return (date.isAfter(m.startDate) || date.isAtSameMomentAs(m.startDate)) &&
+      return (date.isAfter(m.startDate) ||
+              date.isAtSameMomentAs(m.startDate)) &&
           (date.isBefore(m.endDate) || date.isAtSameMomentAs(m.endDate));
     }).toList();
   }

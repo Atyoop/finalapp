@@ -45,9 +45,19 @@ class _RemindersScreenState extends State<RemindersScreen> {
   ];
 
   List<String> get _monthNames => [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'
-      ];
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
 
   int get _daysInMonth =>
       DateUtils.getDaysInMonth(_selectedDate.year, _selectedDate.month);
@@ -59,8 +69,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.textDark),
-        title: const Text(
+        iconTheme: IconThemeData(color: AppColors.textDark),
+        title: Text(
           'Reminders',
           style: TextStyle(
             color: AppColors.textDark,
@@ -101,14 +111,19 @@ class _RemindersScreenState extends State<RemindersScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.chevron_left, color: AppColors.textDark),
+                      icon: Icon(
+                        Icons.chevron_left,
+                        color: AppColors.textDark,
+                      ),
                       onPressed: () {
                         setState(() {
                           _selectedDate = DateTime(
                             _selectedDate.month == 1
                                 ? _selectedDate.year - 1
                                 : _selectedDate.year,
-                            _selectedDate.month == 1 ? 12 : _selectedDate.month - 1,
+                            _selectedDate.month == 1
+                                ? 12
+                                : _selectedDate.month - 1,
                           );
                           _selectedDay = 1;
                         });
@@ -116,21 +131,26 @@ class _RemindersScreenState extends State<RemindersScreen> {
                     ),
                     Text(
                       '${_monthNames[_selectedDate.month - 1]} ${_selectedDate.year}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textDark,
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.chevron_right, color: AppColors.textDark),
+                      icon: Icon(
+                        Icons.chevron_right,
+                        color: AppColors.textDark,
+                      ),
                       onPressed: () {
                         setState(() {
                           _selectedDate = DateTime(
                             _selectedDate.month == 12
                                 ? _selectedDate.year + 1
                                 : _selectedDate.year,
-                            _selectedDate.month == 12 ? 1 : _selectedDate.month + 1,
+                            _selectedDate.month == 12
+                                ? 1
+                                : _selectedDate.month + 1,
                           );
                           _selectedDay = 1;
                         });
@@ -144,19 +164,21 @@ class _RemindersScreenState extends State<RemindersScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
-                      .map((d) => SizedBox(
-                            width: 36,
-                            child: Center(
-                              child: Text(
-                                d,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textGrey,
-                                ),
+                      .map(
+                        (d) => SizedBox(
+                          width: 36,
+                          child: Center(
+                            child: Text(
+                              d,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textGrey,
                               ),
                             ),
-                          ))
+                          ),
+                        ),
+                      )
                       .toList(),
                 ),
                 const SizedBox(height: 8),
@@ -173,7 +195,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Today\'s Reminders',
                   style: TextStyle(
                     fontSize: 16,
@@ -183,10 +205,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                 ),
                 Text(
                   '${_reminders.where((r) => r['taken'] == true).length}/${_reminders.length} taken',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textGrey,
-                  ),
+                  style: TextStyle(fontSize: 13, color: AppColors.textGrey),
                 ),
               ],
             ),
@@ -240,8 +259,9 @@ class _RemindersScreenState extends State<RemindersScreen> {
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.textDark,
-                                decoration:
-                                    taken ? TextDecoration.lineThrough : null,
+                                decoration: taken
+                                    ? TextDecoration.lineThrough
+                                    : null,
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -278,7 +298,11 @@ class _RemindersScreenState extends State<RemindersScreen> {
                             ),
                           ),
                           child: taken
-                              ? const Icon(Icons.check, color: Colors.white, size: 20)
+                              ? const Icon(
+                                  Icons.check,
+                                  color: Colors.white,
+                                  size: 20,
+                                )
                               : null,
                         ),
                       ),
@@ -312,7 +336,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
             }
 
             final isSelected = day == _selectedDay;
-            final isToday = day == DateTime.now().day &&
+            final isToday =
+                day == DateTime.now().day &&
                 _selectedDate.month == DateTime.now().month &&
                 _selectedDate.year == DateTime.now().year;
 
@@ -325,8 +350,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
                   color: isSelected
                       ? AppColors.primaryTeal
                       : isToday
-                          ? AppColors.primaryTeal.withOpacity(0.1)
-                          : Colors.transparent,
+                      ? AppColors.primaryTeal.withOpacity(0.1)
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Center(
@@ -334,13 +359,14 @@ class _RemindersScreenState extends State<RemindersScreen> {
                     '$day',
                     style: TextStyle(
                       fontSize: 14,
-                      fontWeight:
-                          isSelected || isToday ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isSelected || isToday
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                       color: isSelected
                           ? Colors.white
                           : isToday
-                              ? AppColors.primaryTeal
-                              : AppColors.textDark,
+                          ? AppColors.primaryTeal
+                          : AppColors.textDark,
                     ),
                   ),
                 ),

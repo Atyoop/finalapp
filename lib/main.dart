@@ -26,10 +26,14 @@ void main() {
 class AppColors {
   static bool isDarkMode = false;
   static Color get primaryTeal => const Color(0xFF2C6E72);
-  static Color get backgroundCream => isDarkMode ? const Color(0xFF121212) : const Color(0xFFF9F7F2);
-  static Color get textDark => isDarkMode ? Colors.white : const Color(0xFF101010);
-  static Color get textGrey => isDarkMode ? const Color(0xFFAAAAAA) : const Color(0xFF888888);
-  static Color get cardColor => isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+  static Color get backgroundCream =>
+      isDarkMode ? const Color(0xFF121212) : const Color(0xFFF9F7F2);
+  static Color get textDark =>
+      isDarkMode ? Colors.white : const Color(0xFF101010);
+  static Color get textGrey =>
+      isDarkMode ? const Color(0xFFAAAAAA) : const Color(0xFF888888);
+  static Color get cardColor =>
+      isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
 }
 
 // --- 2. Shared Widget (Image Placeholder) ---
@@ -72,7 +76,9 @@ class DrugSafeApp extends StatelessWidget {
             primaryColor: AppColors.primaryTeal,
             useMaterial3: true,
           ),
-          themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          themeMode: themeProvider.isDarkMode
+              ? ThemeMode.dark
+              : ThemeMode.light,
           home: const SplashScreen(),
         );
       },
@@ -115,7 +121,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(60),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.medication_liquid,
                 size: 60,
                 color: AppColors.primaryTeal,
@@ -209,7 +215,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: Text(
                 _data[_currentPage]["desc"]!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14, color: AppColors.textGrey),
+                style: TextStyle(fontSize: 14, color: AppColors.textGrey),
               ),
             ),
             const Spacer(),
@@ -276,7 +282,7 @@ class WelcomeScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 "Your Smart Health Companion",
                 style: TextStyle(fontSize: 16, color: AppColors.textGrey),
               ),
@@ -312,9 +318,9 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppColors.primaryTeal),
+                    side: BorderSide(color: AppColors.primaryTeal),
                   ),
-                  child: const Text(
+                  child: Text(
                     "Log in",
                     style: TextStyle(color: AppColors.primaryTeal),
                   ),

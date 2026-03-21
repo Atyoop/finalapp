@@ -5,7 +5,8 @@ class ReminderPreferencesScreen extends StatefulWidget {
   const ReminderPreferencesScreen({super.key});
 
   @override
-  State<ReminderPreferencesScreen> createState() => _ReminderPreferencesScreenState();
+  State<ReminderPreferencesScreen> createState() =>
+      _ReminderPreferencesScreenState();
 }
 
 class _ReminderPreferencesScreenState extends State<ReminderPreferencesScreen> {
@@ -26,14 +27,31 @@ class _ReminderPreferencesScreenState extends State<ReminderPreferencesScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(height: 12),
-              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const SizedBox(width: 48), // Balancing for close button
-                  const Text("Snooze Duration", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textDark)),
-                  IconButton(icon: const Icon(Icons.close, color: AppColors.textDark), onPressed: () => Navigator.pop(context)),
+                  Text(
+                    "Snooze Duration",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close, color: AppColors.textDark),
+                    onPressed: () => Navigator.pop(context),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -43,21 +61,75 @@ class _ReminderPreferencesScreenState extends State<ReminderPreferencesScreen> {
                   itemExtent: 50,
                   physics: const FixedExtentScrollPhysics(),
                   children: [
-                    Container(height: 50, alignment: Alignment.center, child: const Text("15 min", style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.w400))),
-                    Container(height: 50, alignment: Alignment.center, child: const Text("20 min", style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.w400))),
+                    Container(
+                      height: 50,
+                      alignment: Alignment.center,
+                      child: const Text(
+                        "15 min",
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      height: 50,
+                      alignment: Alignment.center,
+                      child: const Text(
+                        "20 min",
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ),
                     Container(
                       height: 50,
                       alignment: Alignment.center,
                       decoration: const BoxDecoration(
                         border: Border(
                           top: BorderSide(color: Color(0xFFEEEEEE), width: 1),
-                          bottom: BorderSide(color: Color(0xFFEEEEEE), width: 1),
+                          bottom: BorderSide(
+                            color: Color(0xFFEEEEEE),
+                            width: 1,
+                          ),
                         ),
                       ),
-                      child: const Text("5 min", style: TextStyle(fontSize: 18, color: AppColors.textDark, fontWeight: FontWeight.w500)),
+                      child: Text(
+                        "5 min",
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: AppColors.textDark,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
-                    Container(height: 50, alignment: Alignment.center, child: const Text("10 min", style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.w400))),
-                    Container(height: 50, alignment: Alignment.center, child: const Text("15 min", style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.w400))),
+                    Container(
+                      height: 50,
+                      alignment: Alignment.center,
+                      child: const Text(
+                        "10 min",
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      height: 50,
+                      alignment: Alignment.center,
+                      child: const Text(
+                        "15 min",
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -71,9 +143,18 @@ class _ReminderPreferencesScreenState extends State<ReminderPreferencesScreen> {
                     onPressed: () => Navigator.pop(context),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryTeal,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
-                    child: const Text("Done", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      "Done",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -93,12 +174,19 @@ class _ReminderPreferencesScreenState extends State<ReminderPreferencesScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppColors.textDark, size: 20),
+          icon: Icon(
+            Icons.arrow_back_ios,
+            color: AppColors.textDark,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           "Reminder Preferences",
-          style: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: AppColors.textDark,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
       ),
@@ -134,7 +222,12 @@ class _ReminderPreferencesScreenState extends State<ReminderPreferencesScreen> {
     );
   }
 
-  Widget _buildActionCard({required IconData icon, required String title, required String subtitle, required VoidCallback onTap}) {
+  Widget _buildActionCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -142,7 +235,13 @@ class _ReminderPreferencesScreenState extends State<ReminderPreferencesScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -152,26 +251,51 @@ class _ReminderPreferencesScreenState extends State<ReminderPreferencesScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textDark)),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textDark,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text(subtitle, style: TextStyle(fontSize: 12, color: AppColors.textGrey)),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 12, color: AppColors.textGrey),
+                  ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: AppColors.textGrey.withOpacity(0.5)),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textGrey.withOpacity(0.5),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildToggleCard({required IconData icon, required String title, required String subtitle, required bool value, required ValueChanged<bool> onChanged}) {
+  Widget _buildToggleCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -181,9 +305,19 @@ class _ReminderPreferencesScreenState extends State<ReminderPreferencesScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textDark)),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textDark,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text(subtitle, style: TextStyle(fontSize: 12, color: AppColors.textGrey)),
+                Text(
+                  subtitle,
+                  style: TextStyle(fontSize: 12, color: AppColors.textGrey),
+                ),
               ],
             ),
           ),

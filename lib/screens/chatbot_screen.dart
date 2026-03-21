@@ -53,7 +53,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                 ),
               ),
               const SizedBox(height: 28),
-              const Text(
+              Text(
                 "Hello, I'm Mighty!",
                 style: TextStyle(
                   fontSize: 26,
@@ -182,7 +182,7 @@ class _QuickActionCard extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textDark,
@@ -371,7 +371,7 @@ class _ChatConversationState extends State<_ChatConversation> {
                       child: TextField(
                         controller: _msgController,
                         onSubmitted: (_) => _sendMessage(),
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           hintText: "Type a message...",
                           hintStyle: TextStyle(color: AppColors.textGrey),
                           border: InputBorder.none,
@@ -434,7 +434,7 @@ class _MessageBubble extends StatelessWidget {
                 color: AppColors.primaryTeal.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.smart_toy_rounded,
                 color: AppColors.primaryTeal,
                 size: 16,

@@ -55,7 +55,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
+            colorScheme: ColorScheme.light(
               primary: AppColors.primaryTeal,
               onPrimary: Colors.white,
               onSurface: AppColors.textDark,
@@ -109,7 +109,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back_ios,
             color: AppColors.textDark,
             size: 20,
@@ -148,7 +148,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                     ),
                     child: Image.network(
                       'https://www.metformin.ws/wp-content/uploads/2018/10/metformin-bottle.png', // Placeholder
-                      errorBuilder: (context, error, stackTrace) => const Icon(
+                      errorBuilder: (context, error, stackTrace) => Icon(
                         Icons.medication,
                         color: AppColors.primaryTeal,
                         size: 40,
@@ -268,7 +268,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             ),
             const SizedBox(height: 16),
 
-            const Text(
+            Text(
               "Note",
               style: TextStyle(
                 fontSize: 14,
@@ -285,7 +285,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.calendar_today,
                     color: AppColors.textGrey,
                     size: 20,
@@ -294,7 +294,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   Expanded(
                     child: TextField(
                       controller: _noteController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: "Optional note about the medication",
                         hintStyle: TextStyle(
                           color: AppColors.textGrey,
@@ -335,7 +335,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   Navigator.pop(context); // Go back to Add Medicine screen
                   // Optional: Show a snackbar or small msg!
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                       content: Text('Medicine added successfully.'),
                       backgroundColor: AppColors.primaryTeal,
                       duration: Duration(seconds: 2),
@@ -392,7 +392,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const Icon(
+                Icon(
                   Icons.chevron_right,
                   size: 18,
                   color: AppColors.textGrey,
@@ -406,7 +406,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 const SizedBox(width: 8),
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     color: AppColors.textDark,
                   ),
@@ -449,7 +449,7 @@ class _FrequencySelectorState extends State<_FrequencySelector> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const SizedBox(width: 40),
-              const Text(
+              Text(
                 "Set frequency",
                 style: TextStyle(
                   fontSize: 18,
@@ -491,7 +491,7 @@ class _FrequencySelectorState extends State<_FrequencySelector> {
                   ),
                   child: Text(
                     _unit,
-                    style: const TextStyle(color: AppColors.primaryTeal),
+                    style: TextStyle(color: AppColors.primaryTeal),
                   ),
                 ),
               ],
@@ -504,7 +504,7 @@ class _FrequencySelectorState extends State<_FrequencySelector> {
               children: [
                 IconButton(
                   onPressed: () => setState(() => _timesPerDay--),
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.remove_circle_outline,
                     color: AppColors.textGrey,
                   ),
@@ -512,7 +512,7 @@ class _FrequencySelectorState extends State<_FrequencySelector> {
                 Text("$_timesPerDay"),
                 IconButton(
                   onPressed: () => setState(() => _timesPerDay++),
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.add_circle,
                     color: AppColors.primaryTeal,
                   ),
@@ -538,7 +538,7 @@ class _FrequencySelectorState extends State<_FrequencySelector> {
             ),
           ),
           const SizedBox(height: 24),
-          const Text(
+          Text(
             "Summary: Take 3 Times A Day, Every 8 Hours.",
             style: TextStyle(color: AppColors.textGrey, fontSize: 12),
           ),

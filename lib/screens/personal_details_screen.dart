@@ -11,8 +11,8 @@ class PersonalDetailsScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.textDark),
-        title: const Text(
+        iconTheme: IconThemeData(color: AppColors.textDark),
+        title: Text(
           'Personal Details',
           style: TextStyle(
             color: AppColors.textDark,
@@ -45,7 +45,7 @@ class PersonalDetailsScreen extends StatelessWidget {
               child: const Icon(Icons.person, color: Colors.white, size: 44),
             ),
             const SizedBox(height: 10),
-            const Text(
+            Text(
               'User Name',
               style: TextStyle(
                 fontSize: 20,
@@ -60,11 +60,31 @@ class PersonalDetailsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 28),
 
-            _DetailCard(icon: Icons.person_outline, label: 'Full Name', value: 'User Name'),
-            _DetailCard(icon: Icons.email_outlined, label: 'Email', value: 'user@email.com'),
-            _DetailCard(icon: Icons.phone_outlined, label: 'Phone', value: '+20 123 456 7890'),
-            _DetailCard(icon: Icons.calendar_today_outlined, label: 'Date of Birth', value: '01 / January / 2000'),
-            _DetailCard(icon: Icons.wc_outlined, label: 'Gender', value: 'Male'),
+            _DetailCard(
+              icon: Icons.person_outline,
+              label: 'Full Name',
+              value: 'User Name',
+            ),
+            _DetailCard(
+              icon: Icons.email_outlined,
+              label: 'Email',
+              value: 'user@email.com',
+            ),
+            _DetailCard(
+              icon: Icons.phone_outlined,
+              label: 'Phone',
+              value: '+20 123 456 7890',
+            ),
+            _DetailCard(
+              icon: Icons.calendar_today_outlined,
+              label: 'Date of Birth',
+              value: '01 / January / 2000',
+            ),
+            _DetailCard(
+              icon: Icons.wc_outlined,
+              label: 'Gender',
+              value: 'Male',
+            ),
           ],
         ),
       ),
@@ -118,15 +138,12 @@ class _DetailCard extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textGrey,
-                  ),
+                  style: TextStyle(fontSize: 12, color: AppColors.textGrey),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
                     color: AppColors.textDark,

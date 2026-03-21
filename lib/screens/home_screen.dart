@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../main.dart';
 import '../models/medicine.dart';
 import '../providers/medicine_provider.dart';
@@ -81,14 +82,17 @@ class _HomeScreenState extends State<HomeScreen> {
                           if (userProvider.imagePath != null)
                             CircleAvatar(
                               radius: 25,
-                              backgroundImage: FileImage(File(userProvider.imagePath!)),
+                              backgroundImage: FileImage(
+                                File(userProvider.imagePath!),
+                              ),
                             )
                           else
                             Container(
                               width: 50,
                               height: 50,
                               decoration: BoxDecoration(
-                                color: userProvider.currentAvatarColor.withOpacity(0.15),
+                                color: userProvider.currentAvatarColor
+                                    .withOpacity(0.15),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
@@ -103,13 +107,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               Text(
                                 "Hello, ${userProvider.name}",
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.textDark,
                                 ),
                               ),
-                              const Text(
+                              Text(
                                 "Welcome !",
                                 style: TextStyle(
                                   fontSize: 14,
@@ -127,7 +131,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   // --- Date & Weekly Calendar ---
                   Text(
                     "Today , $_monthName ${_selectedDate.day}",
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: AppColors.textDark,
@@ -137,13 +141,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.chevron_left,
                         color: AppColors.textGrey,
                         size: 20,
                       ),
                       ..._weeklyDates.map((date) => _buildDayItem(date)),
-                      const Icon(
+                      Icon(
                         Icons.chevron_right,
                         color: AppColors.textGrey,
                         size: 20,
@@ -152,7 +156,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 32),
 
-                  const Text(
+                  Text(
                     "Today's Medication",
                     style: TextStyle(
                       fontSize: 18,
@@ -285,13 +289,13 @@ class _HomeScreenState extends State<HomeScreen> {
     return Center(
       child: Column(
         children: [
-          const Icon(
+          Icon(
             Icons.medication_liquid_rounded,
             size: 120,
             color: AppColors.primaryTeal,
           ),
           const SizedBox(height: 24),
-          const Text(
+          Text(
             "No Medications are\nScheduled",
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -389,7 +393,7 @@ class _MedicationCard extends StatelessWidget {
                 ),
                 child: Image.network(
                   medicine.imageUrl,
-                  errorBuilder: (context, error, stackTrace) => const Icon(
+                  errorBuilder: (context, error, stackTrace) => Icon(
                     Icons.medication,
                     color: AppColors.primaryTeal,
                     size: 40,
@@ -403,7 +407,7 @@ class _MedicationCard extends StatelessWidget {
                   children: [
                     Text(
                       medicine.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textDark,
@@ -412,7 +416,7 @@ class _MedicationCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       medicine.doseAmount,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         color: AppColors.textGrey,
                       ),
@@ -420,7 +424,7 @@ class _MedicationCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       "${medicine.time.format(context)} | Daily",
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         color: AppColors.textGrey,
                       ),

@@ -10,7 +10,9 @@ class SavedMedicinesProvider extends ChangeNotifier {
   }
 
   void toggleSaved(Map<String, dynamic> medicine) {
-    final index = _savedMedicines.indexWhere((m) => m['name'] == medicine['name']);
+    final index = _savedMedicines.indexWhere(
+      (m) => m['name'] == medicine['name'],
+    );
     if (index >= 0) {
       _savedMedicines.removeAt(index);
     } else {

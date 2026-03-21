@@ -46,7 +46,7 @@ class _SignupScreenState extends State<SignupScreen> {
             const SizedBox(height: 30),
 
             // Email Input
-            const Text("Email", style: TextStyle(color: AppColors.textGrey)),
+            Text("Email", style: TextStyle(color: AppColors.textGrey)),
             const SizedBox(height: 8),
             TextField(
               decoration: InputDecoration(
@@ -63,7 +63,7 @@ class _SignupScreenState extends State<SignupScreen> {
             const SizedBox(height: 20),
 
             // Password Input
-            const Text("Password", style: TextStyle(color: AppColors.textGrey)),
+            Text("Password", style: TextStyle(color: AppColors.textGrey)),
             const SizedBox(height: 8),
             TextField(
               obscureText: !_isPasswordVisible,
@@ -423,7 +423,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     builder: (context) => const ForgotPasswordScreen(),
                   ),
                 ),
-                child: const Text(
+                child: Text(
                   "Forgot password?",
                   style: TextStyle(color: AppColors.primaryTeal),
                 ),
@@ -459,7 +459,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   context,
                   MaterialPageRoute(builder: (context) => const SignupScreen()),
                 ),
-                child: const Text(
+                child: Text(
                   "Create account",
                   style: TextStyle(color: AppColors.primaryTeal),
                 ),

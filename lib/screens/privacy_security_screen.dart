@@ -20,12 +20,19 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppColors.textDark, size: 20),
+          icon: Icon(
+            Icons.arrow_back_ios,
+            color: AppColors.textDark,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           "Privacy & Security",
-          style: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: AppColors.textDark,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
       ),
@@ -37,7 +44,10 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
               icon: Icons.lock_person_outlined,
               title: "Change Profile Password",
               subtitle: "Change the user's profile password.",
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordScreen())),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
+              ),
             ),
             const SizedBox(height: 16),
             _buildToggleCard(
@@ -61,7 +71,13 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
     );
   }
 
-  Widget _buildActionCard({required IconData icon, required String title, required String subtitle, required VoidCallback onTap, bool hideChevron = false}) {
+  Widget _buildActionCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    bool hideChevron = false,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -69,7 +85,13 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -79,27 +101,52 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textDark)),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textDark,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text(subtitle, style: TextStyle(fontSize: 12, color: AppColors.textGrey)),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 12, color: AppColors.textGrey),
+                  ),
                 ],
               ),
             ),
             if (!hideChevron)
-              Icon(Icons.chevron_right_rounded, color: AppColors.textGrey.withOpacity(0.5)),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textGrey.withOpacity(0.5),
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildToggleCard({required IconData icon, required String title, required String subtitle, required bool value, required ValueChanged<bool> onChanged}) {
+  Widget _buildToggleCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -109,9 +156,19 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textDark)),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textDark,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text(subtitle, style: TextStyle(fontSize: 12, color: AppColors.textGrey)),
+                Text(
+                  subtitle,
+                  style: TextStyle(fontSize: 12, color: AppColors.textGrey),
+                ),
               ],
             ),
           ),

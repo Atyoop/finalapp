@@ -45,8 +45,10 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
   List<Map<String, dynamic>> get _filtered {
     if (_query.isEmpty) return [];
     return _drugs
-        .where((d) =>
-            d['name'].toString().toLowerCase().contains(_query.toLowerCase()))
+        .where(
+          (d) =>
+              d['name'].toString().toLowerCase().contains(_query.toLowerCase()),
+        )
         .toList();
   }
 
@@ -57,8 +59,8 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.textDark),
-        title: const Text(
+        iconTheme: IconThemeData(color: AppColors.textDark),
+        title: Text(
           'Add Medicine',
           style: TextStyle(
             color: AppColors.textDark,
@@ -72,7 +74,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               "Identify Your Medication",
               style: TextStyle(
                 fontSize: 22,
@@ -101,7 +103,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
             const SizedBox(height: 16),
 
             // Manual Search Option
-            const Text(
+            Text(
               "Or search manually",
               style: TextStyle(
                 fontSize: 16,
@@ -140,23 +142,32 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                           color: AppColors.textDark,
                         ),
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 18),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 18,
+                        ),
                       ),
                     ),
                   ),
                   GestureDetector(
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const ScanCameraScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const ScanCameraScreen(),
+                      ),
                     ),
                     child: Container(
                       width: 65,
                       height: double.infinity,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         color: AppColors.primaryTeal,
-                        borderRadius: BorderRadius.horizontal(right: Radius.circular(28)),
+                        borderRadius: BorderRadius.horizontal(
+                          right: Radius.circular(28),
+                        ),
                       ),
-                      child: const Icon(Icons.camera_alt_outlined, color: Colors.white),
+                      child: const Icon(
+                        Icons.camera_alt_outlined,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ],
@@ -165,7 +176,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
 
             if (_query.isNotEmpty) ...[
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 "Search Results",
                 style: TextStyle(
                   fontSize: 16,
@@ -233,7 +244,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: AppColors.textDark,
@@ -261,7 +272,9 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => AddReminderScreen(initialDrugName: d['name'])),
+        MaterialPageRoute(
+          builder: (_) => AddReminderScreen(initialDrugName: d['name']),
+        ),
       ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -286,11 +299,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                 color: d['color'],
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(
-                d['icon'],
-                color: d['iconColor'],
-                size: 26,
-              ),
+              child: Icon(d['icon'], color: d['iconColor'], size: 26),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -299,7 +308,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                 children: [
                   Text(
                     d['name'],
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textDark,
@@ -308,10 +317,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                   const SizedBox(height: 4),
                   Text(
                     "${d['type']} • ${d['form']}",
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textGrey,
-                    ),
+                    style: TextStyle(fontSize: 12, color: AppColors.textGrey),
                   ),
                 ],
               ),

@@ -11,8 +11,8 @@ class AccountCenterScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.textDark),
-        title: const Text(
+        iconTheme: IconThemeData(color: AppColors.textDark),
+        title: Text(
           'Account Center',
           style: TextStyle(
             color: AppColors.textDark,
@@ -26,7 +26,7 @@ class AccountCenterScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Account Settings',
               style: TextStyle(
                 fontSize: 18,
@@ -42,7 +42,7 @@ class AccountCenterScreen extends StatelessWidget {
               subtitle: 'Update your password',
               onTap: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
+                  SnackBar(
                     content: Text('Change password coming soon!'),
                     backgroundColor: AppColors.primaryTeal,
                   ),
@@ -107,7 +107,7 @@ class AccountCenterScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text(
+            child: Text(
               'Cancel',
               style: TextStyle(color: AppColors.textGrey),
             ),
@@ -128,10 +128,7 @@ class AccountCenterScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: Colors.white),
-            ),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -202,10 +199,7 @@ class _AccountTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textGrey,
-                    ),
+                    style: TextStyle(fontSize: 12, color: AppColors.textGrey),
                   ),
                 ],
               ),

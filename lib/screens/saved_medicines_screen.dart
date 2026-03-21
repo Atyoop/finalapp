@@ -7,8 +7,6 @@ import 'drug_detail_screen.dart';
 class SavedMedicinesScreen extends StatelessWidget {
   const SavedMedicinesScreen({super.key});
 
-  const SavedMedicinesScreen({super.key});
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -16,8 +14,8 @@ class SavedMedicinesScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.textDark),
-        title: const Text(
+        iconTheme: IconThemeData(color: AppColors.textDark),
+        title: Text(
           'Saved Medicines',
           style: TextStyle(
             color: AppColors.textDark,
@@ -71,69 +69,69 @@ class SavedMedicinesScreen extends StatelessWidget {
                         );
                       },
                       child: Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 50,
-                        height: 50,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: med['color'],
-                          borderRadius: BorderRadius.circular(14),
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.03),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
                         ),
-                        child: Icon(
-                          med['icon'],
-                          color: med['iconColor'],
-                          size: 26,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Row(
                           children: [
-                            Text(
-                              med['name'],
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textDark,
+                            Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: med['color'],
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Icon(
+                                med['icon'],
+                                color: med['iconColor'],
+                                size: 26,
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${med['type']} • ${med['form']}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textGrey,
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    med['name'],
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textDark,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${med['type']} • ${med['form']}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textGrey,
+                                    ),
+                                  ),
+                                ],
                               ),
+                            ),
+                            Icon(
+                              Icons.bookmark_rounded,
+                              color: AppColors.primaryTeal,
+                              size: 24,
                             ),
                           ],
                         ),
                       ),
-                      Icon(
-                        Icons.bookmark_rounded,
-                        color: AppColors.primaryTeal,
-                        size: 24,
-                      ),
-                      ],
-                    ),
-                  ),
+                    );
+                  },
                 );
-              },
-            );
         },
       ),
     );

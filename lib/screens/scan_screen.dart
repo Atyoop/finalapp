@@ -90,7 +90,7 @@ class _ScanScreenState extends State<ScanScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
+            Padding(
               padding: EdgeInsets.fromLTRB(20, 20, 20, 0),
               child: Text(
                 "Check Meds",
@@ -150,23 +150,32 @@ class _ScanScreenState extends State<ScanScreen> {
                                 )
                               : null,
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 18),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 18,
+                          ),
                         ),
                       ),
                     ),
                     GestureDetector(
                       onTap: () => Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const ScanCameraScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const ScanCameraScreen(),
+                        ),
                       ),
                       child: Container(
                         width: 65,
                         height: double.infinity,
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           color: AppColors.primaryTeal,
-                          borderRadius: BorderRadius.horizontal(right: Radius.circular(28)),
+                          borderRadius: BorderRadius.horizontal(
+                            right: Radius.circular(28),
+                          ),
                         ),
-                        child: const Icon(Icons.camera_alt_outlined, color: Colors.white),
+                        child: const Icon(
+                          Icons.camera_alt_outlined,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ],
@@ -251,7 +260,7 @@ class _ScanScreenState extends State<ScanScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
                 _query.isEmpty ? "All Medications" : "Results",
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textDark,
@@ -337,7 +346,7 @@ class _ScanScreenState extends State<ScanScreen> {
                                     children: [
                                       Text(
                                         d['name'],
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 15,
                                           fontWeight: FontWeight.w600,
                                           color: AppColors.textDark,
@@ -449,11 +458,7 @@ class _ScanCameraScreenState extends State<ScanCameraScreen>
           const Text(
             'Place the pill or\nbarcode in the frame',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 16,
-              height: 1.5,
-            ),
+            style: TextStyle(color: Colors.white70, fontSize: 16, height: 1.5),
           ),
           const SizedBox(height: 32),
 
@@ -552,12 +557,13 @@ class _ScanCameraScreenState extends State<ScanCameraScreen>
               height: 80,
               child: CircularProgressIndicator(
                 strokeWidth: 4,
-                valueColor:
-                    AlwaysStoppedAnimation<Color>(AppColors.primaryTeal),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  AppColors.primaryTeal,
+                ),
               ),
             ),
             const SizedBox(height: 28),
-            const Text(
+            Text(
               'Identifying...',
               style: TextStyle(
                 fontSize: 20,
@@ -582,8 +588,8 @@ class _ScanCameraScreenState extends State<ScanCameraScreen>
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.textDark),
-        title: const Text(
+        iconTheme: IconThemeData(color: AppColors.textDark),
+        title: Text(
           'Scan Result',
           style: TextStyle(
             color: AppColors.textDark,
@@ -628,7 +634,7 @@ class _ScanCameraScreenState extends State<ScanCameraScreen>
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Text(
+                  Text(
                     'Pill Identified!',
                     style: TextStyle(
                       fontSize: 22,
@@ -639,10 +645,7 @@ class _ScanCameraScreenState extends State<ScanCameraScreen>
                   const SizedBox(height: 8),
                   Text(
                     'We found a match for your medication',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textGrey,
-                    ),
+                    style: TextStyle(fontSize: 14, color: AppColors.textGrey),
                   ),
                   const SizedBox(height: 24),
                   const Divider(),
@@ -707,12 +710,12 @@ class _ScanCameraScreenState extends State<ScanCameraScreen>
                   });
                 },
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppColors.primaryTeal),
+                  side: BorderSide(color: AppColors.primaryTeal),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(28),
                   ),
                 ),
-                child: const Text(
+                child: Text(
                   'Scan Another',
                   style: TextStyle(
                     color: AppColors.primaryTeal,
@@ -730,8 +733,10 @@ class _ScanCameraScreenState extends State<ScanCameraScreen>
   }
 
   Widget _buildCorner(Alignment alignment) {
-    final isTop = alignment == Alignment.topLeft || alignment == Alignment.topRight;
-    final isLeft = alignment == Alignment.topLeft || alignment == Alignment.bottomLeft;
+    final isTop =
+        alignment == Alignment.topLeft || alignment == Alignment.topRight;
+    final isLeft =
+        alignment == Alignment.topLeft || alignment == Alignment.bottomLeft;
 
     return Positioned(
       top: isTop ? 0 : null,
@@ -744,16 +749,16 @@ class _ScanCameraScreenState extends State<ScanCameraScreen>
         decoration: BoxDecoration(
           border: Border(
             top: isTop
-                ? const BorderSide(color: AppColors.primaryTeal, width: 3)
+                ? BorderSide(color: AppColors.primaryTeal, width: 3)
                 : BorderSide.none,
             bottom: !isTop
-                ? const BorderSide(color: AppColors.primaryTeal, width: 3)
+                ? BorderSide(color: AppColors.primaryTeal, width: 3)
                 : BorderSide.none,
             left: isLeft
-                ? const BorderSide(color: AppColors.primaryTeal, width: 3)
+                ? BorderSide(color: AppColors.primaryTeal, width: 3)
                 : BorderSide.none,
             right: !isLeft
-                ? const BorderSide(color: AppColors.primaryTeal, width: 3)
+                ? BorderSide(color: AppColors.primaryTeal, width: 3)
                 : BorderSide.none,
           ),
         ),
@@ -778,17 +783,14 @@ class _ResultRow extends StatelessWidget {
             flex: 2,
             child: Text(
               label,
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.textGrey,
-              ),
+              style: TextStyle(fontSize: 14, color: AppColors.textGrey),
             ),
           ),
           Expanded(
             flex: 3,
             child: Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textDark,

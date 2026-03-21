@@ -117,7 +117,9 @@ class _NavItem extends StatelessWidget {
         children: [
           Icon(
             isActive ? activeIcon : icon,
-            color: isActive ? AppColors.primaryTeal : AppColors.textGrey.withOpacity(0.6),
+            color: isActive
+                ? AppColors.primaryTeal
+                : AppColors.textGrey.withOpacity(0.6),
             size: 26,
           ),
           const SizedBox(height: 4),
@@ -126,7 +128,9 @@ class _NavItem extends StatelessWidget {
             style: TextStyle(
               fontSize: 10,
               fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-              color: isActive ? AppColors.primaryTeal : AppColors.textGrey.withOpacity(0.6),
+              color: isActive
+                  ? AppColors.primaryTeal
+                  : AppColors.textGrey.withOpacity(0.6),
             ),
           ),
         ],
