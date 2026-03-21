@@ -48,7 +48,7 @@ class Medicine {
     MedicineStatus? status,
   }) {
     return Medicine(
-      id: this.id,
+      id: id,
       name: name ?? this.name,
       imageUrl: imageUrl ?? this.imageUrl,
       startDate: startDate ?? this.startDate,

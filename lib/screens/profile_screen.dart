@@ -1,133 +1,200 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
 import 'edit_profile_screen.dart';
-import 'personal_details_screen.dart';
-import 'saved_medicines_screen.dart';
-import 'reminders_screen.dart';
+import 'notification_setting_screen.dart';
+import 'reminder_preferences_screen.dart';
 import 'privacy_policy_screen.dart';
-import 'account_center_screen.dart';
+import 'auth_screens.dart'; // To log out to WelcomeScreen if needed
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
+
+  void _showAccountCenterBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const SizedBox(width: 48),
+                  const Text("Account Center", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textDark)),
+                  IconButton(icon: const Icon(Icons.close, color: AppColors.textDark), onPressed: () => Navigator.pop(context)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey[200]!),
+                ),
+                child: Column(
+                  children: [
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const CircleAvatar(
+                        radius: 20,
+                        backgroundImage: NetworkImage('https://randomuser.me/api/portraits/women/44.jpg'),
+                      ),
+                      title: const Text("Mom", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark)),
+                    ),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.add, color: AppColors.textDark),
+                      title: const Text("Add another account", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: AppColors.textDark)),
+                      onTap: () {},
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryTeal,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: const Text("Done", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundCream,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              const SizedBox(height: 24),
-              // Avatar + Info
-              Container(
-                width: 90,
-                height: 90,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF2C6E72), Color(0xFF3A9EA5)],
-                  ),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primaryTeal.withOpacity(0.3),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          "Setting",
+          style: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        automaticallyImplyLeading: false,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 35,
+                  backgroundImage: const NetworkImage('https://randomuser.me/api/portraits/men/32.jpg'),
+                ),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Hello, Omar",
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textDark),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                      ),
+                      child: const Text(
+                        "Edit Profile",
+                        style: TextStyle(fontSize: 14, color: AppColors.primaryTeal, fontWeight: FontWeight.w500),
+                      ),
                     ),
                   ],
                 ),
-                child: const Icon(Icons.person, color: Colors.white, size: 44),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                "User Name",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textDark,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                "user@email.com",
-                style: TextStyle(fontSize: 14, color: AppColors.textGrey),
-              ),
-              const SizedBox(height: 28),
+              ],
+            ),
+            const SizedBox(height: 32),
 
-              // Settings list
-              _SettingsTile(
+            _buildSectionHeader("Profile"),
+            _buildSettingsCard([
+              _buildTile(
                 icon: Icons.person_outline,
-                title: "Edit Profile",
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const EditProfileScreen()),
-                ),
+                title: "Accounts Center",
+                subtitle: "Manage your Account Details",
+                onTap: () => _showAccountCenterBottomSheet(context),
               ),
-              _SettingsTile(
-                icon: Icons.badge_outlined,
-                title: "Personal Details",
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const PersonalDetailsScreen()),
-                ),
+            ]),
+
+            const SizedBox(height: 24),
+            _buildSectionHeader("Reminders & Alarm"),
+            _buildSettingsCard([
+              _buildTile(
+                icon: Icons.notifications_none_rounded,
+                title: "Notification Settings",
+                subtitle: "Enable or disable various app notifications.",
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationSettingScreen())),
               ),
-              _SettingsTile(
-                icon: Icons.bookmark_border_rounded,
-                title: "Saved Medicines",
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const SavedMedicinesScreen()),
-                ),
+              const Divider(height: 1, indent: 56, color: Color(0xFFEEEEEE)),
+              _buildTile(
+                icon: Icons.volume_up_outlined,
+                title: "Reminder Preferences",
+                subtitle: "Choose the alert sound for medication reminders.",
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReminderPreferencesScreen())),
               ),
-              _SettingsTile(
-                icon: Icons.alarm_rounded,
-                title: "Reminders",
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const RemindersScreen()),
-                ),
-              ),
-              _SettingsTile(
+            ]),
+
+            const SizedBox(height: 24),
+            _buildSectionHeader("General"),
+            _buildSettingsCard([
+              _buildTile(
                 icon: Icons.language_rounded,
                 title: "Language",
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Language settings coming soon!'),
-                      backgroundColor: AppColors.primaryTeal,
-                    ),
-                  );
-                },
-              ),
-              _SettingsTile(
-                icon: Icons.lock_outline_rounded,
-                title: "Privacy Policy",
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const PrivacyPolicyScreen()),
-                ),
-              ),
-              _SettingsTile(
-                icon: Icons.help_outline_rounded,
-                title: "Help & Support",
+                subtitle: "Select your preferred app language.",
                 onTap: () {},
               ),
-              _SettingsTile(
-                icon: Icons.settings_outlined,
-                title: "Account Center",
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const AccountCenterScreen()),
-                ),
+              const Divider(height: 1, indent: 56, color: Color(0xFFEEEEEE)),
+              _buildTile(
+                icon: Icons.remove_red_eye_outlined,
+                title: "Appearance",
+                subtitle: "Select the preffered zoom for the app.",
+                onTap: () {},
               ),
-              const SizedBox(height: 12),
-              _SettingsTile(
+            ]),
+
+            const SizedBox(height: 24),
+            _buildSectionHeader("Security"),
+            _buildSettingsCard([
+              _buildTile(
+                icon: Icons.lock_outline_rounded,
+                title: "Privacy Policy",
+                subtitle: "Review our privacy policy.",
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen())),
+              ),
+              const Divider(height: 1, indent: 56, color: Color(0xFFEEEEEE)),
+              _buildTile(
                 icon: Icons.logout_rounded,
                 title: "Log Out",
+                subtitle: "Sign out of your account.",
                 isDestructive: true,
                 onTap: () => Navigator.pushAndRemoveUntil(
                   context,
@@ -135,71 +202,63 @@ class ProfileScreen extends StatelessWidget {
                   (r) => false,
                 ),
               ),
-              const SizedBox(height: 32),
-            ],
-          ),
+            ]),
+            const SizedBox(height: 48),
+          ],
         ),
       ),
     );
   }
-}
 
-class _SettingsTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final VoidCallback onTap;
-  final bool isDestructive;
-
-  const _SettingsTile({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-    this.isDestructive = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = isDestructive ? Colors.red : AppColors.textDark;
+  Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+      padding: const EdgeInsets.only(bottom: 12, left: 4),
+      child: Text(
+        title,
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark),
+      ),
+    );
+  }
+
+  Widget _buildSettingsCard(List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(children: children),
+    );
+  }
+
+  Widget _buildTile({required IconData icon, required String title, required String subtitle, required VoidCallback onTap, bool isDestructive = false}) {
+    final color = isDestructive ? Colors.red : AppColors.textDark;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: color)),
+                  const SizedBox(height: 4),
+                  Text(subtitle, style: TextStyle(fontSize: 12, color: AppColors.textGrey)),
+                ],
               ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: color, size: 22),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: color,
-                  ),
-                ),
-              ),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.textGrey.withOpacity(0.4),
-                size: 22,
-              ),
-            ],
-          ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: AppColors.textGrey.withOpacity(0.5)),
+          ],
         ),
       ),
     );
   }
 }
+

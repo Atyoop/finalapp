@@ -22,15 +22,17 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   TimeOfDay _time = const TimeOfDay(hour: 9, minute: 45);
   String _frequency = "Every 6 Hours , 3 times a day";
   DateTime _expiryDate = DateTime(2026, 7, 19);
-  
+
   String _doseAmount = "1 Tablet";
-  int _initialStock = 30;
+  final int _initialStock = 30;
   final TextEditingController _noteController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.initialDrugName ?? "Metformin");
+    _nameController = TextEditingController(
+      text: widget.initialDrugName ?? "Metformin",
+    );
   }
 
   @override
@@ -40,7 +42,11 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     super.dispose();
   }
 
-  Future<void> _selectDate(BuildContext context, DateTime initialDate, Function(DateTime) onPicked) async {
+  Future<void> _selectDate(
+    BuildContext context,
+    DateTime initialDate,
+    Function(DateTime) onPicked,
+  ) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: initialDate,
@@ -103,7 +109,11 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppColors.textDark, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios,
+            color: AppColors.textDark,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -128,7 +138,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
               ),
               child: Row(
                 children: [
-                   Container(
+                  Container(
                     width: 70,
                     height: 70,
                     padding: const EdgeInsets.all(8),
@@ -138,29 +148,39 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                     ),
                     child: Image.network(
                       'https://www.metformin.ws/wp-content/uploads/2018/10/metformin-bottle.png', // Placeholder
-                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.medication, color: AppColors.primaryTeal, size: 40),
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.medication,
+                        color: AppColors.primaryTeal,
+                        size: 40,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
                       _nameController.text,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   Switch(
                     value: _isActive,
                     onChanged: (val) => setState(() => _isActive = val),
-                    activeColor: AppColors.primaryTeal,
+                    activeThumbColor: AppColors.primaryTeal,
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 32),
 
-            const Text("Schedule", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              "Schedule",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 16),
-            
+
             Row(
               children: [
                 Expanded(
@@ -168,7 +188,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                     title: "Start date",
                     value: DateFormat('d MMMM').format(_startDate),
                     icon: Icons.calendar_today_outlined,
-                    onTap: () => _selectDate(context, _startDate, (d) => _startDate = d),
+                    onTap: () =>
+                        _selectDate(context, _startDate, (d) => _startDate = d),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -177,7 +198,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                     title: "End date",
                     value: DateFormat('d MMMM').format(_endDate),
                     icon: Icons.calendar_today_outlined,
-                    onTap: () => _selectDate(context, _endDate, (d) => _endDate = d),
+                    onTap: () =>
+                        _selectDate(context, _endDate, (d) => _endDate = d),
                   ),
                 ),
               ],
@@ -210,11 +232,15 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
               title: "Expiry date",
               value: DateFormat('d MMMM y').format(_expiryDate),
               icon: Icons.calendar_today_outlined,
-              onTap: () => _selectDate(context, _expiryDate, (d) => _expiryDate = d),
+              onTap: () =>
+                  _selectDate(context, _expiryDate, (d) => _expiryDate = d),
             ),
-            
+
             const SizedBox(height: 32),
-            const Text("Dose", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              "Dose",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 16),
 
             Row(
@@ -242,7 +268,14 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             ),
             const SizedBox(height: 16),
 
-            const Text("Note", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textGrey)),
+            const Text(
+              "Note",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textGrey,
+              ),
+            ),
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.all(16),
@@ -252,14 +285,21 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.calendar_today, color: AppColors.textGrey, size: 20),
+                  const Icon(
+                    Icons.calendar_today,
+                    color: AppColors.textGrey,
+                    size: 20,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: TextField(
                       controller: _noteController,
                       decoration: const InputDecoration(
                         hintText: "Optional note about the medication",
-                        hintStyle: TextStyle(color: AppColors.textGrey, fontSize: 14),
+                        hintStyle: TextStyle(
+                          color: AppColors.textGrey,
+                          fontSize: 14,
+                        ),
                         border: InputBorder.none,
                       ),
                     ),
@@ -277,10 +317,13 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   final medicine = Medicine(
                     id: DateTime.now().millisecondsSinceEpoch.toString(),
                     name: _nameController.text,
-                    imageUrl: 'https://www.metformin.ws/wp-content/uploads/2018/10/metformin-bottle.png',
+                    imageUrl:
+                        'https://www.metformin.ws/wp-content/uploads/2018/10/metformin-bottle.png',
                     startDate: _startDate,
                     endDate: _endDate,
-                    deadlineDate: _expiryDate.subtract(const Duration(days: 14)), // 2 weeks before
+                    deadlineDate: _expiryDate.subtract(
+                      const Duration(days: 14),
+                    ), // 2 weeks before
                     expiryDate: _expiryDate,
                     frequency: _frequency,
                     time: _time,
@@ -289,14 +332,30 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                     note: _noteController.text,
                   );
                   context.read<MedicineProvider>().addMedicine(medicine);
-                  Navigator.pop(context);
-                  Navigator.pop(context); // Go back to Home
+                  Navigator.pop(context); // Go back to Add Medicine screen
+                  // Optional: Show a snackbar or small msg!
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Medicine added successfully.'),
+                      backgroundColor: AppColors.primaryTeal,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryTeal,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
-                child: const Text("Add Medicine", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  "Add Medicine",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 48),
@@ -306,7 +365,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     );
   }
 
-  Widget _buildInfoCard({required String title, required String value, required IconData icon, required VoidCallback onTap}) {
+  Widget _buildInfoCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -321,8 +385,18 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                const Icon(Icons.chevron_right, size: 18, color: AppColors.textGrey),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const Icon(
+                  Icons.chevron_right,
+                  size: 18,
+                  color: AppColors.textGrey,
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -330,7 +404,13 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
               children: [
                 Icon(icon, color: AppColors.textGrey, size: 20),
                 const SizedBox(width: 8),
-                Text(value, style: const TextStyle(fontSize: 14, color: AppColors.textDark)),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textDark,
+                  ),
+                ),
               ],
             ),
           ],
@@ -349,10 +429,10 @@ class _FrequencySelector extends StatefulWidget {
 }
 
 class _FrequencySelectorState extends State<_FrequencySelector> {
-  int _repeatEvery = 1;
-  String _unit = "Day";
+  final int _repeatEvery = 1;
+  final String _unit = "Day";
   int _timesPerDay = 3;
-  String _gap = "Every 8 Hours";
+  final String _gap = "Every 8 Hours";
 
   @override
   Widget build(BuildContext context) {
@@ -369,39 +449,99 @@ class _FrequencySelectorState extends State<_FrequencySelector> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const SizedBox(width: 40),
-              const Text("Set frequency", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryTeal)),
-              IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+              const Text(
+                "Set frequency",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryTeal,
+                ),
+              ),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
+              ),
             ],
           ),
           const SizedBox(height: 24),
-          _buildRow("Repeat every:", Row(
-            children: [
-              Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(4)), child: Text("$_repeatEvery")),
-              const SizedBox(width: 8),
-              Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), decoration: BoxDecoration(color: AppColors.primaryTeal.withOpacity(0.1), borderRadius: BorderRadius.circular(4)), child: Text(_unit, style: const TextStyle(color: AppColors.primaryTeal))),
-            ],
-          )),
-          const SizedBox(height: 16),
-          _buildRow("Times per day:", Row(
-            children: [
-              IconButton(onPressed: () => setState(() => _timesPerDay--), icon: const Icon(Icons.remove_circle_outline, color: AppColors.textGrey)),
-              Text("$_timesPerDay"),
-              IconButton(onPressed: () => setState(() => _timesPerDay++), icon: const Icon(Icons.add_circle, color: AppColors.primaryTeal)),
-            ],
-          )),
-          const SizedBox(height: 16),
-          _buildRow("Gap between doses:", Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(8)),
-            child: Row(
+          _buildRow(
+            "Repeat every:",
+            Row(
               children: [
-                Text(_gap, style: const TextStyle(fontSize: 12)),
-                const Icon(Icons.unfold_more, size: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text("$_repeatEvery"),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryTeal.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    _unit,
+                    style: const TextStyle(color: AppColors.primaryTeal),
+                  ),
+                ),
               ],
             ),
-          )),
+          ),
+          const SizedBox(height: 16),
+          _buildRow(
+            "Times per day:",
+            Row(
+              children: [
+                IconButton(
+                  onPressed: () => setState(() => _timesPerDay--),
+                  icon: const Icon(
+                    Icons.remove_circle_outline,
+                    color: AppColors.textGrey,
+                  ),
+                ),
+                Text("$_timesPerDay"),
+                IconButton(
+                  onPressed: () => setState(() => _timesPerDay++),
+                  icon: const Icon(
+                    Icons.add_circle,
+                    color: AppColors.primaryTeal,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildRow(
+            "Gap between doses:",
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Text(_gap, style: const TextStyle(fontSize: 12)),
+                  const Icon(Icons.unfold_more, size: 16),
+                ],
+              ),
+            ),
+          ),
           const SizedBox(height: 24),
-          const Text("Summary: Take 3 Times A Day, Every 8 Hours.", style: TextStyle(color: AppColors.textGrey, fontSize: 12)),
+          const Text(
+            "Summary: Take 3 Times A Day, Every 8 Hours.",
+            style: TextStyle(color: AppColors.textGrey, fontSize: 12),
+          ),
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
@@ -411,7 +551,12 @@ class _FrequencySelectorState extends State<_FrequencySelector> {
                 widget.onDone("Every $_gap, $_timesPerDay times a day");
                 Navigator.pop(context);
               },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryTeal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryTeal,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
               child: const Text("Done", style: TextStyle(color: Colors.white)),
             ),
           ),
@@ -445,7 +590,7 @@ class _DoseSelectorState extends State<_DoseSelector> {
   @override
   Widget build(BuildContext context) {
     return Container(
-       decoration: const BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
       ),
@@ -453,12 +598,18 @@ class _DoseSelectorState extends State<_DoseSelector> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-           Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const SizedBox(width: 40),
-              const Text("Select Dosage", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+              const Text(
+                "Select Dosage",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
+              ),
             ],
           ),
           const SizedBox(height: 32),
@@ -467,7 +618,8 @@ class _DoseSelectorState extends State<_DoseSelector> {
             child: ListWheelScrollView.useDelegate(
               itemExtent: 50,
               physics: const FixedExtentScrollPhysics(),
-              onSelectedItemChanged: (i) => setState(() => _dose = (i + 1) * 0.5),
+              onSelectedItemChanged: (i) =>
+                  setState(() => _dose = (i + 1) * 0.5),
               childDelegate: ListWheelChildBuilderDelegate(
                 childCount: 20,
                 builder: (context, index) => Center(
@@ -475,8 +627,12 @@ class _DoseSelectorState extends State<_DoseSelector> {
                     "${(index + 1) * 0.5}",
                     style: TextStyle(
                       fontSize: 24,
-                      fontWeight: _dose == (index + 1) * 0.5 ? FontWeight.bold : FontWeight.normal,
-                      color: _dose == (index + 1) * 0.5 ? AppColors.primaryTeal : AppColors.textGrey,
+                      fontWeight: _dose == (index + 1) * 0.5
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: _dose == (index + 1) * 0.5
+                          ? AppColors.primaryTeal
+                          : AppColors.textGrey,
                     ),
                   ),
                 ),
@@ -484,7 +640,7 @@ class _DoseSelectorState extends State<_DoseSelector> {
             ),
           ),
           const SizedBox(height: 32),
-           SizedBox(
+          SizedBox(
             width: double.infinity,
             height: 56,
             child: ElevatedButton(
@@ -492,7 +648,12 @@ class _DoseSelectorState extends State<_DoseSelector> {
                 widget.onDone("$_dose Tablet");
                 Navigator.pop(context);
               },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryTeal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryTeal,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
               child: const Text("Done", style: TextStyle(color: Colors.white)),
             ),
           ),
