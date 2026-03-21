@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../main.dart';
 import '../models/medicine.dart';
 import '../providers/medicine_provider.dart';
+import '../providers/user_provider.dart';
+import 'dart:io';
 import 'chatbot_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -73,44 +74,53 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   const SizedBox(height: 20),
                   // --- Header ---
-                  Row(
-                    children: [
-                      Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryTeal.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                          image: const DecorationImage(
-                            image: NetworkImage(
-                              'https://i.pravatar.cc/150?u=hanie',
-                            ),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  Consumer<UserProvider>(
+                    builder: (context, userProvider, child) {
+                      return Row(
                         children: [
-                          Text(
-                            "Hello, Hanie",
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textDark,
+                          if (userProvider.imagePath != null)
+                            CircleAvatar(
+                              radius: 25,
+                              backgroundImage: FileImage(File(userProvider.imagePath!)),
+                            )
+                          else
+                            Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: userProvider.currentAvatarColor.withOpacity(0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                userProvider.currentAvatarIcon,
+                                color: userProvider.currentAvatarColor,
+                                size: 28,
+                              ),
                             ),
-                          ),
-                          Text(
-                            "Welcome !",
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: AppColors.textGrey,
-                            ),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Hello, ${userProvider.name}",
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textDark,
+                                ),
+                              ),
+                              const Text(
+                                "Welcome !",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: AppColors.textGrey,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
-                      ),
-                    ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 32),
 

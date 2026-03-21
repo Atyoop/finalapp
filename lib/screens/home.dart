@@ -65,7 +65,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
               _NavItem(
                 icon: Icons.document_scanner_outlined,
                 activeIcon: Icons.document_scanner_rounded,
-                label: "Scan",
+                label: "Check Meds",
                 isActive: _currentIndex == 2,
                 onTap: () => setState(() => _currentIndex = 2),
               ),

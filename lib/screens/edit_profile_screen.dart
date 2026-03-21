@@ -1,5 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
 import '../main.dart';
+import '../providers/user_provider.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -14,6 +18,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String _dob = '01 / January / 2000';
   String _gender = 'Male';
   int _selectedAvatar = 0;
+  String? _imagePath;
+  bool _isInit = true;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_isInit) {
+      final user = context.read<UserProvider>();
+      _nameController.text = user.name;
+      _selectedAvatar = user.selectedAvatar;
+      _imagePath = user.imagePath;
+      _isInit = false;
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _imagePath = pickedFile.path;
+      });
+    }
+  }
 
   // Avatar icons using Material icons as placeholders
   static const List<IconData> _avatarIcons = [
@@ -315,6 +342,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      Navigator.pop(ctx);
+                      await _pickImage();
+                    },
+                    icon: const Icon(Icons.photo_library, color: Colors.white),
+                    label: const Text('Choose from Gallery', style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryTeal,
+                      minimumSize: const Size(double.infinity, 48),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   Expanded(
                     child: GridView.builder(
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -354,7 +397,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     height: 52,
                     child: ElevatedButton(
                       onPressed: () {
-                        setState(() => _selectedAvatar = tempAvatar);
+                        setState(() {
+                          _selectedAvatar = tempAvatar;
+                          _imagePath = null; // reset image path if avatar is chosen
+                        });
                         Navigator.pop(ctx);
                       },
                       style: ElevatedButton.styleFrom(
@@ -418,18 +464,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     width: 100,
                     height: 100,
                     decoration: BoxDecoration(
-                      color: _avatarColors[_selectedAvatar].withOpacity(0.15),
+                      color: _imagePath == null ? _avatarColors[_selectedAvatar].withOpacity(0.15) : AppColors.backgroundCream,
                       shape: BoxShape.circle,
                       border: Border.all(
                         color: AppColors.primaryTeal.withOpacity(0.3),
                         width: 2,
                       ),
+                      image: _imagePath != null
+                          ? DecorationImage(
+                              image: FileImage(File(_imagePath!)),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
                     ),
-                    child: Icon(
-                      _avatarIcons[_selectedAvatar],
-                      color: _avatarColors[_selectedAvatar],
-                      size: 52,
-                    ),
+                    child: _imagePath == null
+                        ? Icon(
+                            _avatarIcons[_selectedAvatar],
+                            color: _avatarColors[_selectedAvatar],
+                            size: 52,
+                          )
+                        : null,
                   ),
                   Container(
                     width: 32,
@@ -537,6 +591,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               height: 56,
               child: ElevatedButton(
                 onPressed: () {
+                  context.read<UserProvider>().updateProfile(
+                    name: _nameController.text,
+                    selectedAvatar: _selectedAvatar,
+                    imagePath: _imagePath,
+                  );
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Profile Updated Successfully!'),

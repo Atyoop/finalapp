@@ -1,35 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../main.dart';
+import '../providers/saved_medicines_provider.dart';
+import 'drug_detail_screen.dart';
 
 class SavedMedicinesScreen extends StatelessWidget {
   const SavedMedicinesScreen({super.key});
 
-  static final List<Map<String, dynamic>> _savedMedicines = [
-    {
-      'name': 'Amoxicillin',
-      'type': 'Antibiotic',
-      'form': 'Capsule • 500mg',
-      'color': const Color(0xFFE8F5E9),
-      'icon': Icons.medication,
-      'iconColor': const Color(0xFF4CAF50),
-    },
-    {
-      'name': 'Ibuprofen',
-      'type': 'Pain Relief',
-      'form': 'Tablet • 200mg',
-      'color': const Color(0xFFFFF3E0),
-      'icon': Icons.healing,
-      'iconColor': const Color(0xFFFF9800),
-    },
-    {
-      'name': 'Paracetamol',
-      'type': 'Analgesic',
-      'form': 'Tablet • 500mg',
-      'color': const Color(0xFFE3F2FD),
-      'icon': Icons.medication_liquid,
-      'iconColor': const Color(0xFF2196F3),
-    },
-  ];
+  const SavedMedicinesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -48,33 +26,51 @@ class SavedMedicinesScreen extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: _savedMedicines.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.bookmark_border_rounded,
-                    size: 64,
-                    color: AppColors.textGrey.withOpacity(0.3),
+      body: Consumer<SavedMedicinesProvider>(
+        builder: (context, provider, child) {
+          final savedMedicines = provider.savedMedicines;
+          return savedMedicines.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.bookmark_border_rounded,
+                        size: 64,
+                        color: AppColors.textGrey.withOpacity(0.3),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No saved medicines yet',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: AppColors.textGrey,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No saved medicines yet',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: AppColors.textGrey,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(20),
-              itemCount: _savedMedicines.length,
-              itemBuilder: (context, index) {
-                final med = _savedMedicines[index];
-                return Container(
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: savedMedicines.length,
+                  itemBuilder: (context, index) {
+                    final med = savedMedicines[index];
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => DrugDetailScreen(
+                              drugName: med['name'],
+                              drugCategory: med['type'],
+                              drugColor: med['color'],
+                              drugIcon: med['icon'],
+                              drugIconColor: med['iconColor'],
+                            ),
+                          ),
+                        );
+                      },
+                      child: Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
@@ -132,11 +128,14 @@ class SavedMedicinesScreen extends StatelessWidget {
                         color: AppColors.primaryTeal,
                         size: 24,
                       ),
-                    ],
+                      ],
+                    ),
                   ),
                 );
               },
-            ),
+            );
+        },
+      ),
     );
   }
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../main.dart';
+import '../providers/saved_medicines_provider.dart';
 
 class DrugDetailScreen extends StatelessWidget {
   final String drugName;
@@ -33,6 +35,43 @@ class DrugDetailScreen extends StatelessWidget {
           ),
         ),
         centerTitle: true,
+        actions: [
+          Consumer<SavedMedicinesProvider>(
+            builder: (context, provider, child) {
+              final isSaved = provider.isSaved(drugName);
+              // Wait, the toggle requested by the user sounds like a switch?
+              // "when it is on add mediciene when it off delete mediciene" -> a Switch in the app bar? Or a toggle button? A Switch makes more sense if they literally said "toggle switch".
+              // Let's use a Switch widget.
+              return Row(
+                children: [
+                  const Text("Save ", style: TextStyle(color: AppColors.textDark, fontSize: 12, fontWeight: FontWeight.bold)),
+                  Switch(
+                    value: isSaved,
+                    activeColor: Colors.white,
+                    activeTrackColor: AppColors.primaryTeal,
+                    onChanged: (val) {
+                      provider.toggleSaved({
+                        'name': drugName,
+                        'type': drugCategory,
+                        'form': 'Tablet • 500mg', // mock form since it is not passed
+                        'color': drugColor,
+                        'icon': drugIcon,
+                        'iconColor': drugIconColor,
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(val ? 'Medicine Added' : 'Medicine Deleted'),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(width: 10),
+                ],
+              );
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(

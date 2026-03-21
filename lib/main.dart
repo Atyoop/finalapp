@@ -4,12 +4,18 @@ import 'package:final88/screens/auth_screens.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/medicine_provider.dart';
+import 'providers/user_provider.dart';
+import 'providers/theme_provider.dart';
+import 'providers/saved_medicines_provider.dart';
 
 void main() {
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => MedicineProvider()),
+        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => SavedMedicinesProvider()),
       ],
       child: const DrugSafeApp(),
     ),
@@ -18,10 +24,12 @@ void main() {
 
 // --- 1. Colors & Theme ---
 class AppColors {
-  static const Color primaryTeal = Color(0xFF2C6E72);
-  static const Color backgroundCream = Color(0xFFF9F7F2);
-  static const Color textDark = Color(0xFF101010);
-  static const Color textGrey = Color(0xFF888888);
+  static bool isDarkMode = false;
+  static Color get primaryTeal => const Color(0xFF2C6E72);
+  static Color get backgroundCream => isDarkMode ? const Color(0xFF121212) : const Color(0xFFF9F7F2);
+  static Color get textDark => isDarkMode ? Colors.white : const Color(0xFF101010);
+  static Color get textGrey => isDarkMode ? const Color(0xFFAAAAAA) : const Color(0xFF888888);
+  static Color get cardColor => isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
 }
 
 // --- 2. Shared Widget (Image Placeholder) ---
@@ -48,15 +56,26 @@ class DrugSafeApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'DrugSafe',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        scaffoldBackgroundColor: AppColors.backgroundCream,
-        primaryColor: AppColors.primaryTeal,
-        useMaterial3: true,
-      ),
-      home: const SplashScreen(),
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return MaterialApp(
+          title: 'DrugSafe',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            scaffoldBackgroundColor: AppColors.backgroundCream,
+            primaryColor: AppColors.primaryTeal,
+            useMaterial3: true,
+          ),
+          darkTheme: ThemeData(
+            brightness: Brightness.dark,
+            scaffoldBackgroundColor: AppColors.backgroundCream,
+            primaryColor: AppColors.primaryTeal,
+            useMaterial3: true,
+          ),
+          themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          home: const SplashScreen(),
+        );
+      },
     );
   }
 }

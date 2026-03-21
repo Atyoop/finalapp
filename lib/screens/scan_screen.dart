@@ -93,7 +93,7 @@ class _ScanScreenState extends State<ScanScreen> {
             const Padding(
               padding: EdgeInsets.fromLTRB(20, 20, 20, 0),
               child: Text(
-                "Search & Scan",
+                "Check Meds",
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -104,7 +104,7 @@ class _ScanScreenState extends State<ScanScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 6, 20, 20),
               child: Text(
-                "Find medications or scan a pill",
+                "Find medications or check a pill",
                 style: TextStyle(fontSize: 14, color: AppColors.textGrey),
               ),
             ),
@@ -112,9 +112,10 @@ class _ScanScreenState extends State<ScanScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Container(
+                height: 56,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(30),
+                  borderRadius: BorderRadius.circular(28),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.04),
@@ -123,31 +124,52 @@ class _ScanScreenState extends State<ScanScreen> {
                     ),
                   ],
                 ),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (v) => setState(() => _query = v),
-                  decoration: InputDecoration(
-                    hintText: "Search drug name...",
-                    hintStyle: TextStyle(
-                      color: AppColors.textGrey.withOpacity(0.6),
-                      fontSize: 14,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (v) => setState(() => _query = v),
+                        decoration: InputDecoration(
+                          hintText: "Type medication name...",
+                          hintStyle: TextStyle(
+                            color: AppColors.textGrey.withOpacity(0.6),
+                            fontSize: 14,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search_rounded,
+                            color: AppColors.textDark,
+                          ),
+                          suffixIcon: _query.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.close, size: 20),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() => _query = '');
+                                  },
+                                )
+                              : null,
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 18),
+                        ),
+                      ),
                     ),
-                    prefixIcon: Icon(
-                      Icons.search_rounded,
-                      color: AppColors.textGrey.withOpacity(0.5),
+                    GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ScanCameraScreen()),
+                      ),
+                      child: Container(
+                        width: 65,
+                        height: double.infinity,
+                        decoration: const BoxDecoration(
+                          color: AppColors.primaryTeal,
+                          borderRadius: BorderRadius.horizontal(right: Radius.circular(28)),
+                        ),
+                        child: const Icon(Icons.camera_alt_outlined, color: Colors.white),
+                      ),
                     ),
-                    suffixIcon: _query.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.close, size: 20),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() => _query = '');
-                            },
-                          )
-                        : null,
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
+                  ],
                 ),
               ),
             ),

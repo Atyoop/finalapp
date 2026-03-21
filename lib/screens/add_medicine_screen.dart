@@ -111,9 +111,10 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
             ),
             const SizedBox(height: 12),
             Container(
+              height: 56,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(28),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.04),
@@ -122,22 +123,43 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                   ),
                 ],
               ),
-              child: TextField(
-                controller: _searchController,
-                onChanged: (v) => setState(() => _query = v),
-                decoration: InputDecoration(
-                  hintText: "Search drug name...",
-                  hintStyle: TextStyle(
-                    color: AppColors.textGrey.withOpacity(0.6),
-                    fontSize: 14,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (v) => setState(() => _query = v),
+                      decoration: InputDecoration(
+                        hintText: "Type medication name...",
+                        hintStyle: TextStyle(
+                          color: AppColors.textGrey.withOpacity(0.6),
+                          fontSize: 14,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search_rounded,
+                          color: AppColors.textDark,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 18),
+                      ),
+                    ),
                   ),
-                  prefixIcon: Icon(
-                    Icons.search_rounded,
-                    color: AppColors.textGrey.withOpacity(0.5),
+                  GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ScanCameraScreen()),
+                    ),
+                    child: Container(
+                      width: 65,
+                      height: double.infinity,
+                      decoration: const BoxDecoration(
+                        color: AppColors.primaryTeal,
+                        borderRadius: BorderRadius.horizontal(right: Radius.circular(28)),
+                      ),
+                      child: const Icon(Icons.camera_alt_outlined, color: Colors.white),
+                    ),
                   ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                ),
+                ],
               ),
             ),
 

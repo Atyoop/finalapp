@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
+import 'dart:io';
+import 'package:provider/provider.dart';
+import '../providers/user_provider.dart';
+import '../providers/theme_provider.dart';
 import 'edit_profile_screen.dart';
 import 'notification_setting_screen.dart';
 import 'reminder_preferences_screen.dart';
@@ -112,17 +116,44 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 16),
             Row(
               children: [
-                CircleAvatar(
-                  radius: 35,
-                  backgroundImage: const NetworkImage('https://randomuser.me/api/portraits/men/32.jpg'),
+                Consumer<UserProvider>(
+                  builder: (context, userProvider, child) {
+                    if (userProvider.imagePath != null) {
+                      return CircleAvatar(
+                        radius: 35,
+                        backgroundImage: FileImage(File(userProvider.imagePath!)),
+                      );
+                    }
+                    return Container(
+                      width: 70,
+                      height: 70,
+                      decoration: BoxDecoration(
+                        color: userProvider.currentAvatarColor.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.primaryTeal.withOpacity(0.3),
+                          width: 2,
+                        ),
+                      ),
+                      child: Icon(
+                        userProvider.currentAvatarIcon,
+                        color: userProvider.currentAvatarColor,
+                        size: 36,
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(width: 16),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "Hello, Omar",
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textDark),
+                    Consumer<UserProvider>(
+                      builder: (context, userProvider, child) {
+                        return Text(
+                          "Hello, ${userProvider.name}",
+                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textDark),
+                        );
+                      },
                     ),
                     GestureDetector(
                       onTap: () => Navigator.push(
@@ -226,15 +257,19 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildSettingsCard(List<Widget> children) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
-        ],
-      ),
-      child: Column(children: children),
+    return Consumer<ThemeProvider>(
+      builder: (context, _, __) {
+        return Container(
+          decoration: BoxDecoration(
+            color: AppColors.cardColor,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+            ],
+          ),
+          child: Column(children: children),
+        );
+      }
     );
   }
 
