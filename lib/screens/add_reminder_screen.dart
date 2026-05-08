@@ -5,6 +5,7 @@ import '../main.dart';
 import '../models/medicine.dart';
 import '../providers/medicine_provider.dart';
 import '../providers/user_provider.dart';
+import '../utils/time_helpers.dart';
 
 class AddReminderScreen extends StatefulWidget {
   final String? initialDrugName;
@@ -29,7 +30,8 @@ class _ScheduleConfig {
   List<TimeOfDay> doseTimes; // for xTimesPerDay mode
   DateTime startDate;
   DateTime? endDate;
-  TimeOfDay firstDoseTime; // mutable: user-selected for interval, or earliest for custom
+  TimeOfDay
+  firstDoseTime; // mutable: user-selected for interval, or earliest for custom
 
   /// Alias for backward compatibility with code referencing .value
   int get value => intervalHours;
@@ -47,7 +49,9 @@ class _ScheduleConfig {
   TimeOfDay get effectiveFirstDoseTime {
     if (type == ScheduleType.xTimesPerDay && doseTimes.isNotEmpty) {
       final sorted = List<TimeOfDay>.from(doseTimes)
-        ..sort((a, b) => (a.hour * 60 + a.minute).compareTo(b.hour * 60 + b.minute));
+        ..sort(
+          (a, b) => (a.hour * 60 + a.minute).compareTo(b.hour * 60 + b.minute),
+        );
       return sorted.first;
     }
     return firstDoseTime;
@@ -59,7 +63,7 @@ class _ScheduleConfig {
       return {
         'scheduleType': 'Interval',
         'intervalHours': intervalHours,
-        'doseTimes': [],
+        'doseTimes': <String>[],
         'dosesPerPeriod': null,
         'periodUnit': null,
         'periodValue': null,
@@ -71,17 +75,14 @@ class _ScheduleConfig {
           (a, b) => (a.hour * 60 + a.minute).compareTo(b.hour * 60 + b.minute),
         );
 
-      final doseTimeStrings = sortedTimes
-          .map(
-            (t) =>
-                '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:00',
-          )
-          .toList();
+      final doseTimeStrings = normalizeDoseTimesBeforeSave(sortedTimes);
 
       return {
         'scheduleType': 'CustomTimes',
         'doseTimes': doseTimeStrings,
-        'firstDoseTime': doseTimeStrings.first,
+        'firstDoseTime': doseTimeStrings.isNotEmpty
+            ? doseTimeStrings.first
+            : null,
         'dosesPerPeriod': doseTimeStrings.length,
         'periodUnit': 'Day',
         'periodValue': 1,
@@ -150,22 +151,42 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       text: widget.initialMedicine?.note ?? '',
     );
 
-    // Initialize schedule
+    // Initialize schedule with proper dose times loading
+    final med = widget.initialMedicine;
+
+    // Determine schedule type from the medicine
+    ScheduleType scheduleType = ScheduleType.everyXHours;
+    List<TimeOfDay> doseTimes = const [];
+
+    if (med != null) {
+      if (med.scheduleType == 'CustomTimes' &&
+          med.doseTimes != null &&
+          med.doseTimes!.isNotEmpty) {
+        scheduleType = ScheduleType.xTimesPerDay;
+        // Convert API time strings to TimeOfDay
+        doseTimes = med.doseTimes!
+            .map((timeStr) => parseApiTimeToTimeOfDay(timeStr))
+            .toList();
+      } else if (med.scheduleType == 'Interval' || med.intervalHours != null) {
+        scheduleType = ScheduleType.everyXHours;
+      }
+    }
+
     _schedule = _ScheduleConfig(
-      type: widget.initialMedicine?.intervalHours != null
-          ? ScheduleType.everyXHours
-          : ScheduleType.xTimesPerDay,
-      intervalHours: widget.initialMedicine?.intervalHours ?? 6,
-      startDate: widget.initialMedicine?.startDate ?? DateTime.now(),
-      endDate: widget.initialMedicine?.endDate,
+      type: scheduleType,
+      intervalHours: med?.intervalHours ?? 6,
+      doseTimes: doseTimes,
+      startDate: med?.startDate ?? DateTime.now(),
+      endDate: med?.endDate,
+      firstDoseTime: med?.time ?? const TimeOfDay(hour: 8, minute: 0),
     );
 
     // Initialize stock
-    _stock = widget.initialMedicine?.currentPillCount ?? 30;
-    _lowStockThreshold = widget.initialMedicine?.lowStockThreshold;
-    _expiryDate = widget.initialMedicine?.expiryDate;
+    _stock = med?.currentPillCount ?? 30;
+    _lowStockThreshold = med?.lowStockThreshold;
+    _expiryDate = med?.expiryDate;
 
-    _notificationActive = widget.initialMedicine?.notificationActive ?? true;
+    _notificationActive = med?.notificationActive ?? true;
   }
 
   @override
@@ -177,7 +198,6 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   }
 
   void _showScheduleSheet() {
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -198,9 +218,6 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   String? _validate() {
     if (_nameController.text.trim().isEmpty) {
       return 'Please enter medication name';
-    }
-    if (_schedule.startDate == null) {
-      return 'Please select start date';
     }
     if (_schedule.type == ScheduleType.everyXHours &&
         _schedule.intervalHours <= 0) {
@@ -1197,9 +1214,11 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
     super.initState();
     _selectedType = widget.config.type;
     _intervalHours = widget.config.intervalHours;
-    _doseTimes = _selectedType == ScheduleType.xTimesPerDay && widget.config.doseTimes.isNotEmpty
-      ? List<TimeOfDay>.from(widget.config.doseTimes)
-      : [const TimeOfDay(hour: 8, minute: 0)];
+    _doseTimes =
+        _selectedType == ScheduleType.xTimesPerDay &&
+            widget.config.doseTimes.isNotEmpty
+        ? List<TimeOfDay>.from(widget.config.doseTimes)
+        : <TimeOfDay>[const TimeOfDay(hour: 8, minute: 0)];
     _startDate = widget.config.startDate;
     _endDate = widget.config.endDate;
     _firstDoseTime = widget.config.firstDoseTime;
@@ -1258,6 +1277,8 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
                     child: GestureDetector(
                       onTap: () => setState(() {
                         _selectedType = ScheduleType.everyXHours;
+                        // Clear dose times when switching to Interval
+                        _doseTimes = <TimeOfDay>[];
                       }),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -1421,7 +1442,6 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
                 ),
               ),
             ] else ...[
-
               const Text(
                 'Dose Times',
                 style: TextStyle(
@@ -1434,37 +1454,45 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
               ..._doseTimes
                   .asMap()
                   .entries
-                  .map((entry) => Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppColors.textGrey.withValues(alpha: 0.2),
+                  .map(
+                    (entry) => Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.textGrey.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            entry.value.format(context),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              entry.value.format(context),
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.delete,
+                              color: Colors.redAccent,
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.redAccent),
-                              onPressed: () {
-                                setState(() {
-                                  _doseTimes.removeAt(entry.key);
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                      ))
+                            onPressed: () {
+                              setState(() {
+                                _doseTimes.removeAt(entry.key);
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
                   .toList(),
               TextButton.icon(
                 onPressed: () async {
@@ -1473,20 +1501,31 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
                     initialTime: const TimeOfDay(hour: 8, minute: 0),
                   );
                   if (picked != null) {
-                    final exists = _doseTimes.any((t) => t.hour == picked.hour && t.minute == picked.minute);
+                    final exists = _doseTimes.any(
+                      (t) => t.hour == picked.hour && t.minute == picked.minute,
+                    );
                     if (!exists) {
                       setState(() {
                         _doseTimes.add(picked);
-                        _doseTimes.sort((a, b) => a.hour != b.hour ? a.hour - b.hour : a.minute - b.minute);
+                        _doseTimes.sort(
+                          (a, b) => a.hour != b.hour
+                              ? a.hour - b.hour
+                              : a.minute - b.minute,
+                        );
                       });
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('This time is already added.')),
+                        const SnackBar(
+                          content: Text('This time is already added.'),
+                        ),
                       );
                     }
                   }
                 },
-                icon: const Icon(Icons.add_circle, color: AppColors.primaryTeal),
+                icon: const Icon(
+                  Icons.add_circle,
+                  color: AppColors.primaryTeal,
+                ),
                 label: const Text('Add dose time'),
               ),
               if (_doseTimes.isEmpty)
@@ -1632,8 +1671,11 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: (_selectedType == ScheduleType.everyXHours && _intervalHours > 0) ||
-                        (_selectedType == ScheduleType.xTimesPerDay && _doseTimes.isNotEmpty)
+                onPressed:
+                    (_selectedType == ScheduleType.everyXHours &&
+                            _intervalHours > 0) ||
+                        (_selectedType == ScheduleType.xTimesPerDay &&
+                            _doseTimes.isNotEmpty)
                     ? () {
                         final config = _selectedType == ScheduleType.everyXHours
                             ? _ScheduleConfig(

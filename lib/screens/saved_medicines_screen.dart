@@ -1,5 +1,6 @@
 import 'package:final88/models/medicine.dart';
 import 'package:final88/screens/add_reminder_screen.dart';
+import 'package:final88/utils/time_helpers.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../main.dart';
@@ -188,11 +189,35 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 4),
+                                  // Schedule summary
                                   Text(
-                                    med.doseAmount,
+                                    buildScheduleSummary(med),
                                     style: TextStyle(
-                                      fontSize: 12,
+                                      fontSize: 11,
                                       color: AppColors.textGrey,
+                                      height: 1.3,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 6),
+                                  // Remaining pills
+                                  Text(
+                                    formatRemainingPills(med.currentPillCount),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.textGrey,
+                                    ),
+                                  ),
+                                  // Expiry date
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 2),
+                                    child: Text(
+                                      formatExpiryDate(med.expiryDate),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.textGrey,
+                                      ),
                                     ),
                                   ),
                                 ],

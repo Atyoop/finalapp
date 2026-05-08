@@ -118,6 +118,11 @@ class Medicine {
     // Determine expiryDate string — send null if it equals the fallback
     final expiryStr = expiryDate.toString().split(' ')[0];
 
+    // For Interval schedules, always send empty List<String>
+    final List<String> doseTimesJson = scheduleType == 'Interval'
+        ? <String>[]
+        : (doseTimes ?? <String>[]);
+
     return {
       'medicationName': name,
       'dosage': dosage,
@@ -135,7 +140,7 @@ class Medicine {
       'intervalHours': intervalHours,
       'notificationActive': notificationActive,
       'scheduleType': scheduleType,
-      'doseTimes': doseTimes ?? [],
+      'doseTimes': doseTimesJson,
     };
   }
 
@@ -161,13 +166,18 @@ class Medicine {
       }
     }
 
-    // Parse doseTimes list
-    List<String>? parsedDoseTimes;
+    // Parse doseTimes list - ensure it's List<String>, not List<dynamic>
+    final List<String> parsedDoseTimes = <String>[];
     if (json['doseTimes'] != null) {
       try {
         final raw = json['doseTimes'];
         if (raw is List) {
-          parsedDoseTimes = raw.map((e) => e.toString()).toList();
+          for (final item in raw) {
+            final str = item.toString().trim();
+            if (str.isNotEmpty) {
+              parsedDoseTimes.add(str);
+            }
+          }
         }
       } catch (_) {}
     }
@@ -228,7 +238,7 @@ class Medicine {
       intervalHours: json['intervalHours'],
       notificationActive: json['notificationActive'] ?? true,
       scheduleType: json['scheduleType'],
-      doseTimes: parsedDoseTimes,
+      doseTimes: parsedDoseTimes.isNotEmpty ? parsedDoseTimes : null,
       status: MedicineStatus.scheduled,
     );
   }
