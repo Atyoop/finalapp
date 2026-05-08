@@ -26,6 +26,7 @@ class Medicine {
   final bool notificationActive;
   final String? scheduleType;
   final List<String>? doseTimes;
+  final int? pillsPerDose;
   MedicineStatus status;
 
   Medicine({
@@ -52,6 +53,7 @@ class Medicine {
     this.notificationActive = true,
     this.scheduleType,
     this.doseTimes,
+    this.pillsPerDose,
     this.status = MedicineStatus.scheduled,
   });
 
@@ -79,6 +81,7 @@ class Medicine {
     bool? notificationActive,
     String? scheduleType,
     List<String>? doseTimes,
+    int? pillsPerDose,
   }) {
     return Medicine(
       id: id,
@@ -104,6 +107,7 @@ class Medicine {
       notificationActive: notificationActive ?? this.notificationActive,
       scheduleType: scheduleType ?? this.scheduleType,
       doseTimes: doseTimes ?? this.doseTimes,
+      pillsPerDose: pillsPerDose ?? this.pillsPerDose,
       status: status ?? this.status,
     );
   }
@@ -141,6 +145,7 @@ class Medicine {
       'notificationActive': notificationActive,
       'scheduleType': scheduleType,
       'doseTimes': doseTimesJson,
+      'pillsPerDose': pillsPerDose,
     };
   }
 
@@ -239,6 +244,7 @@ class Medicine {
       notificationActive: json['notificationActive'] ?? true,
       scheduleType: json['scheduleType'],
       doseTimes: parsedDoseTimes.isNotEmpty ? parsedDoseTimes : null,
+      pillsPerDose: json['pillsPerDose'] as int?,
       status: MedicineStatus.scheduled,
     );
   }

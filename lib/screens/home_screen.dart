@@ -5,6 +5,8 @@ import 'dart:convert';
 import 'dart:io';
 import '../main.dart';
 import '../providers/user_provider.dart';
+import '../providers/medicine_provider.dart';
+import '../services/user_medications_service.dart';
 import 'chatbot_screen.dart';
 
 // ─────────────────────────────────────────────
@@ -119,10 +121,21 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchTodaySchedules();
+    // Fetch schedules for today on first load
+    _fetchSchedulesForDate(_selectedDate);
   }
 
-  Future<void> _fetchTodaySchedules() async {
+  /// Format a DateTime to the API-required format: yyyy-MM-dd (zero-padded).
+  String _formatDateForApi(DateTime date) {
+    final y = date.year.toString();
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
+  /// Fetch schedules for [date] from GET /api/users/me/schedules-by-date?date=yyyy-MM-dd.
+  /// Replaces the old _fetchTodaySchedules that always hit today-schedules.
+  Future<void> _fetchSchedulesForDate(DateTime date) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -138,11 +151,14 @@ class _HomeScreenState extends State<HomeScreen> {
         return;
       }
 
+      final dateStr = _formatDateForApi(date);
+      final uri = Uri.parse(
+        'https://drugsafe.runasp.net/api/users/me/schedules-by-date',
+      ).replace(queryParameters: {'date': dateStr});
+
       final res = await http
           .get(
-            Uri.parse(
-              'https://drugsafe.runasp.net/api/users/me/today-schedules',
-            ),
+            uri,
             headers: {
               'Authorization': 'Bearer $token',
               'Content-Type': 'application/json',
@@ -177,36 +193,58 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _markAsTaken(TodaySchedule schedule) async {
+  Future<void> _markAsTaken(int scheduleId) async {
     try {
       final token = context.read<UserProvider>().token;
       if (token == null) return;
 
-      final res = await http
-          .post(
-            Uri.parse(
-              'https://drugsafe.runasp.net/api/schedules/${schedule.id}/take',
-            ),
-            headers: {
-              'Authorization': 'Bearer $token',
-              'Content-Type': 'application/json',
-            },
-          )
-          .timeout(const Duration(seconds: 10));
+      final result = await SchedulesService.takeDose(token, scheduleId);
 
-      if (res.statusCode == 200) {
-        await _fetchTodaySchedules();
+      if (result.succeeded) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                result.lowStockAlertCreated
+                    ? 'Dose marked as taken · Low stock alert created'
+                    : 'Dose marked as taken',
+              ),
+              backgroundColor: Colors.green[700],
+            ),
+          );
+        }
+        // Refresh schedules for the currently selected date (not always today)
+        await _fetchSchedulesForDate(_selectedDate);
+        // Refresh My Meds so currentPillCount updates
+        if (mounted) {
+          await context.read<MedicineProvider>().fetchMedicinesFromApi(token);
+        }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to update status')),
+            SnackBar(
+              content: Text(result.error ?? 'Failed to mark dose as taken'),
+              backgroundColor: Colors.red[700],
+            ),
           );
         }
+      }
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Colors.red[700],
+          ),
+        );
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Network error. Please try again.')),
+          const SnackBar(
+            content: Text('Connection error. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -222,6 +260,14 @@ class _HomeScreenState extends State<HomeScreen> {
   int _countByStatus(String status) => _schedules
       .where((s) => s.status.toLowerCase() == status.toLowerCase())
       .length;
+
+  /// True when the calendar's selected date is calendar-today.
+  bool get _isSelectedDateToday {
+    final now = DateTime.now();
+    return _selectedDate.year == now.year &&
+        _selectedDate.month == now.month &&
+        _selectedDate.day == now.day;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -291,9 +337,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 32),
 
-                  // ── Weekly Calendar ──
+                  // ── Weekly Calendar label ──
                   Text(
-                    "Today, $_monthName ${_selectedDate.day}",
+                    _isSelectedDateToday
+                        ? 'Today, $_monthName ${_selectedDate.day}'
+                        : '$_monthName ${_selectedDate.day}, ${_selectedDate.year}',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -324,7 +372,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        "Today's Medication",
+                        _isSelectedDateToday
+                            ? "Today's Medication"
+                            : '$_monthName ${_selectedDate.day} Medication',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -333,7 +383,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       if (!_isLoading)
                         GestureDetector(
-                          onTap: _fetchTodaySchedules,
+                          onTap: () => _fetchSchedulesForDate(_selectedDate),
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
@@ -395,7 +445,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     ..._filtered.map(
                       (s) => _ScheduleCard(
                         schedule: s,
-                        onTake: () => _markAsTaken(s),
+                        onTap: () {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (_) => _TakeDoseBottomSheet(
+                              schedule: s,
+                              matchedMedicine: context
+                                  .read<MedicineProvider>()
+                                  .medicines
+                                  .where((m) =>
+                                      m.id == s.userMedId.toString())
+                                  .firstOrNull,
+                              onTakeSuccess: () => _markAsTaken(s.id),
+                            ),
+                          );
+                        },
                       ),
                     ),
 
@@ -545,7 +611,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
-            onPressed: _fetchTodaySchedules,
+            onPressed: () => _fetchSchedulesForDate(_selectedDate),
             icon: const Icon(Icons.refresh),
             label: const Text('Retry'),
             style: ElevatedButton.styleFrom(
@@ -567,7 +633,10 @@ class _HomeScreenState extends State<HomeScreen> {
         date.day == _selectedDate.day && date.month == _selectedDate.month;
     final weekdays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
     return GestureDetector(
-      onTap: () => setState(() => _selectedDate = date),
+      onTap: () {
+        setState(() => _selectedDate = date);
+        _fetchSchedulesForDate(date);
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: isSelected
@@ -609,9 +678,9 @@ class _HomeScreenState extends State<HomeScreen> {
 // ─────────────────────────────────────────────
 class _ScheduleCard extends StatelessWidget {
   final TodaySchedule schedule;
-  final VoidCallback onTake;
+  final VoidCallback onTap; // opens the bottom sheet
 
-  const _ScheduleCard({required this.schedule, required this.onTake});
+  const _ScheduleCard({required this.schedule, required this.onTap});
 
   Color get _statusColor {
     switch (schedule.status.toLowerCase()) {
@@ -662,20 +731,22 @@ class _ScheduleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
         children: [
           // ── Main Card Content ──
           Padding(
@@ -757,45 +828,23 @@ class _ScheduleCard extends StatelessWidget {
                                 ),
                               ],
                             ),
-                          const SizedBox(height: 10),
-
-                          // Status Badge or Take Button
-                          if (schedule.isPending)
-                            SizedBox(
-                              width: double.infinity,
-                              height: 38,
-                              child: ElevatedButton(
-                                onPressed: onTake,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primaryTeal,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: const Text(
-                                  'Take Now',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            )
-                          else
+                          // Compact status chip — visible for Taken/Missed;
+                          // pending items show nothing (card tap opens modal)
+                          if (!schedule.isPending)
                             Row(
                               children: [
                                 Icon(
                                   _statusIcon,
                                   color: _statusColor,
-                                  size: 16,
+                                  size: 14,
                                 ),
-                                const SizedBox(width: 5),
+                                const SizedBox(width: 4),
                                 Text(
                                   schedule.status.toUpperCase(),
                                   style: TextStyle(
                                     color: _statusColor,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 13,
+                                    fontSize: 12,
                                   ),
                                 ),
                               ],
@@ -935,6 +984,336 @@ class _ScheduleCard extends StatelessWidget {
             ),
           ],
         ],
+        ), // Column
+      ), // Container
+    ); // GestureDetector
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Take Dose Bottom Sheet
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Bottom sheet shown when the user taps a schedule card.
+/// Displays dose details and a large green Take button.
+/// Calls [onTakeSuccess] (which triggers the API in parent) when confirmed.
+class _TakeDoseBottomSheet extends StatefulWidget {
+  final TodaySchedule schedule;
+
+  /// Matched medicine from MedicineProvider — used for stock / expiry / dose info.
+  /// Kept as [dynamic] to avoid a hard model import (the provider already holds Medicine).
+  final dynamic matchedMedicine;
+
+  /// Called when user taps Take. Parent is responsible for calling the API.
+  final Future<void> Function() onTakeSuccess;
+
+  const _TakeDoseBottomSheet({
+    required this.schedule,
+    required this.matchedMedicine,
+    required this.onTakeSuccess,
+  });
+
+  @override
+  State<_TakeDoseBottomSheet> createState() => _TakeDoseBottomSheetState();
+}
+
+class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
+  bool _isLoading = false;
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
+  String _formatTime(DateTime dt) {
+    final local = dt.toLocal();
+    final hour = local.hour % 12 == 0 ? 12 : local.hour % 12;
+    final minute = local.minute.toString().padLeft(2, '0');
+    final period = local.hour < 12 ? 'AM' : 'PM';
+    return '$hour:$minute $period';
+  }
+
+  String _formatDate(DateTime dt) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
+  }
+
+  // ── Take action ──────────────────────────────────────────────────────────
+
+  Future<void> _onTakeTapped() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+    try {
+      await widget.onTakeSuccess();
+      // Parent already shows SnackBar & refreshes; just close the sheet.
+      if (mounted) Navigator.pop(context);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // ── Info row widget ───────────────────────────────────────────────────────
+
+  Widget _infoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppColors.primaryTeal.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: AppColors.primaryTeal, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textGrey,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textDark,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Build ─────────────────────────────────────────────────────────────────
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.schedule;
+    final med = widget.matchedMedicine;
+
+    // Pull extra info from matched medicine when available
+    final int? currentPillCount = med?.currentPillCount as int?;
+    final DateTime? expiryDate    = med?.expiryDate    as DateTime?;
+    final int? pillsPerDose       = med?.pillsPerDose  as int?;
+    final String? dosage          = med?.dosage        as String?;
+
+    final bool alreadyHandled = !s.isPending;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 32,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Handle bar ──
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // ── Header row ──
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Take Dose',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textDark,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.backgroundCream,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.close, size: 18, color: AppColors.textGrey),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // ── Medicine hero card ──
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.backgroundCream,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryTeal.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      Icons.medication_rounded,
+                      color: AppColors.primaryTeal,
+                      size: 30,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          s.medName,
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                        if (dosage != null && dosage.isNotEmpty) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            dosage,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textGrey,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  // Status chip for already-handled schedules
+                  if (alreadyHandled)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: s.isTaken
+                            ? Colors.green.withValues(alpha: 0.12)
+                            : Colors.red.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        s.status.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: s.isTaken ? Colors.green[700] : Colors.red[700],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // ── Info rows ──
+            _infoRow(
+              Icons.schedule_rounded,
+              'Scheduled Time',
+              _formatTime(s.scheduledAt),
+            ),
+            if (currentPillCount != null)
+              _infoRow(
+                Icons.inventory_2_outlined,
+                'Stock Remaining',
+                '$currentPillCount pill${currentPillCount != 1 ? 's' : ''} remaining',
+              ),
+            if (pillsPerDose != null)
+              _infoRow(
+                Icons.colorize_rounded,
+                'Pills Per Dose',
+                '$pillsPerDose pill${pillsPerDose != 1 ? 's' : ''} will be deducted',
+              ),
+            if (expiryDate != null)
+              _infoRow(
+                Icons.event_outlined,
+                'Expiry Date',
+                'Expires: ${_formatDate(expiryDate)}',
+              ),
+            const SizedBox(height: 24),
+
+            // ── Take button ──
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                onPressed: alreadyHandled || _isLoading ? null : _onTakeTapped,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: alreadyHandled
+                      ? Colors.grey[300]
+                      : const Color(0xFF2E7D32), // deep green
+                  disabledBackgroundColor: alreadyHandled
+                      ? Colors.grey[300]
+                      : const Color(0xFF2E7D32).withValues(alpha: 0.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 0,
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2.5,
+                        ),
+                      )
+                    : Text(
+                        alreadyHandled
+                            ? s.status.toUpperCase()
+                            : 'Take Dose',
+                        style: TextStyle(
+                          color: alreadyHandled
+                              ? AppColors.textGrey
+                              : Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

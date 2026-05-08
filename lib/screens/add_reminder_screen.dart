@@ -129,8 +129,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   int? _lowStockThreshold;
   DateTime? _expiryDate;
 
-  // Dose amount
-  double _doseAmount = 1.0;
+  // Pills per dose
+  int _pillsPerDose = 1;
 
   // Notifications
   bool _notificationActive = true;
@@ -186,6 +186,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     _lowStockThreshold = med?.lowStockThreshold;
     _expiryDate = med?.expiryDate;
 
+    // Initialize pills per dose
+    _pillsPerDose = med?.pillsPerDose ?? 1;
+
     _notificationActive = med?.notificationActive ?? true;
   }
 
@@ -226,9 +229,6 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     if (_schedule.type == ScheduleType.xTimesPerDay &&
         _schedule.doseTimes.isEmpty) {
       return 'Please add at least one dose time';
-    }
-    if (_doseAmount < 0.5) {
-      return 'Dose amount must be at least 0.5';
     }
     if (_stock != null && _stock! < 0) {
       return 'Stock cannot be negative';
@@ -460,50 +460,99 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  GestureDetector(
-                    onTap: _showDoseAmountPicker,
-                    child: Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppColors.textGrey.withValues(alpha: 0.2),
-                        ),
+                  // Pills Per Dose stepper
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.textGrey.withValues(alpha: 0.2),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Amount',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textGrey,
-                                  fontWeight: FontWeight.w500,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Pills per dose',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textGrey,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Pills deducted per scheduled dose',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textGrey.withValues(alpha: 0.6),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            GestureDetector(
+                              onTap: _pillsPerDose > 1
+                                  ? () => setState(() => _pillsPerDose--)
+                                  : null,
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: _pillsPerDose > 1
+                                      ? AppColors.primaryTeal.withValues(
+                                          alpha: 0.1)
+                                      : Colors.grey[100],
+                                ),
+                                child: Icon(
+                                  Icons.remove,
+                                  size: 18,
+                                  color: _pillsPerDose > 1
+                                      ? AppColors.primaryTeal
+                                      : Colors.grey[400],
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '$_doseAmount Tablet${_doseAmount > 1 ? 's' : ''}',
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12),
+                              child: Text(
+                                '$_pillsPerDose pill${_pillsPerDose > 1 ? 's' : ''}',
                                 style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
                                   color: AppColors.textDark,
                                 ),
                               ),
-                            ],
-                          ),
-                          Icon(
-                            Icons.edit_outlined,
-                            color: AppColors.primaryTeal,
-                            size: 18,
-                          ),
-                        ],
-                      ),
+                            ),
+                            GestureDetector(
+                              onTap: () =>
+                                  setState(() => _pillsPerDose++),
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppColors.primaryTeal
+                                      .withValues(alpha: 0.1),
+                                ),
+                                child: Icon(
+                                  Icons.add,
+                                  size: 18,
+                                  color: AppColors.primaryTeal,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -1003,96 +1052,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     );
   }
 
-  void _showDoseAmountPicker() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Dose Amount',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textDark,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: AppColors.textGrey.withValues(alpha: 0.2),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    onPressed: _doseAmount > 0.5
-                        ? () => setState(() => _doseAmount -= 0.5)
-                        : null,
-                    icon: Icon(
-                      Icons.remove_circle_outline,
-                      color: _doseAmount > 0.5
-                          ? AppColors.primaryTeal
-                          : Colors.grey[300],
-                    ),
-                  ),
-                  Column(
-                    children: [
-                      Text(
-                        '${_doseAmount.toStringAsFixed(1)} Tablet${_doseAmount > 1 ? 's' : ''}',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  IconButton(
-                    onPressed: () => setState(() => _doseAmount += 0.5),
-                    icon: Icon(Icons.add_circle, color: AppColors.primaryTeal),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryTeal,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: const Text(
-                  'Done',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+
 
   Future<void> _saveMedicine() async {
     final validation = _validate();
@@ -1136,8 +1096,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             _expiryDate ?? DateTime.now().add(const Duration(days: 365)),
         frequency: _schedule.getDisplayText(),
         time: firstDoseTime,
-        doseAmount:
-            '${_doseAmount.toStringAsFixed(1)} Tablet${_doseAmount > 1 ? 's' : ''}',
+        doseAmount: '$_pillsPerDose Tablet${_pillsPerDose != 1 ? 's' : ''}',
         initialStock: _stock ?? 0,
         note: _noteController.text.trim(),
         dosage: _dosageController.text.isNotEmpty
@@ -1154,6 +1113,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         status: widget.initialMedicine?.status ?? MedicineStatus.scheduled,
         scheduleType: scheduleFields['scheduleType'] as String?,
         doseTimes: scheduleFields['doseTimes'] as List<String>?,
+        pillsPerDose: _pillsPerDose,
       );
 
       // Call API
