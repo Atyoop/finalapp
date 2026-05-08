@@ -6,8 +6,11 @@ import 'dart:io';
 import '../main.dart';
 import '../providers/user_provider.dart';
 import '../providers/medicine_provider.dart';
+import '../providers/alerts_provider.dart';
 import '../services/user_medications_service.dart';
+import '../models/medicine.dart';
 import 'chatbot_screen.dart';
+import 'notifications_screen.dart';
 
 // ─────────────────────────────────────────────
 // Schedule Model
@@ -123,6 +126,17 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     // Fetch schedules for today on first load
     _fetchSchedulesForDate(_selectedDate);
+    // Load unread alerts count
+    _loadUnreadAlerts();
+  }
+
+  /// Load unread alerts count
+  Future<void> _loadUnreadAlerts() async {
+    final token = context.read<UserProvider>().token;
+    if (token == null || token.isEmpty) {
+      return;
+    }
+    await context.read<AlertsProvider>().fetchUnreadCount(token);
   }
 
   /// Format a DateTime to the API-required format: yyyy-MM-dd (zero-padded).
@@ -218,6 +232,8 @@ class _HomeScreenState extends State<HomeScreen> {
         // Refresh My Meds so currentPillCount updates
         if (mounted) {
           await context.read<MedicineProvider>().fetchMedicinesFromApi(token);
+          // Refresh unread alerts count
+          await context.read<AlertsProvider>().refreshUnreadCount(token);
         }
       } else {
         if (mounted) {
@@ -232,10 +248,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.message),
-            backgroundColor: Colors.red[700],
-          ),
+          SnackBar(content: Text(e.message), backgroundColor: Colors.red[700]),
         );
       }
     } catch (_) {
@@ -284,8 +297,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 20),
 
                   // ── Header ──
-                  Consumer<UserProvider>(
-                    builder: (context, userProvider, _) {
+                  Consumer2<UserProvider, AlertsProvider>(
+                    builder: (context, userProvider, alertsProvider, _) {
                       return Row(
                         children: [
                           if (userProvider.imagePath != null)
@@ -311,24 +324,78 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                           const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Hello, ${userProvider.name}",
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textDark,
+                                  ),
+                                ),
+                                Text(
+                                  "Welcome!",
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: AppColors.textGrey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // Notifications icon with badge
+                          Stack(
                             children: [
-                              Text(
-                                "Hello, ${userProvider.name}",
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textDark,
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.notifications_outlined,
+                                  color: AppColors.primaryTeal,
+                                  size: 28,
+                                ),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const NotificationsScreen(),
+                                    ),
+                                  );
+                                },
+                                constraints: const BoxConstraints(
+                                  minWidth: 48,
+                                  minHeight: 48,
                                 ),
                               ),
-                              Text(
-                                "Welcome!",
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: AppColors.textGrey,
+                              // Badge with unread count
+                              if (alertsProvider.unreadCount > 0)
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      alertsProvider.unreadCount > 99
+                                          ? '99+'
+                                          : alertsProvider.unreadCount
+                                                .toString(),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
                             ],
                           ),
                         ],
@@ -442,9 +509,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   else if (_filtered.isEmpty)
                     _buildEmptyState()
                   else
-                    ..._filtered.map(
-                      (s) => _ScheduleCard(
+                    ..._filtered.map((s) {
+                      final matched = context
+                          .read<MedicineProvider>()
+                          .medicines
+                          .where((m) => m.id == s.userMedId.toString())
+                          .firstOrNull;
+                      return _ScheduleCard(
                         schedule: s,
+                        matchedMedicine: matched,
                         onTap: () {
                           showModalBottomSheet(
                             context: context,
@@ -452,18 +525,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             backgroundColor: Colors.transparent,
                             builder: (_) => _TakeDoseBottomSheet(
                               schedule: s,
-                              matchedMedicine: context
-                                  .read<MedicineProvider>()
-                                  .medicines
-                                  .where((m) =>
-                                      m.id == s.userMedId.toString())
-                                  .firstOrNull,
+                              matchedMedicine: matched,
                               onTakeSuccess: () => _markAsTaken(s.id),
                             ),
                           );
                         },
-                      ),
-                    ),
+                      );
+                    }),
 
                   const SizedBox(height: 100),
                 ],
@@ -678,9 +746,14 @@ class _HomeScreenState extends State<HomeScreen> {
 // ─────────────────────────────────────────────
 class _ScheduleCard extends StatelessWidget {
   final TodaySchedule schedule;
+  final Medicine? matchedMedicine;
   final VoidCallback onTap; // opens the bottom sheet
 
-  const _ScheduleCard({required this.schedule, required this.onTap});
+  const _ScheduleCard({
+    required this.schedule,
+    required this.matchedMedicine,
+    required this.onTap,
+  });
 
   Color get _statusColor {
     switch (schedule.status.toLowerCase()) {
@@ -747,243 +820,283 @@ class _ScheduleCard extends StatelessWidget {
           ],
         ),
         child: Column(
-        children: [
-          // ── Main Card Content ──
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Stack(
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Med Icon
-                    Container(
-                      width: 70,
-                      height: 70,
-                      decoration: BoxDecoration(
-                        color: AppColors.backgroundCream,
-                        borderRadius: BorderRadius.circular(16),
+          children: [
+            // ── Main Card Content ──
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Stack(
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Med Icon
+                      Container(
+                        width: 70,
+                        height: 70,
+                        decoration: BoxDecoration(
+                          color: AppColors.backgroundCream,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(
+                          Icons.medication_rounded,
+                          color: AppColors.primaryTeal,
+                          size: 36,
+                        ),
                       ),
-                      child: Icon(
-                        Icons.medication_rounded,
-                        color: AppColors.primaryTeal,
-                        size: 36,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Name
-                          Padding(
-                            padding: const EdgeInsets.only(right: 80),
-                            child: Text(
-                              schedule.medName,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textDark,
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Name
+                            Padding(
+                              padding: const EdgeInsets.only(right: 80),
+                              child: Text(
+                                schedule.medName,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textDark,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 6),
+                            const SizedBox(height: 6),
 
-                          // Scheduled Time
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.schedule,
-                                size: 13,
-                                color: AppColors.textGrey,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                _formatTime(schedule.scheduledAt),
-                                style: TextStyle(
-                                  fontSize: 13,
+                            // Scheduled Time
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.schedule,
+                                  size: 13,
                                   color: AppColors.textGrey,
                                 ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-
-                          // Snooze info
-                          if (schedule.snoozeCount > 0)
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.snooze,
-                                  size: 13,
-                                  color: Colors.orange,
-                                ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  'Snoozed ${schedule.snoozeCount}x',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.orange,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          // Compact status chip — visible for Taken/Missed;
-                          // pending items show nothing (card tap opens modal)
-                          if (!schedule.isPending)
-                            Row(
-                              children: [
-                                Icon(
-                                  _statusIcon,
-                                  color: _statusColor,
-                                  size: 14,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  schedule.status.toUpperCase(),
+                                  _formatTime(schedule.scheduledAt),
                                   style: TextStyle(
-                                    color: _statusColor,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-                // ── Countdown Badge (top right) ──
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryTeal,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.access_time,
-                          color: Colors.white,
-                          size: 12,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _getCountdown(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // ── Interactions Warning ──
-          if (schedule.hasInteractions) ...[
-            Container(
-              margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF3E0),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: const Color(0xFFFF9800).withValues(alpha: 0.4),
-                ),
-              ),
-              child: Theme(
-                data: Theme.of(
-                  context,
-                ).copyWith(dividerColor: Colors.transparent),
-                child: ExpansionTile(
-                  tilePadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 0,
-                  ),
-                  childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-                  leading: const Icon(
-                    Icons.warning_amber_rounded,
-                    color: Color(0xFFFF9800),
-                    size: 20,
-                  ),
-                  title: Text(
-                    '${schedule.interactions.length} Interaction${schedule.interactions.length > 1 ? 's' : ''} Detected',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFFE65100),
-                    ),
-                  ),
-                  children: schedule.interactions.map((interaction) {
-                    final withMed = interaction['withMedication'] ?? '';
-                    final reason = interaction['reason'] ?? '';
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: const Color(0xFFFF9800).withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            Icons.swap_horiz_rounded,
-                            size: 16,
-                            color: Color(0xFFFF9800),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  withMed,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textDark,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  reason,
-                                  style: TextStyle(
-                                    fontSize: 11,
+                                    fontSize: 13,
                                     color: AppColors.textGrey,
                                   ),
                                 ),
                               ],
                             ),
+                            const SizedBox(height: 4),
+
+                            // Snooze info
+                            if (schedule.snoozeCount > 0)
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.snooze,
+                                    size: 13,
+                                    color: Colors.orange,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Snoozed ${schedule.snoozeCount}x',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.orange,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            // Compact status chip — visible for Taken/Missed;
+                            // pending items show nothing (card tap opens modal)
+                            if (!schedule.isPending)
+                              Row(
+                                children: [
+                                  Icon(
+                                    _statusIcon,
+                                    color: _statusColor,
+                                    size: 14,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    schedule.status.toUpperCase(),
+                                    style: TextStyle(
+                                      color: _statusColor,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                            // ── Stock Warnings ──
+                            if (matchedMedicine != null &&
+                                matchedMedicine!.currentPillCount != null) ...[
+                              const SizedBox(height: 6),
+                              Builder(
+                                builder: (context) {
+                                  final stock =
+                                      matchedMedicine!.currentPillCount!;
+                                  final threshold =
+                                      matchedMedicine!.lowStockThreshold;
+                                  final needed =
+                                      matchedMedicine!.pillsPerDose ?? 1;
+
+                                  if (stock < needed) {
+                                    return Text(
+                                      'Not enough pills for this dose',
+                                      style: TextStyle(
+                                        color: Colors.red[700],
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    );
+                                  } else if (threshold != null &&
+                                      stock <= threshold) {
+                                    return Text(
+                                      'Low stock ($stock left)',
+                                      style: TextStyle(
+                                        color: Colors.orange[800],
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    );
+                                  }
+                                  return const SizedBox.shrink();
+                                },
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // ── Countdown Badge (top right) ──
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryTeal,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.access_time,
+                            color: Colors.white,
+                            size: 12,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _getCountdown(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
-                    );
-                  }).toList(),
-                ),
+                    ),
+                  ),
+                ],
               ),
             ),
+
+            // ── Interactions Warning ──
+            if (schedule.hasInteractions) ...[
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3E0),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: const Color(0xFFFF9800).withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Theme(
+                  data: Theme.of(
+                    context,
+                  ).copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    tilePadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 0,
+                    ),
+                    childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                    leading: const Icon(
+                      Icons.warning_amber_rounded,
+                      color: Color(0xFFFF9800),
+                      size: 20,
+                    ),
+                    title: Text(
+                      '${schedule.interactions.length} Interaction${schedule.interactions.length > 1 ? 's' : ''} Detected',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFFE65100),
+                      ),
+                    ),
+                    children: schedule.interactions.map((interaction) {
+                      final withMed = interaction['withMedication'] ?? '';
+                      final reason = interaction['reason'] ?? '';
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: const Color(
+                              0xFFFF9800,
+                            ).withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.swap_horiz_rounded,
+                              size: 16,
+                              color: Color(0xFFFF9800),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    withMed,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textDark,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    reason,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.textGrey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+            ],
           ],
-        ],
         ), // Column
       ), // Container
     ); // GestureDetector
@@ -1032,8 +1145,18 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
 
   String _formatDate(DateTime dt) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
   }
@@ -1042,6 +1165,24 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
 
   Future<void> _onTakeTapped() async {
     if (_isLoading) return;
+
+    // ── Stock Check ──
+    final med = widget.matchedMedicine as Medicine?;
+    if (med != null && med.currentPillCount != null) {
+      final needed = med.pillsPerDose ?? 1;
+      if (med.currentPillCount! < needed) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Not enough pills. Please update stock in My Meds first.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    }
+
     setState(() => _isLoading = true);
     try {
       await widget.onTakeSuccess();
@@ -1108,9 +1249,9 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
 
     // Pull extra info from matched medicine when available
     final int? currentPillCount = med?.currentPillCount as int?;
-    final DateTime? expiryDate    = med?.expiryDate    as DateTime?;
-    final int? pillsPerDose       = med?.pillsPerDose  as int?;
-    final String? dosage          = med?.dosage        as String?;
+    final DateTime? expiryDate = med?.expiryDate as DateTime?;
+    final int? pillsPerDose = med?.pillsPerDose as int?;
+    final String? dosage = med?.dosage as String?;
 
     final bool alreadyHandled = !s.isPending;
 
@@ -1163,7 +1304,11 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
                       color: AppColors.backgroundCream,
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.close, size: 18, color: AppColors.textGrey),
+                    child: Icon(
+                      Icons.close,
+                      size: 18,
+                      color: AppColors.textGrey,
+                    ),
                   ),
                 ),
               ],
@@ -1236,7 +1381,9 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: s.isTaken ? Colors.green[700] : Colors.red[700],
+                          color: s.isTaken
+                              ? Colors.green[700]
+                              : Colors.red[700],
                         ),
                       ),
                     ),
@@ -1271,45 +1418,104 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
               ),
             const SizedBox(height: 24),
 
+            // ── Stock Warning in Modal ──
+            if (med != null && med.currentPillCount != null)
+              Builder(
+                builder: (context) {
+                  final stock = med.currentPillCount!;
+                  final needed = med.pillsPerDose ?? 1;
+                  if (stock < needed) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.red.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.warning_rounded,
+                              color: Colors.red[700],
+                              size: 20,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Not enough pills for this dose. Please update stock in My Meds.',
+                                style: TextStyle(
+                                  color: Colors.red[900],
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+
             // ── Take button ──
             SizedBox(
               width: double.infinity,
               height: 56,
-              child: ElevatedButton(
-                onPressed: alreadyHandled || _isLoading ? null : _onTakeTapped,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: alreadyHandled
-                      ? Colors.grey[300]
-                      : const Color(0xFF2E7D32), // deep green
-                  disabledBackgroundColor: alreadyHandled
-                      ? Colors.grey[300]
-                      : const Color(0xFF2E7D32).withValues(alpha: 0.5),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 0,
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2.5,
-                        ),
-                      )
-                    : Text(
-                        alreadyHandled
-                            ? s.status.toUpperCase()
-                            : 'Take Dose',
-                        style: TextStyle(
-                          color: alreadyHandled
-                              ? AppColors.textGrey
-                              : Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+              child: Builder(
+                builder: (context) {
+                  final stock = med?.currentPillCount;
+                  final needed = med?.pillsPerDose ?? 1;
+                  final canTake = stock == null || stock >= needed;
+
+                  return ElevatedButton(
+                    onPressed: alreadyHandled || _isLoading || !canTake
+                        ? null
+                        : _onTakeTapped,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: alreadyHandled
+                          ? Colors.grey[300]
+                          : const Color(0xFF2E7D32), // deep green
+                      disabledBackgroundColor: alreadyHandled
+                          ? Colors.grey[300]
+                          : !canTake
+                          ? Colors.red[200]
+                          : const Color(0xFF2E7D32).withValues(alpha: 0.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
+                      elevation: 0,
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : Text(
+                            alreadyHandled
+                                ? s.status.toUpperCase()
+                                : !canTake
+                                ? 'Update stock first'
+                                : 'Take Dose',
+                            style: TextStyle(
+                              color: alreadyHandled
+                                  ? AppColors.textGrey
+                                  : Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  );
+                },
               ),
             ),
           ],

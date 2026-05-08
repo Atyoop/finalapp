@@ -203,12 +203,51 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                                   const SizedBox(height: 6),
                                   // Remaining pills
                                   Text(
-                                    formatRemainingPills(med.currentPillCount),
+                                    med.currentPillCount != null
+                                        ? '${med.currentPillCount} pill${med.currentPillCount != 1 ? 's' : ''} remaining'
+                                        : 'Stock not set',
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: AppColors.textGrey,
                                     ),
                                   ),
+                                  // Stock Warnings
+                                  if (med.currentPillCount != null)
+                                    Builder(builder: (context) {
+                                      final stock = med.currentPillCount!;
+                                      final threshold = med.lowStockThreshold;
+                                      final needed = med.pillsPerDose ?? 1;
+
+                                      if (stock < needed) {
+                                        return Padding(
+                                          padding:
+                                              const EdgeInsets.only(top: 2),
+                                          child: Text(
+                                            'Not enough pills for next dose',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: Colors.red[700],
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        );
+                                      } else if (threshold != null &&
+                                          stock <= threshold) {
+                                        return Padding(
+                                          padding:
+                                              const EdgeInsets.only(top: 2),
+                                          child: Text(
+                                            'Low stock',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: Colors.orange[800],
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                      return const SizedBox.shrink();
+                                    }),
                                   // Expiry date
                                   Padding(
                                     padding: const EdgeInsets.only(top: 2),

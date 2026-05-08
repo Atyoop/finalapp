@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'providers/medicine_provider.dart';
 import 'providers/user_provider.dart';
 import 'providers/saved_medicines_provider.dart';
+import 'providers/alerts_provider.dart';
 
 void main() {
   runApp(
@@ -14,6 +15,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => MedicineProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => SavedMedicinesProvider()),
+        ChangeNotifierProvider(create: (_) => AlertsProvider()),
       ],
       child: const DrugSafeApp(),
     ),
