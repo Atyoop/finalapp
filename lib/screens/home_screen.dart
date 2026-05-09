@@ -89,15 +89,23 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomeScreen> createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+// Public so MainNavScreen can hold a GlobalKey<HomeScreenState> and call
+// refreshSchedules() when the user switches back to the Today tab.
+class HomeScreenState extends State<HomeScreen> {
   DateTime _selectedDate = DateTime.now();
   bool _isLoading = true;
   String? _errorMessage;
   List<TodaySchedule> _schedules = [];
   String? _filterStatus; // null = ALL
+
+  /// Public method so the nav shell can trigger a refresh when the user
+  /// switches back to the Today tab after editing a medicine.
+  void refreshSchedules() {
+    _fetchSchedulesForDate(_selectedDate);
+  }
 
   final List<DateTime> _weeklyDates = List.generate(
     7,
@@ -261,6 +269,46 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     }
+  }
+
+  /// Snooze a dose — called directly from the bottom sheet via callback.
+  Future<void> _snoozeSchedule(int scheduleId) async {
+    final token = context.read<UserProvider>().token;
+    if (token == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+
+    final result = await SchedulesService.snoozeDose(token, scheduleId);
+
+    if (mounted) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(result.message ?? 'Reminder snoozed for 1 hour'),
+          backgroundColor: Colors.orange[700],
+        ),
+      );
+    }
+    // Always refresh so the updated scheduledAt is reflected
+    await _fetchSchedulesForDate(_selectedDate);
+  }
+
+  /// Skip a dose — called directly from the bottom sheet via callback.
+  Future<void> _skipSchedule(int scheduleId) async {
+    final token = context.read<UserProvider>().token;
+    if (token == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+
+    await SchedulesService.skipDose(token, scheduleId);
+
+    if (mounted) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Dose skipped'),
+          backgroundColor: Colors.blueGrey,
+        ),
+      );
+    }
+    // Refresh so the dose shows as Missed
+    await _fetchSchedulesForDate(_selectedDate);
   }
 
   List<TodaySchedule> get _filtered {
@@ -527,6 +575,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               schedule: s,
                               matchedMedicine: matched,
                               onTakeSuccess: () => _markAsTaken(s.id),
+                              onSnoozeSuccess: () => _snoozeSchedule(s.id),
+                              onSkipSuccess: () => _skipSchedule(s.id),
                             ),
                           );
                         },
@@ -1108,22 +1158,28 @@ class _ScheduleCard extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Bottom sheet shown when the user taps a schedule card.
-/// Displays dose details and a large green Take button.
-/// Calls [onTakeSuccess] (which triggers the API in parent) when confirmed.
+/// Displays dose details and Take / Snooze / Skip action buttons.
 class _TakeDoseBottomSheet extends StatefulWidget {
   final TodaySchedule schedule;
 
   /// Matched medicine from MedicineProvider — used for stock / expiry / dose info.
-  /// Kept as [dynamic] to avoid a hard model import (the provider already holds Medicine).
   final dynamic matchedMedicine;
 
-  /// Called when user taps Take. Parent is responsible for calling the API.
+  /// Called when user taps Take. Parent handles API + refresh.
   final Future<void> Function() onTakeSuccess;
+
+  /// Called when user taps Snooze. Parent handles API + refresh.
+  final Future<void> Function() onSnoozeSuccess;
+
+  /// Called when user taps Skip. Parent handles API + refresh.
+  final Future<void> Function() onSkipSuccess;
 
   const _TakeDoseBottomSheet({
     required this.schedule,
     required this.matchedMedicine,
     required this.onTakeSuccess,
+    required this.onSnoozeSuccess,
+    required this.onSkipSuccess,
   });
 
   @override
@@ -1161,7 +1217,7 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
     return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
   }
 
-  // ── Take action ──────────────────────────────────────────────────────────
+  // ── Action handlers ───────────────────────────────────────────────────────
 
   Future<void> _onTakeTapped() async {
     if (_isLoading) return;
@@ -1186,8 +1242,74 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
     setState(() => _isLoading = true);
     try {
       await widget.onTakeSuccess();
-      // Parent already shows SnackBar & refreshes; just close the sheet.
       if (mounted) Navigator.pop(context);
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message), backgroundColor: Colors.red[700]),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Connection error. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _onSnoozeTapped() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+    try {
+      await widget.onSnoozeSuccess();
+      if (mounted) Navigator.pop(context);
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message), backgroundColor: Colors.orange[700]),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Connection error. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _onSkipTapped() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+    try {
+      await widget.onSkipSuccess();
+      if (mounted) Navigator.pop(context);
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message), backgroundColor: Colors.red[700]),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Connection error. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -1463,6 +1585,90 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
                 },
               ),
 
+            // ── Snooze & Skip row (only for pending doses) ──
+            if (!alreadyHandled) ...[
+              Row(
+                children: [
+                  // Snooze button
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        onPressed: _isLoading ? null : _onSnoozeTapped,
+                        icon: _isLoading
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.orange,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.snooze_rounded,
+                                size: 18,
+                                color: Colors.orange,
+                              ),
+                        label: const Text(
+                          'Snooze',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.orange,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.orange),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Skip button
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        onPressed: _isLoading ? null : _onSkipTapped,
+                        icon: _isLoading
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.redAccent,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.skip_next_rounded,
+                                size: 18,
+                                color: Colors.redAccent,
+                              ),
+                        label: const Text(
+                          'Skip',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.redAccent,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.redAccent),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+            ],
+
             // ── Take button ──
             SizedBox(
               width: double.infinity,
@@ -1480,7 +1686,7 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: alreadyHandled
                           ? Colors.grey[300]
-                          : const Color(0xFF2E7D32), // deep green
+                          : const Color(0xFF2E7D32),
                       disabledBackgroundColor: alreadyHandled
                           ? Colors.grey[300]
                           : !canTake

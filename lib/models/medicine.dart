@@ -2,6 +2,24 @@ import 'package:flutter/material.dart';
 
 enum MedicineStatus { scheduled, taken, missed, warning }
 
+/// A single drug–drug interaction returned by the API.
+class MedicationInteraction {
+  final String withMedication;
+  final String reason;
+
+  const MedicationInteraction({
+    required this.withMedication,
+    required this.reason,
+  });
+
+  factory MedicationInteraction.fromJson(Map<String, dynamic> j) {
+    return MedicationInteraction(
+      withMedication: (j['withMedication'] ?? '').toString(),
+      reason: (j['reason'] ?? '').toString(),
+    );
+  }
+}
+
 class Medicine {
   final String id;
   final String name;
@@ -27,6 +45,8 @@ class Medicine {
   final String? scheduleType;
   final List<String>? doseTimes;
   final int? pillsPerDose;
+  final bool hasInteractions;
+  final List<MedicationInteraction> interactions;
   MedicineStatus status;
 
   Medicine({
@@ -54,6 +74,8 @@ class Medicine {
     this.scheduleType,
     this.doseTimes,
     this.pillsPerDose,
+    this.hasInteractions = false,
+    this.interactions = const [],
     this.status = MedicineStatus.scheduled,
   });
 
@@ -82,6 +104,8 @@ class Medicine {
     String? scheduleType,
     List<String>? doseTimes,
     int? pillsPerDose,
+    bool? hasInteractions,
+    List<MedicationInteraction>? interactions,
   }) {
     return Medicine(
       id: id,
@@ -108,6 +132,8 @@ class Medicine {
       scheduleType: scheduleType ?? this.scheduleType,
       doseTimes: doseTimes ?? this.doseTimes,
       pillsPerDose: pillsPerDose ?? this.pillsPerDose,
+      hasInteractions: hasInteractions ?? this.hasInteractions,
+      interactions: interactions ?? this.interactions,
       status: status ?? this.status,
     );
   }
@@ -245,6 +271,17 @@ class Medicine {
       scheduleType: json['scheduleType'],
       doseTimes: parsedDoseTimes.isNotEmpty ? parsedDoseTimes : null,
       pillsPerDose: json['pillsPerDose'] as int?,
+      hasInteractions: json['hasInteractions'] as bool? ?? false,
+      interactions: () {
+        final raw = json['interactions'];
+        if (raw is List) {
+          return raw
+              .whereType<Map<String, dynamic>>()
+              .map(MedicationInteraction.fromJson)
+              .toList();
+        }
+        return <MedicationInteraction>[];
+      }(),
       status: MedicineStatus.scheduled,
     );
   }

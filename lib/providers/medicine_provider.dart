@@ -74,21 +74,26 @@ class MedicineProvider extends ChangeNotifier {
     }
   }
 
-  /// Create a medication on the server and add it locally
-  Future<bool> addMedicineToApi(String token, Medicine medicine) async {
+  /// Create a medication on the server.
+  /// Returns [AddMedicineResponse] on success (which may include interaction
+  /// warnings), or null on failure (check [error] for the message).
+  /// The caller is responsible for calling [fetchMedicinesFromApi] afterward.
+  Future<AddMedicineResponse?> addMedicineToApi(
+    String token,
+    Medicine medicine,
+  ) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final created = await UserMedicationsService.create(token, medicine);
-      _medicines.add(created);
+      final response = await UserMedicationsService.create(token, medicine);
       _error = null;
-      return true;
+      return response;
     } catch (e) {
       _error = e.toString();
-      debugPrint('❌ addMedicineToApi error: $e'); // <-- ADD THIS
-      return false;
+      debugPrint('❌ addMedicineToApi error: $e');
+      return null;
     } finally {
       _isLoading = false;
       notifyListeners();

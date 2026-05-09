@@ -18,13 +18,32 @@ class MainNavScreen extends StatefulWidget {
 class _MainNavScreenState extends State<MainNavScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = const [
-    HomeScreen(),
-    SavedMedicinesScreen(),
-    CheckInteractionsScreen(),
-    AddMedicineScreen(),
-    ProfileScreen(),
-  ];
+  /// Key lets us call HomeScreen's public refreshSchedules() whenever the
+  /// user switches back to the Today tab after editing a medicine.
+  final GlobalKey<HomeScreenState> _homeKey = GlobalKey<HomeScreenState>();
+
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      HomeScreen(key: _homeKey),
+      const SavedMedicinesScreen(),
+      const CheckInteractionsScreen(),
+      const AddMedicineScreen(),
+      const ProfileScreen(),
+    ];
+  }
+
+  void _onTabTapped(int index) {
+    // When switching back to Today (index 0), refresh schedules so statuses
+    // (Taken/Missed) are never overwritten with stale Pending data.
+    if (index == 0 && _currentIndex != 0) {
+      _homeKey.currentState?.refreshSchedules();
+    }
+    setState(() => _currentIndex = index);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,14 +71,14 @@ class _MainNavScreenState extends State<MainNavScreen> {
                 activeIcon: Icons.home_rounded,
                 label: "Today",
                 isActive: _currentIndex == 0,
-                onTap: () => setState(() => _currentIndex = 0),
+                onTap: () => _onTabTapped(0),
               ),
               _NavItem(
                 icon: Icons.medication_outlined,
                 activeIcon: Icons.medication_rounded,
                 label: "My Meds",
                 isActive: _currentIndex == 1,
-                onTap: () => setState(() => _currentIndex = 1),
+                onTap: () => _onTabTapped(1),
               ),
               // Center Scan Button (slightly different styling if desired)
               _NavItem(
@@ -67,21 +86,21 @@ class _MainNavScreenState extends State<MainNavScreen> {
                 activeIcon: Icons.document_scanner_rounded,
                 label: "Check Meds",
                 isActive: _currentIndex == 2,
-                onTap: () => setState(() => _currentIndex = 2),
+                onTap: () => _onTabTapped(2),
               ),
               _NavItem(
                 icon: Icons.add_box_outlined,
                 activeIcon: Icons.add_box_rounded,
                 label: "Add Meds",
                 isActive: _currentIndex == 3,
-                onTap: () => setState(() => _currentIndex = 3),
+                onTap: () => _onTabTapped(3),
               ),
               _NavItem(
                 icon: Icons.settings_outlined,
                 activeIcon: Icons.settings_rounded,
                 label: "Setting",
                 isActive: _currentIndex == 4,
-                onTap: () => setState(() => _currentIndex = 4),
+                onTap: () => _onTabTapped(4),
               ),
             ],
           ),
