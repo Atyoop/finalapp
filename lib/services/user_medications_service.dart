@@ -1,0 +1,364 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../models/medicine.dart';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Add Medicine Response
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Parsed response from POST /api/UserMedications.
+/// The medication is always added when statusCode == 200/201.
+/// [interactionWarnings] may contain safety warnings to show the user.
+class AddMedicineResponse {
+  final String? message;
+  final String? expiryDate;
+  final bool expiryAdjusted;
+  final String? expiryAdjustedNote;
+  final List<String> interactionWarnings;
+
+  const AddMedicineResponse({
+    this.message,
+    this.expiryDate,
+    this.expiryAdjusted = false,
+    this.expiryAdjustedNote,
+    this.interactionWarnings = const [],
+  });
+
+  bool get hasInteractionWarnings => interactionWarnings.isNotEmpty;
+
+  factory AddMedicineResponse.fromJson(Map<String, dynamic> j) {
+    final rawWarnings = j['interactionWarnings'];
+    final warnings = rawWarnings is List
+        ? rawWarnings.map((e) => e.toString()).toList()
+        : <String>[];
+    return AddMedicineResponse(
+      message: j['message']?.toString(),
+      expiryDate: j['expiryDate']?.toString(),
+      expiryAdjusted: j['expiryAdjusted'] as bool? ?? false,
+      expiryAdjustedNote: j['expiryAdjustedNote']?.toString(),
+      interactionWarnings: warnings,
+    );
+  }
+}
+
+/// Service class for all UserMedications API calls
+class UserMedicationsService {
+  static const String _baseUrl =
+      'https://drugsafe.runasp.net/api/UserMedications';
+
+  static Map<String, String> _headers(String token) => {
+    'Content-Type': 'application/json',
+    'Accept': '*/*',
+    'Authorization': 'Bearer $token',
+  };
+
+  /// GET /api/UserMedications/myusermeds — fetch all user medications
+  static Future<List<Medicine>> fetchAll(String token) async {
+    final response = await http.get(
+      Uri.parse('$_baseUrl/myusermeds'),
+      headers: _headers(token),
+    );
+
+    if (response.statusCode == 200) {
+      final dynamic decoded = jsonDecode(response.body);
+      try {
+        // Helpful debug information removed
+      } catch (_) {}
+      List<dynamic> list;
+
+      if (decoded is List) {
+        list = decoded;
+      } else if (decoded is Map && decoded.containsKey('data')) {
+        list = decoded['data'] as List<dynamic>;
+      } else if (decoded is Map && decoded.containsKey('\$values')) {
+        list = decoded['\$values'] as List<dynamic>;
+      } else {
+        list = [];
+      }
+
+      return list
+          .map((json) => Medicine.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } else {
+      throw ApiException(
+        'Failed to fetch medications',
+        response.statusCode,
+        response.body,
+      );
+    }
+  }
+
+  /// POST /api/UserMedications — create a new medication.
+  /// Returns [AddMedicineResponse] which includes any interaction warnings.
+  /// The medication is already persisted by the backend on success.
+  static Future<AddMedicineResponse> create(
+    String token,
+    Medicine medicine,
+  ) async {
+    final response = await http.post(
+      Uri.parse(_baseUrl),
+      headers: _headers(token),
+      body: jsonEncode(medicine.toJson()),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          return AddMedicineResponse.fromJson(decoded);
+        }
+      } catch (_) {}
+      // Fallback: success but unparseable body
+      return const AddMedicineResponse();
+    } else {
+      throw ApiException(
+        'Failed to create medication',
+        response.statusCode,
+        response.body,
+      );
+    }
+  }
+
+  /// PUT /api/UserMedications/{id} — update an existing medication
+  static Future<Medicine> update(String token, Medicine medicine) async {
+    final response = await http.put(
+      Uri.parse('$_baseUrl/${medicine.id}'),
+      headers: _headers(token),
+      body: jsonEncode(medicine.toJson()),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      if (response.body.isNotEmpty) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          return Medicine.fromJson(decoded);
+        }
+      }
+      return medicine; // 204 No Content — return the local copy
+    } else {
+      throw ApiException(
+        'Failed to update medication',
+        response.statusCode,
+        response.body,
+      );
+    }
+  }
+
+  /// DELETE /api/UserMedications/{id} — delete a medication
+  static Future<void> delete(String token, String id) async {
+    final response = await http.delete(
+      Uri.parse('$_baseUrl/$id'),
+      headers: _headers(token),
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw ApiException(
+        'Failed to delete medication',
+        response.statusCode,
+        response.body,
+      );
+    }
+  }
+
+  /// DELETE /api/UserMedications/myusermeds — delete all user medications
+  static Future<void> deleteMyUserMeds(String token) async {
+    final response = await http.delete(
+      Uri.parse('$_baseUrl/myusermeds'),
+      headers: _headers(token),
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw ApiException(
+        'Failed to delete user medications',
+        response.statusCode,
+        response.body,
+      );
+    }
+  }
+}
+
+/// Custom exception for API errors
+class ApiException implements Exception {
+  final String message;
+  final int statusCode;
+  final String responseBody;
+
+  ApiException(this.message, this.statusCode, this.responseBody);
+
+  @override
+  String toString() => '$message (HTTP $statusCode): $responseBody';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Take Dose Result Model
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Parsed response from POST /api/schedules/{scheduleId}/take
+class TakeDoseResult {
+  final bool succeeded;
+  final String? error;
+  final int scheduleId;
+  final int? pillsDeducted;
+  final int? remainingPills;
+  final bool lowStockAlertCreated;
+
+  TakeDoseResult({
+    required this.succeeded,
+    this.error,
+    required this.scheduleId,
+    this.pillsDeducted,
+    this.remainingPills,
+    required this.lowStockAlertCreated,
+  });
+
+  factory TakeDoseResult.fromJson(Map<String, dynamic> j) {
+    return TakeDoseResult(
+      succeeded: j['succeeded'] as bool? ?? false,
+      error: j['error']?.toString(),
+      scheduleId: j['scheduleId'] as int? ?? 0,
+      pillsDeducted: j['pillsDeducted'] as int?,
+      remainingPills: j['remainingPills'] as int?,
+      lowStockAlertCreated: j['lowStockAlertCreated'] as bool? ?? false,
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Schedules Service — Take / Snooze / Skip
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Parsed response from POST /api/schedules/{scheduleId}/snooze
+class SnoozeResult {
+  final bool succeeded;
+  final String? message;
+  final String? error;
+
+  SnoozeResult({
+    required this.succeeded,
+    this.message,
+    this.error,
+  });
+
+  factory SnoozeResult.fromJson(Map<String, dynamic> j) {
+    return SnoozeResult(
+      succeeded: j['succeeded'] as bool? ?? true,
+      message: j['message']?.toString(),
+      error: j['error']?.toString(),
+    );
+  }
+}
+
+class SchedulesService {
+  static const String _baseUrl = 'https://drugsafe.runasp.net/api/schedules';
+
+  static Map<String, String> _headers(String token) => {
+    'Content-Type': 'application/json',
+    'Accept': '*/*',
+    'Authorization': 'Bearer $token',
+  };
+
+  /// Shared error handler for 400/401/404 responses.
+  static ApiException _parseError(http.Response response, String action) {
+    if (response.statusCode == 401) {
+      return ApiException('Unauthorized. Please sign in again.', 401, response.body);
+    }
+    if (response.statusCode == 404) {
+      return ApiException('Schedule not found or access denied.', 404, response.body);
+    }
+    if (response.statusCode == 400) {
+      try {
+        final decoded = jsonDecode(response.body);
+        final msg = decoded['message'] ??
+            decoded['error'] ??
+            decoded['title'] ??
+            'Bad request.';
+        return ApiException(msg.toString(), 400, response.body);
+      } catch (_) {
+        return ApiException('Bad request.', 400, response.body);
+      }
+    }
+    return ApiException(
+      'Failed to $action (${response.statusCode}).',
+      response.statusCode,
+      response.body,
+    );
+  }
+
+  /// POST /api/schedules/{scheduleId}/take
+  ///
+  /// Marks a scheduled dose as taken. The backend deducts [pillsPerDose] from
+  /// the user's current pill count and optionally creates a low-stock alert.
+  static Future<TakeDoseResult> takeDose(
+    String token,
+    int scheduleId,
+  ) async {
+    final response = await http
+        .post(
+          Uri.parse('$_baseUrl/$scheduleId/take'),
+          headers: _headers(token),
+          body: '{}',
+        )
+        .timeout(const Duration(seconds: 15));
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      return TakeDoseResult.fromJson(decoded);
+    }
+    throw _parseError(response, 'take dose');
+  }
+
+  /// POST /api/schedules/{scheduleId}/snooze
+  ///
+  /// Snoozes a pending dose by 1 hour. Max snooze count is 2.
+  /// Backend keeps status as Pending, increments snoozeCount, and shifts scheduledAt.
+  static Future<SnoozeResult> snoozeDose(
+    String token,
+    int scheduleId,
+  ) async {
+    final response = await http
+        .post(
+          Uri.parse('$_baseUrl/$scheduleId/snooze'),
+          headers: _headers(token),
+          body: '{}',
+        )
+        .timeout(const Duration(seconds: 15));
+
+    if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 204) {
+      if (response.body.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(response.body);
+          if (decoded is Map<String, dynamic>) {
+            return SnoozeResult.fromJson(decoded);
+          }
+        } catch (_) {}
+      }
+      return SnoozeResult(succeeded: true, message: 'Reminder snoozed for 1 hour');
+    }
+    throw _parseError(response, 'snooze dose');
+  }
+
+  /// POST /api/schedules/{scheduleId}/skip
+  ///
+  /// Skips a pending dose. Backend marks status as Missed.
+  /// Flutter treats this as Missed — there is no "Skipped" status.
+  static Future<void> skipDose(
+    String token,
+    int scheduleId,
+  ) async {
+    final response = await http
+        .post(
+          Uri.parse('$_baseUrl/$scheduleId/skip'),
+          headers: _headers(token),
+          body: '{}',
+        )
+        .timeout(const Duration(seconds: 15));
+
+    if (response.statusCode == 200 ||
+        response.statusCode == 201 ||
+        response.statusCode == 204) {
+      return;
+    }
+    throw _parseError(response, 'skip dose');
+  }
+}
+
