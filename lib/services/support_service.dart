@@ -58,7 +58,3 @@ class SupportService {
     }
   }
 }
-
-void _debugPrint(String message) {
-  debugPrint('[SupportService] $message');
-}

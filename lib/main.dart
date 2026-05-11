@@ -12,9 +12,16 @@ import 'providers/support_provider.dart';
 import 'providers/premium_provider.dart';
 
 void main() async {
+  // Initialize Flutter binding
+  WidgetsFlutterBinding.ensureInitialized();
+
   // Initialize notifications service
   final notificationsProvider = NotificationsProvider();
   await notificationsProvider.initialize();
+
+  // Verify notification system
+  await notificationsProvider.verifyNotificationSystem();
+  await notificationsProvider.checkPendingNotifications();
 
   runApp(
     MultiProvider(

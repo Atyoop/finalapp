@@ -62,7 +62,3 @@ class PremiumService {
     }
   }
 }
-
-void _debugPrint(String message) {
-  debugPrint('[PremiumService] $message');
-}

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import '../models/alert.dart';
 import '../services/alerts_service.dart';
 
@@ -17,11 +18,26 @@ class AlertsProvider extends ChangeNotifier {
   bool get isDeletingAll => _isDeletingAll;
   String? get error => _error;
 
+  /// Safely notify listeners, deferring if called during build phase
+  void _safeNotifyListeners() {
+    if (WidgetsBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      // We're in build phase, defer the notification until after frame
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!hasListeners) return;
+        notifyListeners();
+      });
+    } else {
+      // Safe to notify immediately
+      notifyListeners();
+    }
+  }
+
   /// Fetch all alerts
   Future<bool> fetchAlerts(String token) async {
     _isLoading = true;
     _error = null;
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       _alerts = await AlertsService.fetchAllAlerts(token);
@@ -33,7 +49,7 @@ class AlertsProvider extends ChangeNotifier {
       return false;
     } finally {
       _isLoading = false;
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
@@ -42,13 +58,13 @@ class AlertsProvider extends ChangeNotifier {
     try {
       _unreadCount = await AlertsService.fetchUnreadCount(token);
       _error = null;
-      notifyListeners();
+      _safeNotifyListeners();
       return true;
     } catch (e) {
       _error = e.toString();
       debugPrint('❌ fetchUnreadCount error: $e');
       // Don't set isLoading for this, just notify silently
-      notifyListeners();
+      _safeNotifyListeners();
       return false;
     }
   }
@@ -80,7 +96,7 @@ class AlertsProvider extends ChangeNotifier {
     } catch (e) {
       _error = e.toString();
       debugPrint('❌ markAlertAsRead error: $e');
-      notifyListeners();
+      _safeNotifyListeners();
       return false;
     }
   }
@@ -88,7 +104,7 @@ class AlertsProvider extends ChangeNotifier {
   /// Mark all alerts as read
   Future<bool> markAllAlertsAsRead(String token) async {
     _isMarkingAllRead = true;
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       await AlertsService.markAllAlertsAsRead(token);
@@ -118,7 +134,7 @@ class AlertsProvider extends ChangeNotifier {
       return false;
     } finally {
       _isMarkingAllRead = false;
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
@@ -133,12 +149,12 @@ class AlertsProvider extends ChangeNotifier {
       // Refresh unread count
       await fetchUnreadCount(token);
       _error = null;
-      notifyListeners();
+      _safeNotifyListeners();
       return true;
     } catch (e) {
       _error = e.toString();
       debugPrint('❌ deleteAlert error: $e');
-      notifyListeners();
+      _safeNotifyListeners();
       return false;
     }
   }
@@ -146,7 +162,7 @@ class AlertsProvider extends ChangeNotifier {
   /// Delete all alerts by deleting each one
   Future<bool> deleteAllAlerts(String token) async {
     _isDeletingAll = true;
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       // Delete each alert one by one
@@ -174,7 +190,7 @@ class AlertsProvider extends ChangeNotifier {
       return false;
     } finally {
       _isDeletingAll = false;
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 

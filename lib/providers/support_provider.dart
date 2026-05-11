@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/support_ticket.dart';
 import '../services/support_service.dart';
+import 'package:flutter/scheduler.dart';
 
 class SupportProvider extends ChangeNotifier {
   List<SupportTicket> _tickets = [];
@@ -17,6 +18,24 @@ class SupportProvider extends ChangeNotifier {
   String? get error => _error;
   String? get successMessage => _successMessage;
 
+  bool _isNotificationPending = false;
+
+  /// Safely notify listeners, deferring if called during build phase
+  void _safeNotifyListeners() {
+    if (WidgetsBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      if (!_isNotificationPending) {
+        _isNotificationPending = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _isNotificationPending = false;
+          if (hasListeners) notifyListeners();
+        });
+      }
+    } else {
+      notifyListeners();
+    }
+  }
+
   /// Submit a support request
   Future<bool> submitSupportRequest({
     required String token,
@@ -26,7 +45,7 @@ class SupportProvider extends ChangeNotifier {
     _isSubmitting = true;
     _error = null;
     _successMessage = null;
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       await SupportService.submitSupportRequest(
@@ -36,7 +55,7 @@ class SupportProvider extends ChangeNotifier {
       );
 
       _successMessage = 'Support request submitted successfully.';
-      notifyListeners();
+      _safeNotifyListeners();
 
       // Fetch tickets again to update the list
       await fetchMyTickets(token);
@@ -45,11 +64,11 @@ class SupportProvider extends ChangeNotifier {
     } catch (e) {
       _error = e.toString();
       debugPrint('❌ submitSupportRequest error: $e');
-      notifyListeners();
+      _safeNotifyListeners();
       return false;
     } finally {
       _isSubmitting = false;
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
@@ -57,34 +76,34 @@ class SupportProvider extends ChangeNotifier {
   Future<bool> fetchMyTickets(String token) async {
     _isFetching = true;
     _error = null;
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       _tickets = await SupportService.fetchMyTickets(token: token);
       _error = null;
-      notifyListeners();
+      _safeNotifyListeners();
       return true;
     } catch (e) {
       _error = e.toString();
       debugPrint('❌ fetchMyTickets error: $e');
-      notifyListeners();
+      _safeNotifyListeners();
       return false;
     } finally {
       _isFetching = false;
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
   /// Clear success message
   void clearSuccessMessage() {
     _successMessage = null;
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   /// Clear error message
   void clearError() {
     _error = null;
-    notifyListeners();
+    _safeNotifyListeners();
   }
 }
 

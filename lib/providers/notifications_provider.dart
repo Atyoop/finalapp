@@ -118,8 +118,25 @@ class NotificationsProvider extends ChangeNotifier {
   Future<int> getPendingNotificationsCount() async {
     return await _notificationService.getPendingNotificationsCount();
   }
-}
 
-void _debugPrint(String message) {
-  debugPrint('[NotificationsProvider] $message');
+  /// Verify notification system is working
+  Future<bool> verifyNotificationSystem() async {
+    try {
+      return await _notificationService.verifyNotificationSystem();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Get pending notifications (for debugging)
+  Future<void> checkPendingNotifications() async {
+    try {
+      await _notificationService.getPendingNotifications();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+    }
+  }
 }

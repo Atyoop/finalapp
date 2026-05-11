@@ -34,7 +34,3 @@ class NotificationScheduleService {
     }
   }
 }
-
-void _debugPrint(String message) {
-  debugPrint('[NotificationScheduleService] $message');
-}

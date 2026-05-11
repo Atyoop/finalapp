@@ -114,7 +114,3 @@ class PremiumProvider extends ChangeNotifier {
     notifyListeners();
   }
 }
-
-void _debugPrint(String message) {
-  debugPrint('[PremiumProvider] $message');
-}
