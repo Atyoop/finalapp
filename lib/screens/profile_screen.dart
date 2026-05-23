@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 import '../providers/notifications_provider.dart';
 import '../providers/premium_provider.dart';
+import '../providers/language_provider.dart';
 
 import 'edit_profile_screen.dart';
 import 'notification_setting_screen.dart';
@@ -282,11 +283,23 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 24),
             _buildSectionHeader("General"),
             _buildSettingsCard([
-              _buildTile(
-                icon: Icons.language_rounded,
-                title: "Language",
-                subtitle: "Select your preferred app language.",
-                onTap: () {},
+              Consumer<LanguageProvider>(
+                builder: (context, languageProvider, child) {
+                  final selectedLanguage = languageProvider.isArabic
+                      ? 'Arabic'
+                      : 'English';
+                  return _buildTile(
+                    icon: Icons.language_rounded,
+                    title: "Language",
+                    subtitle: "Selected: $selectedLanguage",
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AppearanceScreen(),
+                      ),
+                    ),
+                  );
+                },
               ),
               const Divider(height: 1, indent: 56, color: Color(0xFFEEEEEE)),
               _buildTile(
@@ -307,11 +320,13 @@ class ProfileScreen extends StatelessWidget {
                 builder: (context, premium, child) {
                   final isPremium = premium.isPremiumActive;
                   return _buildTile(
-                    icon: isPremium ? Icons.workspace_premium : Icons.star_outline_rounded,
+                    icon: isPremium
+                        ? Icons.workspace_premium
+                        : Icons.star_outline_rounded,
                     title: isPremium ? "Premium Membership" : "Go Premium",
-                    subtitle: isPremium 
-                      ? "Manage your active premium subscription."
-                      : "Unlock premium features and remove ads.",
+                    subtitle: isPremium
+                        ? "Manage your active premium subscription."
+                        : "Unlock premium features and remove ads.",
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const PremiumScreen()),

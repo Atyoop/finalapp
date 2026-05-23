@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../main.dart';
 import '../providers/medicine_provider.dart';
 import '../providers/user_provider.dart';
+import '../providers/language_provider.dart';
 
 class SavedMedicinesScreen extends StatefulWidget {
   const SavedMedicinesScreen({super.key});
@@ -16,6 +17,8 @@ class SavedMedicinesScreen extends StatefulWidget {
 
 class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
   Medicine? selectedMedicine;
+  String? _currentLanguage;
+
   @override
   void initState() {
     super.initState();
@@ -26,6 +29,21 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
         context.read<MedicineProvider>().fetchMedicinesFromApi(token);
       }
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final newLang = Provider.of<LanguageProvider>(context).currentLanguage;
+    if (_currentLanguage != null && _currentLanguage != newLang) {
+      _currentLanguage = newLang;
+      final token = context.read<UserProvider>().token;
+      if (token != null && token.isNotEmpty) {
+        context.read<MedicineProvider>().fetchMedicinesFromApi(token);
+      }
+    } else {
+      _currentLanguage = newLang;
+    }
   }
 
   @override

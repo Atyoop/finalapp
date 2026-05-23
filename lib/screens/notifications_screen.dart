@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/alerts_provider.dart';
 import '../providers/user_provider.dart';
+import '../providers/language_provider.dart';
 import '../main.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -12,10 +13,24 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
+  String? _currentLanguage;
+
   @override
   void initState() {
     super.initState();
     _loadNotifications();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final newLang = Provider.of<LanguageProvider>(context).currentLanguage;
+    if (_currentLanguage != null && _currentLanguage != newLang) {
+      _currentLanguage = newLang;
+      _refreshAlerts();
+    } else {
+      _currentLanguage = newLang;
+    }
   }
 
   Future<void> _loadNotifications() async {

@@ -8,10 +8,14 @@ import '../providers/user_provider.dart';
 import '../providers/medicine_provider.dart';
 import '../providers/alerts_provider.dart';
 import '../providers/notifications_provider.dart';
+import '../providers/language_provider.dart';
+import '../services/language_service.dart';
 import '../services/user_medications_service.dart';
 import '../models/medicine.dart';
 import 'chatbot_screen.dart';
 import 'notifications_screen.dart';
+import '../widgets/interaction_warning_badge.dart';
+import '../widgets/interaction_bottom_sheet.dart';
 
 // ─────────────────────────────────────────────
 // Schedule Model
@@ -101,6 +105,7 @@ class HomeScreenState extends State<HomeScreen> {
   String? _errorMessage;
   List<TodaySchedule> _schedules = [];
   String? _filterStatus; // null = ALL
+  String? _currentLanguage;
 
   /// Public method so the nav shell can trigger a refresh when the user
   /// switches back to the Today tab after editing a medicine.
@@ -139,6 +144,19 @@ class HomeScreenState extends State<HomeScreen> {
     _loadUnreadAlerts();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final newLang = Provider.of<LanguageProvider>(context).currentLanguage;
+    if (_currentLanguage != null && _currentLanguage != newLang) {
+      _currentLanguage = newLang;
+      _fetchSchedulesForDate(_selectedDate);
+      _loadUnreadAlerts();
+    } else {
+      _currentLanguage = newLang;
+    }
+  }
+
   /// Load unread alerts count
   Future<void> _loadUnreadAlerts() async {
     final token = context.read<UserProvider>().token;
@@ -156,8 +174,8 @@ class HomeScreenState extends State<HomeScreen> {
     return '$y-$m-$d';
   }
 
-  /// Fetch schedules for [date] from GET /api/users/me/schedules-by-date?date=yyyy-MM-dd.
-  /// Replaces the old _fetchTodaySchedules that always hit today-schedules.
+  /// Fetch schedules for [date].
+  /// Uses today-schedules for calendar-today and schedules-by-date otherwise.
   Future<void> _fetchSchedulesForDate(DateTime date) async {
     setState(() {
       _isLoading = true;
@@ -174,10 +192,18 @@ class HomeScreenState extends State<HomeScreen> {
         return;
       }
 
-      final dateStr = _formatDateForApi(date);
-      final uri = Uri.parse(
-        'https://drugsafe.runasp.net/api/users/me/schedules-by-date',
-      ).replace(queryParameters: {'date': dateStr});
+      final uri = _isToday(date)
+          ? LanguageService.appendLanguageQuery(
+              Uri.parse(
+                'https://drugsafe.runasp.net/api/users/me/today-schedules',
+              ),
+            )
+          : LanguageService.appendLanguageQuery(
+              Uri.parse(
+                'https://drugsafe.runasp.net/api/users/me/schedules-by-date',
+              ),
+              {'date': _formatDateForApi(date)},
+            );
 
       final res = await http
           .get(
@@ -220,6 +246,9 @@ class HomeScreenState extends State<HomeScreen> {
     try {
       final token = context.read<UserProvider>().token;
       if (token == null) return;
+      final medicineProvider = context.read<MedicineProvider>();
+      final alertsProvider = context.read<AlertsProvider>();
+      final notificationsProvider = context.read<NotificationsProvider>();
 
       final result = await SchedulesService.takeDose(token, scheduleId);
 
@@ -240,13 +269,11 @@ class HomeScreenState extends State<HomeScreen> {
         await _fetchSchedulesForDate(_selectedDate);
         // Refresh My Meds so currentPillCount updates
         if (mounted) {
-          await context.read<MedicineProvider>().fetchMedicinesFromApi(token);
+          await medicineProvider.fetchMedicinesFromApi(token);
           // Refresh unread alerts count
-          await context.read<AlertsProvider>().refreshUnreadCount(token);
+          await alertsProvider.refreshUnreadCount(token);
           // Refresh notifications
-          await context.read<NotificationsProvider>().refreshNotifications(
-            token,
-          );
+          await notificationsProvider.refreshNotifications(token);
         }
       } else {
         if (mounted) {
@@ -337,10 +364,14 @@ class HomeScreenState extends State<HomeScreen> {
 
   /// True when the calendar's selected date is calendar-today.
   bool get _isSelectedDateToday {
+    return _isToday(_selectedDate);
+  }
+
+  bool _isToday(DateTime date) {
     final now = DateTime.now();
-    return _selectedDate.year == now.year &&
-        _selectedDate.month == now.month &&
-        _selectedDate.day == now.day;
+    return date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day;
   }
 
   @override
@@ -1029,136 +1060,102 @@ class _ScheduleCard extends StatelessWidget {
                     ],
                   ),
 
-                  // ── Countdown Badge (top right) ──
+                  // ── Badges (top right) ──
                   Positioned(
                     top: 0,
                     right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryTeal,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.access_time,
-                            color: Colors.white,
-                            size: 12,
+                    child: Row(
+                      children: [
+                        // Interaction warning badge
+                        if (schedule.hasInteractions)
+                          InteractionWarningBadge(
+                            interactionCount: schedule.interactions.length,
+                            onTap: () {
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                backgroundColor: Colors.transparent,
+                                builder: (_) => InteractionBottomSheet(
+                                  medicationName: schedule.medName,
+                                  interactions: schedule.interactions,
+                                ),
+                              );
+                            },
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _getCountdown(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
+                        const SizedBox(width: 8),
+                        // Countdown badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
                           ),
-                        ],
-                      ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryTeal,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.access_time,
+                                color: Colors.white,
+                                size: 12,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _getCountdown(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
 
-            // ── Interactions Warning ──
-            if (schedule.hasInteractions) ...[
+            // ── Interactions Note ──
+            if (schedule.hasInteractions)
               Container(
                 margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFF3E0),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: const Color(0xFFFF9800).withValues(alpha: 0.4),
+                    color: const Color(0xFFFF9800).withValues(alpha: 0.3),
                   ),
                 ),
-                child: Theme(
-                  data: Theme.of(
-                    context,
-                  ).copyWith(dividerColor: Colors.transparent),
-                  child: ExpansionTile(
-                    tilePadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 0,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      size: 14,
+                      color: const Color(0xFFE65100),
                     ),
-                    childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-                    leading: const Icon(
-                      Icons.warning_amber_rounded,
-                      color: Color(0xFFFF9800),
-                      size: 20,
-                    ),
-                    title: Text(
-                      '${schedule.interactions.length} Interaction${schedule.interactions.length > 1 ? 's' : ''} Detected',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFFE65100),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Tap the warning badge to view interactions',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: const Color(0xFFE65100),
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
-                    children: schedule.interactions.map((interaction) {
-                      final withMed = interaction['withMedication'] ?? '';
-                      final reason = interaction['reason'] ?? '';
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: const Color(
-                              0xFFFF9800,
-                            ).withValues(alpha: 0.2),
-                          ),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(
-                              Icons.swap_horiz_rounded,
-                              size: 16,
-                              color: Color(0xFFFF9800),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    withMed,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.textDark,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    reason,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: AppColors.textGrey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ),
+                  ],
                 ),
               ),
-            ],
           ],
         ), // Column
       ), // Container
@@ -1600,6 +1597,124 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
                   return const SizedBox.shrink();
                 },
               ),
+
+            // ── Drug Interactions Section ──
+            if (widget.schedule.hasInteractions) ...[
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3E0),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: const Color(0xFFFF9800).withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          color: const Color(0xFFE65100),
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Drug Interactions Detected',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFFE65100),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    ...widget.schedule.interactions.map((interaction) {
+                      final withMed = interaction['withMedication'] ?? '';
+                      final reason = interaction['reason'] ?? '';
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.swap_horiz_rounded,
+                              size: 14,
+                              color: const Color(0xFFFF9800),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    withMed,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textDark,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    reason,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.textGrey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ],
+
+            // ── Info Box ──
+            if (widget.schedule.hasInteractions)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.blue.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.info_outline_rounded,
+                        size: 16,
+                        color: Colors.blue[700],
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Consult your healthcare provider before making any changes.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.blue[900],
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            const SizedBox(height: 24),
 
             // ── Snooze & Skip row (only for pending doses) ──
             if (!alreadyHandled) ...[

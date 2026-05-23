@@ -6,7 +6,10 @@ import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 
 import '../main.dart';
+import '../providers/language_provider.dart';
 import '../providers/user_provider.dart';
+import '../services/language_service.dart';
+import '../services/medications_service.dart';
 
 // ─────────────────────────────────────────────
 // Result Screen
@@ -551,11 +554,24 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
   List<Map<String, dynamic>> _drugs = [];
   bool _isFetchingMeds = false;
   bool _isCheckingInteraction = false;
+  String? _currentLanguage;
 
   @override
   void initState() {
     super.initState();
     _fetchMedications();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final newLang = Provider.of<LanguageProvider>(context).currentLanguage;
+    if (_currentLanguage != null && _currentLanguage != newLang) {
+      _currentLanguage = newLang;
+      _fetchMedications();
+    } else {
+      _currentLanguage = newLang;
+    }
   }
 
   List<Map<String, dynamic>> get _filtered {
@@ -580,50 +596,44 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
   Future<void> _fetchMedications() async {
     setState(() => _isFetchingMeds = true);
     try {
-      final uri = Uri.parse('https://drugsafe.runasp.net/api/Medications/all');
-      final res = await http.get(uri).timeout(const Duration(seconds: 10));
-      if (res.statusCode == 200) {
-        final List<dynamic> data = json.decode(res.body) as List<dynamic>;
-        final List<Map<String, dynamic>> meds = data.map((item) {
-          final Map<String, dynamic> j = item as Map<String, dynamic>;
+      final data = await MedicationsService.fetchAllMeds();
+      final List<Map<String, dynamic>> meds = data.map((j) {
+        final String name = (j['trade_name'] ?? '').toString();
+        final String form = (j['dosage_Form'] ?? '').toString();
 
-          final String name = (j['trade_name'] ?? '').toString();
-          final String form = (j['dosage_Form'] ?? '').toString();
+        String type = '';
+        final ingredients = j['ingredients'];
+        if (ingredients is List && ingredients.isNotEmpty) {
+          type = (ingredients.first['ingredientName'] ?? '').toString();
+        }
+        if (type.isEmpty) type = 'Medication';
 
-          String type = '';
-          final ingredients = j['ingredients'];
-          if (ingredients is List && ingredients.isNotEmpty) {
-            type = (ingredients.first['ingredientName'] ?? '').toString();
-          }
-          if (type.isEmpty) type = 'Medication';
+        String strength = '';
+        if (ingredients is List && ingredients.isNotEmpty) {
+          final first = ingredients.first;
+          final val = first['strength_value']?.toString() ?? '';
+          final unit = first['strength_unit']?.toString() ?? '';
+          if (val.isNotEmpty) strength = '$val$unit';
+        }
 
-          String strength = '';
-          if (ingredients is List && ingredients.isNotEmpty) {
-            final first = ingredients.first;
-            final val = first['strength_value']?.toString() ?? '';
-            final unit = first['strength_unit']?.toString() ?? '';
-            if (val.isNotEmpty) strength = '$val$unit';
-          }
+        final String displayForm = [
+          form,
+          strength,
+        ].where((s) => s.isNotEmpty).join(' • ');
 
-          final String displayForm = [
-            form,
-            strength,
-          ].where((s) => s.isNotEmpty).join(' • ');
+        return {
+          'id': j['id'],
+          'name': name.isNotEmpty ? name : 'Unknown',
+          'type': type,
+          'form': displayForm,
+          'imageUrl': (j['image_url'] ?? '').toString(),
+          'color': const Color(0xFFE8F5E9),
+          'icon': Icons.medication,
+          'iconColor': AppColors.primaryTeal,
+        };
+      }).toList();
 
-          return {
-            'id': j['id'],
-            'name': name.isNotEmpty ? name : 'Unknown',
-            'type': type,
-            'form': displayForm,
-            'imageUrl': (j['image_url'] ?? '').toString(),
-            'color': const Color(0xFFE8F5E9),
-            'icon': Icons.medication,
-            'iconColor': AppColors.primaryTeal,
-          };
-        }).toList();
-
-        setState(() => _drugs = meds);
-      }
+      setState(() => _drugs = meds);
     } catch (_) {
       // show empty state on error
     } finally {
@@ -653,7 +663,7 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
 
       final uri = Uri.parse(
         'https://drugsafe.runasp.net/api/Medications/check-interaction'
-        '?$queryParams',
+        '?$queryParams&lang=${LanguageService.currentLanguage}',
       );
 
       final res = await http

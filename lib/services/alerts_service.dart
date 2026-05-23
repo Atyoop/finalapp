@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/alert.dart';
+import 'language_service.dart';
 
 /// Service class for all Alerts API calls
 class AlertsService {
@@ -15,7 +16,9 @@ class AlertsService {
   /// GET /api/users/me/alerts — fetch all alerts
   static Future<List<Alert>> fetchAllAlerts(String token) async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/users/me/alerts'),
+      LanguageService.appendLanguageQuery(
+        Uri.parse('$_baseUrl/users/me/alerts'),
+      ),
       headers: _headers(token),
     );
 
@@ -47,10 +50,49 @@ class AlertsService {
     }
   }
 
+  /// GET /api/users/me/alerts/unread — fetch unread alerts list
+  static Future<List<Alert>> fetchUnreadAlerts(String token) async {
+    final response = await http.get(
+      LanguageService.appendLanguageQuery(
+        Uri.parse('$_baseUrl/users/me/alerts/unread'),
+      ),
+      headers: _headers(token),
+    );
+
+    if (response.statusCode == 200) {
+      final dynamic decoded = jsonDecode(response.body);
+      List<dynamic> list;
+
+      if (decoded is List) {
+        list = decoded;
+      } else if (decoded is Map && decoded.containsKey('data')) {
+        list = decoded['data'] as List<dynamic>;
+      } else if (decoded is Map && decoded.containsKey('\$values')) {
+        list = decoded['\$values'] as List<dynamic>;
+      } else {
+        list = [];
+      }
+
+      return list
+          .map((json) => Alert.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } else if (response.statusCode == 401) {
+      throw ApiException('Unauthorized', 401, response.body);
+    } else {
+      throw ApiException(
+        'Failed to fetch unread alerts list',
+        response.statusCode,
+        response.body,
+      );
+    }
+  }
+
   /// GET /api/users/me/alerts/unread-count — fetch unread alerts count
   static Future<int> fetchUnreadCount(String token) async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/users/me/alerts/unread-count'),
+      LanguageService.appendLanguageQuery(
+        Uri.parse('$_baseUrl/users/me/alerts/unread-count'),
+      ),
       headers: _headers(token),
     );
 

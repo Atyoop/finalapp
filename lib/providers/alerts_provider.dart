@@ -69,6 +69,20 @@ class AlertsProvider extends ChangeNotifier {
     }
   }
 
+  /// Fetch unread alerts list
+  Future<List<Alert>> fetchUnreadAlerts(String token) async {
+    try {
+      final unreadAlerts = await AlertsService.fetchUnreadAlerts(token);
+      _error = null;
+      return unreadAlerts;
+    } catch (e) {
+      _error = e.toString();
+      debugPrint('âŒ fetchUnreadAlerts error: $e');
+      _safeNotifyListeners();
+      return [];
+    }
+  }
+
   /// Mark one alert as read
   Future<bool> markAlertAsRead(String token, int alertId) async {
     try {

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:final88/screens/auth_screens.dart';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'providers/medicine_provider.dart';
 import 'providers/user_provider.dart';
@@ -10,10 +11,15 @@ import 'providers/alerts_provider.dart';
 import 'providers/notifications_provider.dart';
 import 'providers/support_provider.dart';
 import 'providers/premium_provider.dart';
+import 'services/language_service.dart';
+import 'providers/language_provider.dart';
 
 void main() async {
   // Initialize Flutter binding
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Language Service (persisted language)
+  await LanguageService.init();
 
   // Initialize notifications service
   final notificationsProvider = NotificationsProvider();
@@ -26,6 +32,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => LanguageProvider()),
         ChangeNotifierProvider(create: (_) => MedicineProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => SavedMedicinesProvider()),
@@ -72,15 +79,30 @@ class DrugSafeApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'DrugSafe',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        scaffoldBackgroundColor: AppColors.backgroundCream,
-        primaryColor: AppColors.primaryTeal,
-        useMaterial3: true,
-      ),
-      home: const SplashScreen(),
+    return Consumer<LanguageProvider>(
+      builder: (context, languageProvider, child) {
+        return MaterialApp(
+          title: 'DrugSafe',
+          debugShowCheckedModeBanner: false,
+          locale: Locale(languageProvider.currentLanguage),
+          supportedLocales: const [Locale('en'), Locale('ar')],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          builder: (context, child) => Directionality(
+            textDirection: languageProvider.textDirection,
+            child: child ?? const SizedBox.shrink(),
+          ),
+          theme: ThemeData(
+            scaffoldBackgroundColor: AppColors.backgroundCream,
+            primaryColor: AppColors.primaryTeal,
+            useMaterial3: true,
+          ),
+          home: const SplashScreen(),
+        );
+      },
     );
   }
 }

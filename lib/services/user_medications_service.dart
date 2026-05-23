@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/medicine.dart';
+import 'language_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Add Medicine Response
@@ -55,7 +56,7 @@ class UserMedicationsService {
   /// GET /api/UserMedications/myusermeds — fetch all user medications
   static Future<List<Medicine>> fetchAll(String token) async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/myusermeds'),
+      LanguageService.appendLanguageQuery(Uri.parse('$_baseUrl/myusermeds')),
       headers: _headers(token),
     );
 
@@ -96,7 +97,7 @@ class UserMedicationsService {
     Medicine medicine,
   ) async {
     final response = await http.post(
-      Uri.parse(_baseUrl),
+      LanguageService.appendLanguageQuery(Uri.parse(_baseUrl)),
       headers: _headers(token),
       body: jsonEncode(medicine.toJson()),
     );
@@ -113,6 +114,59 @@ class UserMedicationsService {
     } else {
       throw ApiException(
         'Failed to create medication',
+        response.statusCode,
+        response.body,
+      );
+    }
+  }
+
+  /// POST /api/UserMedications/init — create a medication by name only (init).
+  static Future<AddMedicineResponse> createByNameOnly(
+    String token,
+    String name,
+  ) async {
+    final response = await http.post(
+      LanguageService.appendLanguageQuery(Uri.parse('$_baseUrl/init')),
+      headers: _headers(token),
+      body: jsonEncode({'name': name}),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          return AddMedicineResponse.fromJson(decoded);
+        }
+      } catch (_) {}
+      return const AddMedicineResponse();
+    } else {
+      throw ApiException(
+        'Failed to create medication by name only',
+        response.statusCode,
+        response.body,
+      );
+    }
+  }
+
+  /// GET /api/medications/{userMedId}/schedules — fetch schedules for a specific user medication
+  static Future<dynamic> fetchSchedulesForUserMedication(
+    String token,
+    int userMedId,
+  ) async {
+    final response = await http.get(
+      LanguageService.appendLanguageQuery(
+        Uri.parse(
+          'https://drugsafe.runasp.net/api/medications/$userMedId/schedules',
+        ),
+      ),
+      headers: _headers(token),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw ApiException(
+        'Failed to fetch schedules for medication $userMedId',
         response.statusCode,
         response.body,
       );
@@ -233,11 +287,7 @@ class SnoozeResult {
   final String? message;
   final String? error;
 
-  SnoozeResult({
-    required this.succeeded,
-    this.message,
-    this.error,
-  });
+  SnoozeResult({required this.succeeded, this.message, this.error});
 
   factory SnoozeResult.fromJson(Map<String, dynamic> j) {
     return SnoozeResult(
@@ -260,15 +310,24 @@ class SchedulesService {
   /// Shared error handler for 400/401/404 responses.
   static ApiException _parseError(http.Response response, String action) {
     if (response.statusCode == 401) {
-      return ApiException('Unauthorized. Please sign in again.', 401, response.body);
+      return ApiException(
+        'Unauthorized. Please sign in again.',
+        401,
+        response.body,
+      );
     }
     if (response.statusCode == 404) {
-      return ApiException('Schedule not found or access denied.', 404, response.body);
+      return ApiException(
+        'Schedule not found or access denied.',
+        404,
+        response.body,
+      );
     }
     if (response.statusCode == 400) {
       try {
         final decoded = jsonDecode(response.body);
-        final msg = decoded['message'] ??
+        final msg =
+            decoded['message'] ??
             decoded['error'] ??
             decoded['title'] ??
             'Bad request.';
@@ -288,10 +347,7 @@ class SchedulesService {
   ///
   /// Marks a scheduled dose as taken. The backend deducts [pillsPerDose] from
   /// the user's current pill count and optionally creates a low-stock alert.
-  static Future<TakeDoseResult> takeDose(
-    String token,
-    int scheduleId,
-  ) async {
+  static Future<TakeDoseResult> takeDose(String token, int scheduleId) async {
     final response = await http
         .post(
           Uri.parse('$_baseUrl/$scheduleId/take'),
@@ -311,10 +367,7 @@ class SchedulesService {
   ///
   /// Snoozes a pending dose by 1 hour. Max snooze count is 2.
   /// Backend keeps status as Pending, increments snoozeCount, and shifts scheduledAt.
-  static Future<SnoozeResult> snoozeDose(
-    String token,
-    int scheduleId,
-  ) async {
+  static Future<SnoozeResult> snoozeDose(String token, int scheduleId) async {
     final response = await http
         .post(
           Uri.parse('$_baseUrl/$scheduleId/snooze'),
@@ -323,7 +376,9 @@ class SchedulesService {
         )
         .timeout(const Duration(seconds: 15));
 
-    if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 204) {
+    if (response.statusCode == 200 ||
+        response.statusCode == 201 ||
+        response.statusCode == 204) {
       if (response.body.isNotEmpty) {
         try {
           final decoded = jsonDecode(response.body);
@@ -332,7 +387,10 @@ class SchedulesService {
           }
         } catch (_) {}
       }
-      return SnoozeResult(succeeded: true, message: 'Reminder snoozed for 1 hour');
+      return SnoozeResult(
+        succeeded: true,
+        message: 'Reminder snoozed for 1 hour',
+      );
     }
     throw _parseError(response, 'snooze dose');
   }
@@ -341,10 +399,7 @@ class SchedulesService {
   ///
   /// Skips a pending dose. Backend marks status as Missed.
   /// Flutter treats this as Missed — there is no "Skipped" status.
-  static Future<void> skipDose(
-    String token,
-    int scheduleId,
-  ) async {
+  static Future<void> skipDose(String token, int scheduleId) async {
     final response = await http
         .post(
           Uri.parse('$_baseUrl/$scheduleId/skip'),
@@ -361,4 +416,3 @@ class SchedulesService {
     throw _parseError(response, 'skip dose');
   }
 }
-

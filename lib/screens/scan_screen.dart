@@ -1,9 +1,9 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 
 import '../main.dart';
+import '../providers/language_provider.dart';
+import '../services/medications_service.dart';
 import 'drug_detail_screen.dart';
 
 class CheckInteractionsScreen extends StatefulWidget {
@@ -21,11 +21,24 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
   List<Map<String, dynamic>> _drugs = [];
 
   bool _isFetchingMeds = false;
+  String? _currentLanguage;
 
   @override
   void initState() {
     super.initState();
     _fetchMedications();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final newLang = Provider.of<LanguageProvider>(context).currentLanguage;
+    if (_currentLanguage != null && _currentLanguage != newLang) {
+      _currentLanguage = newLang;
+      _fetchMedications();
+    } else {
+      _currentLanguage = newLang;
+    }
   }
 
   List<Map<String, dynamic>> get _filtered {
@@ -52,57 +65,51 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
       _isFetchingMeds = true;
     });
     try {
-      final uri = Uri.parse('https://drugsafe.runasp.net/api/Medications/all');
-      final res = await http.get(uri).timeout(const Duration(seconds: 10));
-      if (res.statusCode == 200) {
-        final List<dynamic> data = json.decode(res.body) as List<dynamic>;
-        final List<Map<String, dynamic>> meds = data.map((item) {
-          final Map<String, dynamic> j = item as Map<String, dynamic>;
+      final data = await MedicationsService.fetchAllMeds();
+      final List<Map<String, dynamic>> meds = data.map((j) {
+        // name
+        final String name = (j['trade_name'] ?? '').toString();
 
-          // name
-          final String name = (j['trade_name'] ?? '').toString();
+        // form
+        final String form = (j['dosage_Form'] ?? '').toString();
 
-          // form
-          final String form = (j['dosage_Form'] ?? '').toString();
+        // type: first ingredient name, fallback to 'Medication'
+        String type = '';
+        final ingredients = j['ingredients'];
+        if (ingredients is List && ingredients.isNotEmpty) {
+          type = (ingredients.first['ingredientName'] ?? '').toString();
+        }
+        if (type.isEmpty) type = 'Medication';
 
-          // type: first ingredient name, fallback to 'Medication'
-          String type = '';
-          final ingredients = j['ingredients'];
-          if (ingredients is List && ingredients.isNotEmpty) {
-            type = (ingredients.first['ingredientName'] ?? '').toString();
-          }
-          if (type.isEmpty) type = 'Medication';
+        // strength: first ingredient strength_value + strength_unit
+        String strength = '';
+        if (ingredients is List && ingredients.isNotEmpty) {
+          final first = ingredients.first;
+          final val = first['strength_value']?.toString() ?? '';
+          final unit = first['strength_unit']?.toString() ?? '';
+          if (val.isNotEmpty) strength = '$val$unit';
+        }
 
-          // strength: first ingredient strength_value + strength_unit
-          String strength = '';
-          if (ingredients is List && ingredients.isNotEmpty) {
-            final first = ingredients.first;
-            final val = first['strength_value']?.toString() ?? '';
-            final unit = first['strength_unit']?.toString() ?? '';
-            if (val.isNotEmpty) strength = '$val$unit';
-          }
+        final String displayForm = [
+          form,
+          strength,
+        ].where((s) => s.isNotEmpty).join(' • ');
 
-          final String displayForm = [
-            form,
-            strength,
-          ].where((s) => s.isNotEmpty).join(' • ');
+        return {
+          'id': j['id'],
+          'name': name.isNotEmpty ? name : 'Unknown',
+          'type': type,
+          'form': displayForm,
+          'imageUrl': (j['image_url'] ?? '').toString(),
+          'color': const Color(0xFFE8F5E9),
+          'icon': Icons.medication,
+          'iconColor': AppColors.primaryTeal,
+        };
+      }).toList();
 
-          return {
-            'id': j['id'],
-            'name': name.isNotEmpty ? name : 'Unknown',
-            'type': type,
-            'form': displayForm,
-            'imageUrl': (j['image_url'] ?? '').toString(),
-            'color': const Color(0xFFE8F5E9),
-            'icon': Icons.medication,
-            'iconColor': AppColors.primaryTeal,
-          };
-        }).toList();
-
-        setState(() {
-          _drugs = meds;
-        });
-      }
+      setState(() {
+        _drugs = meds;
+      });
     } catch (_) {
       // show empty state on error
     } finally {

@@ -1,8 +1,9 @@
-import 'dart:convert';
 import 'package:final88/screens/scan_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import '../main.dart';
+import '../providers/language_provider.dart';
+import '../services/medications_service.dart';
 
 import 'add_reminder_screen.dart';
 
@@ -68,11 +69,24 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
   List<ApiMedication> _allMedications = [];
   bool _isLoading = true;
   String? _loadError;
+  String? _currentLanguage;
 
   @override
   void initState() {
     super.initState();
     _fetchMedications();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final newLang = Provider.of<LanguageProvider>(context).currentLanguage;
+    if (_currentLanguage != null && _currentLanguage != newLang) {
+      _currentLanguage = newLang;
+      _fetchMedications();
+    } else {
+      _currentLanguage = newLang;
+    }
   }
 
   @override
@@ -87,22 +101,11 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
       _loadError = null;
     });
     try {
-      final response = await http.get(
-        Uri.parse('https://drugsafe.runasp.net/api/Medications/all'),
-        headers: {'Accept': 'application/json'},
-      );
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        setState(() {
-          _allMedications = data.map((j) => ApiMedication.fromJson(j)).toList();
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _loadError = 'Server error (${response.statusCode})';
-          _isLoading = false;
-        });
-      }
+      final data = await MedicationsService.fetchAllMeds();
+      setState(() {
+        _allMedications = data.map(ApiMedication.fromJson).toList();
+        _isLoading = false;
+      });
     } catch (e) {
       setState(() {
         _loadError = 'Connection error. Check your internet.';

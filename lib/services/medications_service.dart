@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'language_service.dart';
 
 /// Service for public medications endpoints
 class MedicationsService {
@@ -8,7 +9,7 @@ class MedicationsService {
   /// GET /api/Medications/all — fetch all public medications
   static Future<List<Map<String, dynamic>>> fetchAllMeds() async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/all'),
+      LanguageService.appendLanguageQuery(Uri.parse('$_baseUrl/all')),
       headers: {'Accept': 'application/json'},
     );
 
@@ -30,8 +31,9 @@ class MedicationsService {
   /// Search medications on the server (debounced by caller).
   /// This calls the same endpoint with an optional `query` parameter.
   static Future<List<Map<String, dynamic>>> searchMeds(String query) async {
-    final uri = Uri.parse(
-      '$_baseUrl/all?query=${Uri.encodeQueryComponent(query)}',
+    final uri = LanguageService.appendLanguageQuery(
+      Uri.parse('$_baseUrl/all'),
+      {'query': query},
     );
     final response = await http.get(
       uri,
