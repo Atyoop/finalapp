@@ -12,6 +12,9 @@ import 'language_service.dart';
 /// [interactionWarnings] may contain safety warnings to show the user.
 class AddMedicineResponse {
   final String? message;
+  final int? userMedicationId;
+  final String? medicationName;
+  final String? dosageForm;
   final String? expiryDate;
   final bool expiryAdjusted;
   final String? expiryAdjustedNote;
@@ -19,6 +22,9 @@ class AddMedicineResponse {
 
   const AddMedicineResponse({
     this.message,
+    this.userMedicationId,
+    this.medicationName,
+    this.dosageForm,
     this.expiryDate,
     this.expiryAdjusted = false,
     this.expiryAdjustedNote,
@@ -34,11 +40,22 @@ class AddMedicineResponse {
         : <String>[];
     return AddMedicineResponse(
       message: j['message']?.toString(),
+      userMedicationId: _parseNullableInt(
+        j['userMedicationId'] ?? j['id'] ?? j['medicationId'],
+      ),
+      medicationName: (j['medicationName'] ?? j['name'])?.toString(),
+      dosageForm: j['dosageForm']?.toString(),
       expiryDate: j['expiryDate']?.toString(),
       expiryAdjusted: j['expiryAdjusted'] as bool? ?? false,
       expiryAdjustedNote: j['expiryAdjustedNote']?.toString(),
       interactionWarnings: warnings,
     );
+  }
+
+  static int? _parseNullableInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    return int.tryParse(value.toString());
   }
 }
 
@@ -128,7 +145,7 @@ class UserMedicationsService {
     final response = await http.post(
       LanguageService.appendLanguageQuery(Uri.parse('$_baseUrl/init')),
       headers: _headers(token),
-      body: jsonEncode({'name': name}),
+      body: jsonEncode({'medicationName': name}),
     );
 
     if (response.statusCode == 200 || response.statusCode == 201) {

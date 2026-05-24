@@ -1,4 +1,4 @@
-import 'package:final88/screens/scan_screen.dart';
+import 'package:final88/screens/medicine_scan_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../main.dart';
@@ -256,7 +256,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const ScanCameraScreen(),
+                            builder: (_) => const MedicineScanScreen(),
                           ),
                         ),
                         child: Container(

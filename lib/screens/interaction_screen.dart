@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:final88/screens/scan_screen.dart';
+import 'package:final88/screens/medicine_scan_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
@@ -793,7 +793,7 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const ScanCameraScreen(),
+                          builder: (_) => const MedicineScanScreen(),
                         ),
                       ),
                       child: Container(

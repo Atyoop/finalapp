@@ -23,12 +23,7 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
   void initState() {
     super.initState();
     // ✅ Fetch medicines from API when screen loads
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final token = context.read<UserProvider>().token;
-      if (token != null && token.isNotEmpty) {
-        context.read<MedicineProvider>().fetchMedicinesFromApi(token);
-      }
-    });
+    _fetchMedicinesAfterFrame();
   }
 
   @override
@@ -37,13 +32,20 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
     final newLang = Provider.of<LanguageProvider>(context).currentLanguage;
     if (_currentLanguage != null && _currentLanguage != newLang) {
       _currentLanguage = newLang;
+      _fetchMedicinesAfterFrame();
+    } else {
+      _currentLanguage = newLang;
+    }
+  }
+
+  void _fetchMedicinesAfterFrame() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final token = context.read<UserProvider>().token;
       if (token != null && token.isNotEmpty) {
         context.read<MedicineProvider>().fetchMedicinesFromApi(token);
       }
-    } else {
-      _currentLanguage = newLang;
-    }
+    });
   }
 
   @override
@@ -231,41 +233,45 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                                   ),
                                   // Stock Warnings
                                   if (med.currentPillCount != null)
-                                    Builder(builder: (context) {
-                                      final stock = med.currentPillCount!;
-                                      final threshold = med.lowStockThreshold;
-                                      final needed = med.pillsPerDose ?? 1;
+                                    Builder(
+                                      builder: (context) {
+                                        final stock = med.currentPillCount!;
+                                        final threshold = med.lowStockThreshold;
+                                        final needed = med.pillsPerDose ?? 1;
 
-                                      if (stock < needed) {
-                                        return Padding(
-                                          padding:
-                                              const EdgeInsets.only(top: 2),
-                                          child: Text(
-                                            'Not enough pills for next dose',
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: Colors.red[700],
-                                              fontWeight: FontWeight.bold,
+                                        if (stock < needed) {
+                                          return Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: 2,
                                             ),
-                                          ),
-                                        );
-                                      } else if (threshold != null &&
-                                          stock <= threshold) {
-                                        return Padding(
-                                          padding:
-                                              const EdgeInsets.only(top: 2),
-                                          child: Text(
-                                            'Low stock',
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: Colors.orange[800],
-                                              fontWeight: FontWeight.bold,
+                                            child: Text(
+                                              'Not enough pills for next dose',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: Colors.red[700],
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                             ),
-                                          ),
-                                        );
-                                      }
-                                      return const SizedBox.shrink();
-                                    }),
+                                          );
+                                        } else if (threshold != null &&
+                                            stock <= threshold) {
+                                          return Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: 2,
+                                            ),
+                                            child: Text(
+                                              'Low stock',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: Colors.orange[800],
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                        return const SizedBox.shrink();
+                                      },
+                                    ),
                                   // Expiry date
                                   Padding(
                                     padding: const EdgeInsets.only(top: 2),
@@ -370,28 +376,33 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ...displayed.map((inter) => Padding(
-                padding: const EdgeInsets.only(bottom: 2),
-                child: Row(
-                  children: [
-                    const Icon(Icons.warning_amber_rounded,
-                        color: Colors.orange, size: 12),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        'Interacts with ${inter.withMedication}',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.orange[800],
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+          ...displayed.map(
+            (inter) => Padding(
+              padding: const EdgeInsets.only(bottom: 2),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.orange,
+                    size: 12,
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      'Interacts with ${inter.withMedication}',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange[800],
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ],
-                ),
-              )),
+                  ),
+                ],
+              ),
+            ),
+          ),
           if (showMore)
             GestureDetector(
               onTap: () => _showAllInteractions(context, med),
@@ -450,10 +461,7 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
             const SizedBox(height: 8),
             Text(
               'The following medications may have interactions:',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.textGrey,
-              ),
+              style: TextStyle(fontSize: 14, color: AppColors.textGrey),
             ),
             const SizedBox(height: 20),
             Flexible(
@@ -468,15 +476,20 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                     decoration: BoxDecoration(
                       color: Colors.orange.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.orange.withValues(alpha: 0.1)),
+                      border: Border.all(
+                        color: Colors.orange.withValues(alpha: 0.1),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.warning_amber_rounded,
-                                color: Colors.orange, size: 18),
+                            const Icon(
+                              Icons.warning_amber_rounded,
+                              color: Colors.orange,
+                              size: 18,
+                            ),
                             const SizedBox(width: 10),
                             Text(
                               inter.withMedication,
@@ -519,8 +532,10 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                   ),
                   elevation: 0,
                 ),
-                child:
-                    const Text('Close', style: TextStyle(color: Colors.white)),
+                child: const Text(
+                  'Close',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ),
             const SizedBox(height: 10),
