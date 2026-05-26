@@ -748,6 +748,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                           );
                         },
                       );
+                      if (!mounted) return;
                       if (picked != null) {
                         setState(() => _expiryDate = picked);
                       }
@@ -1487,6 +1488,7 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
                     context: context,
                     initialTime: const TimeOfDay(hour: 8, minute: 0),
                   );
+                  if (!mounted) return;
                   if (picked != null) {
                     final exists = _doseTimes.any(
                       (t) => t.hour == picked.hour && t.minute == picked.minute,
@@ -1555,6 +1557,7 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
                     );
                   },
                 );
+                if (!mounted) return;
                 if (picked != null) {
                   setState(() => _startDate = picked);
                 }
@@ -1617,6 +1620,7 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
                     );
                   },
                 );
+                if (!mounted) return;
                 if (picked != null) {
                   setState(() => _endDate = picked);
                 }

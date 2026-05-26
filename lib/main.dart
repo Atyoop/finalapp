@@ -14,6 +14,7 @@ import 'providers/support_provider.dart';
 import 'providers/premium_provider.dart';
 import 'services/language_service.dart';
 import 'providers/language_provider.dart';
+import 'screens/home.dart';
 
 void main() async {
   // Initialize Flutter binding
@@ -127,10 +128,18 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     Timer(const Duration(seconds: 3), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-      );
+      final restored = context.read<UserProvider>().restoreSession();
+      if (restored) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MainNavScreen()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+        );
+      }
     });
   }
 

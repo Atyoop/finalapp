@@ -483,6 +483,7 @@ class ProfileScreen extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () {
+              context.read<UserProvider>().logout();
               Navigator.pop(ctx);
               Navigator.pop(context);
               Navigator.pushAndRemoveUntil(

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/medicine.dart';
 import 'language_service.dart';
+import 'offline_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Add Medicine Response
@@ -113,6 +114,15 @@ class UserMedicationsService {
     String token,
     Medicine medicine,
   ) async {
+    // Check if token is a demo token
+    if (OfflineService.isDemoToken(token)) {
+      throw ApiException(
+        'Cannot add medicines in Demo Mode. Please sign in with your account.',
+        0,
+        '',
+      );
+    }
+
     final response = await http.post(
       LanguageService.appendLanguageQuery(Uri.parse(_baseUrl)),
       headers: _headers(token),
@@ -192,6 +202,15 @@ class UserMedicationsService {
 
   /// PUT /api/UserMedications/{id} — update an existing medication
   static Future<Medicine> update(String token, Medicine medicine) async {
+    // Check if token is a demo token
+    if (OfflineService.isDemoToken(token)) {
+      throw ApiException(
+        'Cannot update medicines in Demo Mode. Please sign in with your account.',
+        0,
+        '',
+      );
+    }
+
     final response = await http.put(
       Uri.parse('$_baseUrl/${medicine.id}'),
       headers: _headers(token),
@@ -217,6 +236,15 @@ class UserMedicationsService {
 
   /// DELETE /api/UserMedications/{id} — delete a medication
   static Future<void> delete(String token, String id) async {
+    // Check if token is a demo token
+    if (OfflineService.isDemoToken(token)) {
+      throw ApiException(
+        'Cannot delete in Demo Mode. Please sign in with your account.',
+        0,
+        '',
+      );
+    }
+
     final response = await http.delete(
       Uri.parse('$_baseUrl/$id'),
       headers: _headers(token),
@@ -233,6 +261,15 @@ class UserMedicationsService {
 
   /// DELETE /api/UserMedications/myusermeds — delete all user medications
   static Future<void> deleteMyUserMeds(String token) async {
+    // Check if token is a demo token
+    if (OfflineService.isDemoToken(token)) {
+      throw ApiException(
+        'Cannot delete in Demo Mode. Please sign in with your account.',
+        0,
+        '',
+      );
+    }
+
     final response = await http.delete(
       Uri.parse('$_baseUrl/myusermeds'),
       headers: _headers(token),
@@ -365,6 +402,15 @@ class SchedulesService {
   /// Marks a scheduled dose as taken. The backend deducts [pillsPerDose] from
   /// the user's current pill count and optionally creates a low-stock alert.
   static Future<TakeDoseResult> takeDose(String token, int scheduleId) async {
+    // Check if token is a demo token
+    if (OfflineService.isDemoToken(token)) {
+      throw ApiException(
+        'Cannot mark dose in Demo Mode. Please sign in with your account.',
+        0,
+        '',
+      );
+    }
+
     final response = await http
         .post(
           Uri.parse('$_baseUrl/$scheduleId/take'),
@@ -385,6 +431,15 @@ class SchedulesService {
   /// Snoozes a pending dose by 1 hour. Max snooze count is 2.
   /// Backend keeps status as Pending, increments snoozeCount, and shifts scheduledAt.
   static Future<SnoozeResult> snoozeDose(String token, int scheduleId) async {
+    // Check if token is a demo token
+    if (OfflineService.isDemoToken(token)) {
+      throw ApiException(
+        'Cannot snooze in Demo Mode. Please sign in with your account.',
+        0,
+        '',
+      );
+    }
+
     final response = await http
         .post(
           Uri.parse('$_baseUrl/$scheduleId/snooze'),
@@ -417,6 +472,15 @@ class SchedulesService {
   /// Skips a pending dose. Backend marks status as Missed.
   /// Flutter treats this as Missed — there is no "Skipped" status.
   static Future<void> skipDose(String token, int scheduleId) async {
+    // Check if token is a demo token
+    if (OfflineService.isDemoToken(token)) {
+      throw ApiException(
+        'Cannot skip dose in Demo Mode. Please sign in with your account.',
+        0,
+        '',
+      );
+    }
+
     final response = await http
         .post(
           Uri.parse('$_baseUrl/$scheduleId/skip'),

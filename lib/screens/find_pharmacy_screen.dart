@@ -37,6 +37,7 @@ class _FindPharmacyScreenState extends State<FindPharmacyScreen> {
     });
 
     final result = await LocationService.getCurrentLocation();
+    if (!mounted) return;
     _locationResult = result;
 
     if (result.status == LocationStatus.success) {
@@ -56,6 +57,7 @@ class _FindPharmacyScreenState extends State<FindPharmacyScreen> {
         longitude: lng,
       );
 
+      if (!mounted) return;
       setState(() {
         _pharmacies = pharmacies;
         _isLoading = false;
@@ -64,6 +66,7 @@ class _FindPharmacyScreenState extends State<FindPharmacyScreen> {
 
       _fitMapBounds(lat, lng, pharmacies);
     } on PharmacyException catch (e) {
+      if (!mounted) return;
       final cached = PharmacyService.loadCached();
       if (cached.isNotEmpty) {
         setState(() {

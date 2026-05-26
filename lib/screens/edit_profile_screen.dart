@@ -37,6 +37,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final pickedFile = await ImagePicker().pickImage(
       source: ImageSource.gallery,
     );
+    if (!mounted) return;
     if (pickedFile != null) {
       setState(() {
         _imagePath = pickedFile.path;

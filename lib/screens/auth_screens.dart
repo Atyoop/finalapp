@@ -5,6 +5,9 @@ import 'package:http/http.dart' as http; // للاتصال بالسيرفر
 import 'package:provider/provider.dart';
 import '../main.dart'; // لاستيراد الألوان والودجت
 import '../providers/user_provider.dart';
+import '../services/auth_storage_service.dart';
+import '../services/connectivity_service.dart';
+import '../services/offline_service.dart';
 import 'home.dart'; // MainNavScreen
 
 // -----------------------------------------------------------------------------
@@ -204,7 +207,7 @@ class _SignupScreenState extends State<SignupScreen> {
         ),
       );
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -429,7 +432,7 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
         ),
       );
     } finally {
-      setState(() => _isVerifying = false);
+      if (mounted) setState(() => _isVerifying = false);
     }
   }
 
@@ -511,8 +514,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // --- API FUNCTION ---
   Future<void> _login() async {
-    const String apiUrl = "https://drugsafe.runasp.net/api/Auth/login";
-
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -524,6 +525,19 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     setState(() => _isLoading = true);
+
+    // Check internet connection first
+    final hasInternet = await ConnectivityService.hasInternet();
+
+    if (!hasInternet) {
+      // Try to login with offline/demo mode
+      await _loginOffline();
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    const String apiUrl = "https://drugsafe.runasp.net/api/Auth/login";
 
     try {
       final response = await http.post(
@@ -565,6 +579,7 @@ class _LoginScreenState extends State<LoginScreen> {
             if (userId != null && userId.isNotEmpty) {
               context.read<UserProvider>().setUserId(userId);
             }
+            AuthStorageService.saveSession(token: token, userId: userId ?? '');
           } catch (_) {}
         }
 
@@ -591,15 +606,66 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } catch (e) {
-      // --- NETWORK ERROR ---
+      // --- NETWORK ERROR → try offline session ---
+      await _loginOffline();
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  /// Login with offline/demo mode
+  Future<void> _loginOffline() async {
+    try {
+      final success = await OfflineService.loginWithDemo(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      if (!mounted) return;
+
+      if (success) {
+        final session = OfflineService.getDemoSession();
+        if (session != null) {
+          try {
+            context.read<UserProvider>().setToken(session['token']);
+            context.read<UserProvider>().setUserId(session['userId']);
+            AuthStorageService.saveSession(
+              token: session['token'],
+              userId: session['userId'],
+            );
+          } catch (_) {}
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("🔵 Demo Mode - Limited features without internet"),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 3),
+          ),
+        );
+
+        // Navigate to Home
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const MainNavScreen()),
+          (r) => false,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("❌ Connection Error. Check Internet."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Offline login error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Connection Error. Check Internet/CORS."),
-          backgroundColor: Colors.orange,
+          content: Text("Connection Error. Please check your internet."),
+          backgroundColor: Colors.red,
         ),
       );
-    } finally {
-      setState(() => _isLoading = false);
     }
   }
 

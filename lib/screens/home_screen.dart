@@ -11,11 +11,14 @@ import '../providers/notifications_provider.dart';
 import '../providers/language_provider.dart';
 import '../services/language_service.dart';
 import '../services/user_medications_service.dart';
+import '../services/offline_service.dart';
+import '../services/connectivity_service.dart';
 import '../models/medicine.dart';
 import 'chatbot_screen.dart';
 import 'notifications_screen.dart';
 import '../widgets/interaction_warning_badge.dart';
 import '../widgets/interaction_bottom_sheet.dart';
+import 'auth_screens.dart';
 
 // ─────────────────────────────────────────────
 // Schedule Model
@@ -192,6 +195,40 @@ class HomeScreenState extends State<HomeScreen> {
         return;
       }
 
+      // Check if token is a demo token and internet is available
+      if (OfflineService.isDemoToken(token)) {
+        final hasInternet = await ConnectivityService.hasInternet();
+        if (hasInternet) {
+          // Internet is back, but token is demo token
+          // Clear the demo session and force re-login
+          if (mounted) {
+            await OfflineService.clearDemoSession();
+            context.read<UserProvider>().logout();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  '🔄 Please sign in with your real account now that internet is available',
+                ),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 4),
+              ),
+            );
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+              (r) => false,
+            );
+          }
+          return;
+        }
+        // Still offline with demo token - show empty message
+        setState(() {
+          _errorMessage = '📱 Demo Mode - No data available offline';
+          _isLoading = false;
+        });
+        return;
+      }
+
       final uri = _isToday(date)
           ? LanguageService.appendLanguageQuery(
               Uri.parse(
@@ -224,10 +261,22 @@ class HomeScreenState extends State<HomeScreen> {
           _isLoading = false;
         });
       } else if (res.statusCode == 401) {
-        setState(() {
-          _errorMessage = 'Authentication failed. Please sign in again.';
-          _isLoading = false;
-        });
+        // Token expired or invalid
+        if (mounted) {
+          context.read<UserProvider>().logout();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Session expired. Please sign in again.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+            (r) => false,
+          );
+        }
       } else {
         setState(() {
           _errorMessage = 'Failed to load schedules (${res.statusCode}).';

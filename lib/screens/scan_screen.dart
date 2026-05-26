@@ -107,6 +107,7 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
         };
       }).toList();
 
+      if (!mounted) return;
       setState(() {
         _drugs = meds;
       });

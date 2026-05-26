@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/auth_storage_service.dart';
 
 class UserProvider extends ChangeNotifier {
   String _name = 'Omar H.';
@@ -64,9 +65,35 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Restore session from Hive. Returns true if session was restored.
+  bool restoreSession() {
+    final session = AuthStorageService.restoreSession();
+    if (session != null) {
+      _token = session.token;
+      _userId = session.userId;
+      notifyListeners();
+      debugPrint('[UserProvider] ✅ Session restored from Hive');
+      return true;
+    }
+    return false;
+  }
+
+  /// Persist the current login to Hive, then update locals.
+  void loginWithSession({
+    required String token,
+    required String userId,
+  }) {
+    _token = token;
+    _userId = userId;
+    AuthStorageService.saveSession(token: token, userId: userId);
+    notifyListeners();
+  }
+
+  /// Clear in-memory state AND the Hive session.
   void logout() {
     _token = null;
     _userId = null;
+    AuthStorageService.clearSession();
     notifyListeners();
   }
 

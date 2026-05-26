@@ -102,11 +102,13 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
     });
     try {
       final data = await MedicationsService.fetchAllMeds();
+      if (!mounted) return;
       setState(() {
         _allMedications = data.map(ApiMedication.fromJson).toList();
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _loadError = 'Connection error. Check your internet.';
         _isLoading = false;

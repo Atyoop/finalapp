@@ -633,6 +633,7 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
         };
       }).toList();
 
+      if (!mounted) return;
       setState(() => _drugs = meds);
     } catch (_) {
       // show empty state on error
