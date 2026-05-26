@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:final88/screens/auth_screens.dart';
+import 'services/hive_service.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -18,6 +19,9 @@ void main() async {
   // Initialize Flutter binding
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize Hive local database
+  await HiveService.init();
+
   // Initialize Language Service (persisted language)
   await LanguageService.init();
 
@@ -28,6 +32,9 @@ void main() async {
   // Verify notification system
   await notificationsProvider.verifyNotificationSystem();
   await notificationsProvider.checkPendingNotifications();
+
+  // Reschedule any local reminders after app start / boot
+  await notificationsProvider.rescheduleAllAfterBoot();
 
   runApp(
     MultiProvider(

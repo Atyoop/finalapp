@@ -1,20 +1,59 @@
 import 'package:flutter/material.dart';
 import '../models/medicine.dart';
 import '../services/user_medications_service.dart';
+import '../services/medicine_storage_service.dart';
 
 class MedicineProvider extends ChangeNotifier {
-  final List<Medicine> _medicines = [];
+  List<Medicine> _medicines = [];
   bool _isLoading = false;
   String? _error;
+  bool _loadedFromLocal = false;
 
   List<Medicine> get medicines => _medicines;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  // ─── Local-only methods (keep for offline fallback) ───
+  MedicineProvider() {
+    loadFromLocal();
+  }
+
+  // ─── Local database methods ───
+
+  /// Load medicines from local Hive storage (instant, works offline)
+  void loadFromLocal() {
+    try {
+      _medicines = MedicineStorageService.getAllMedicines();
+      _loadedFromLocal = true;
+      debugPrint('[MedicineProvider] 📂 Loaded ${_medicines.length} from local');
+      notifyListeners();
+    } catch (e) {
+      debugPrint('[MedicineProvider] ❌ Local load error: $e');
+    }
+  }
+
+  /// Search medicines locally
+  List<Medicine> searchMedicines(String query) {
+    return MedicineStorageService.searchMedicines(query);
+  }
+
+  /// Update stock locally
+  Future<bool> updateStockLocally(String id, int newCount) async {
+    final ok = await MedicineStorageService.updateStock(id, newCount);
+    if (ok) {
+      final index = _medicines.indexWhere((m) => m.id == id);
+      if (index != -1) {
+        _medicines[index] = MedicineStorageService.getMedicine(id) ?? _medicines[index];
+        notifyListeners();
+      }
+    }
+    return ok;
+  }
+
+  // ─── Local-only methods ───
 
   void addMedicine(Medicine medicine) {
     _medicines.add(medicine);
+    MedicineStorageService.saveMedicine(medicine);
     notifyListeners();
   }
 
@@ -22,6 +61,7 @@ class MedicineProvider extends ChangeNotifier {
     final index = _medicines.indexWhere((m) => m.id == updated.id);
     if (index != -1) {
       _medicines[index] = updated;
+      MedicineStorageService.saveMedicine(updated);
       notifyListeners();
     }
   }
@@ -34,11 +74,8 @@ class MedicineProvider extends ChangeNotifier {
     }
   }
 
-  // Get medicines for a specific date (simplified for now)
   List<Medicine> getMedicinesForDate(DateTime date) {
     return _medicines.where((m) {
-      // Logic to check if date is between start and end date
-      // and potentially matches frequency (simplified: just check range)
       return (date.isAfter(m.startDate) ||
               date.isAtSameMomentAs(m.startDate)) &&
           (date.isBefore(m.endDate) || date.isAtSameMomentAs(m.endDate));
@@ -46,16 +83,13 @@ class MedicineProvider extends ChangeNotifier {
   }
 
   void removeMedicine(String id) {
-    final index = _medicines.indexWhere((m) => m.id == id);
-    if (index != -1) {
-      _medicines.removeAt(index);
-      notifyListeners();
-    }
+    _medicines.removeWhere((m) => m.id == id);
+    MedicineStorageService.deleteMedicine(id);
+    notifyListeners();
   }
 
-  // ─── API-backed methods ───
+  // ─── API-backed methods (with Hive cache) ───
 
-  /// Fetch all medications from the server
   Future<void> fetchMedicinesFromApi(String token) async {
     _isLoading = true;
     _error = null;
@@ -63,21 +97,21 @@ class MedicineProvider extends ChangeNotifier {
 
     try {
       final list = await UserMedicationsService.fetchAll(token);
-      _medicines.clear();
-      _medicines.addAll(list);
+      _medicines = list;
+      MedicineStorageService.saveAllMedicines(list);
+      _loadedFromLocal = false;
       _error = null;
     } catch (e) {
       _error = e.toString();
+      if (!_loadedFromLocal) {
+        loadFromLocal();
+      }
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  /// Create a medication on the server.
-  /// Returns [AddMedicineResponse] on success (which may include interaction
-  /// warnings), or null on failure (check [error] for the message).
-  /// The caller is responsible for calling [fetchMedicinesFromApi] afterward.
   Future<AddMedicineResponse?> addMedicineToApi(
     String token,
     Medicine medicine,
@@ -88,6 +122,8 @@ class MedicineProvider extends ChangeNotifier {
 
     try {
       final response = await UserMedicationsService.create(token, medicine);
+      _medicines.add(medicine);
+      MedicineStorageService.saveMedicine(medicine);
       _error = null;
       return response;
     } catch (e) {
@@ -100,7 +136,6 @@ class MedicineProvider extends ChangeNotifier {
     }
   }
 
-  /// Update a medication on the server and locally
   Future<bool> updateMedicineOnApi(String token, Medicine medicine) async {
     _isLoading = true;
     _error = null;
@@ -112,6 +147,7 @@ class MedicineProvider extends ChangeNotifier {
       if (index != -1) {
         _medicines[index] = updated;
       }
+      MedicineStorageService.saveMedicine(updated);
       _error = null;
       return true;
     } catch (e) {
@@ -123,7 +159,6 @@ class MedicineProvider extends ChangeNotifier {
     }
   }
 
-  /// Delete a medication from the server and locally
   Future<bool> deleteMedicineFromApi(String token, String id) async {
     _isLoading = true;
     _error = null;
@@ -132,6 +167,7 @@ class MedicineProvider extends ChangeNotifier {
     try {
       await UserMedicationsService.delete(token, id);
       _medicines.removeWhere((m) => m.id == id);
+      MedicineStorageService.deleteMedicine(id);
       _error = null;
       return true;
     } catch (e) {
@@ -143,7 +179,6 @@ class MedicineProvider extends ChangeNotifier {
     }
   }
 
-  /// Delete all user medications on the server and clear local list
   Future<bool> deleteAllFromApi(String token) async {
     _isLoading = true;
     _error = null;
@@ -152,6 +187,7 @@ class MedicineProvider extends ChangeNotifier {
     try {
       await UserMedicationsService.deleteMyUserMeds(token);
       _medicines.clear();
+      MedicineStorageService.clearAllMedicines();
       _error = null;
       return true;
     } catch (e) {

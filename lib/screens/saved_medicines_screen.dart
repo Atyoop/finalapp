@@ -67,15 +67,19 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
       ),
       body: Consumer<MedicineProvider>(
         builder: (context, provider, child) {
-          // ✅ Show loading spinner while fetching
+          final savedMedicines = provider.medicines;
+
+          // ✅ Show loading spinner while fetching (but keep showing local data if available)
           if (provider.isLoading) {
-            return Center(
-              child: CircularProgressIndicator(color: AppColors.primaryTeal),
-            );
+            if (savedMedicines.isEmpty) {
+              return Center(
+                child: CircularProgressIndicator(color: AppColors.primaryTeal),
+              );
+            }
           }
 
-          // ✅ Show error if fetch failed
-          if (provider.error != null) {
+          // ✅ Show error if fetch failed AND no local data
+          if (provider.error != null && savedMedicines.isEmpty) {
             return Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -108,8 +112,6 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
               ),
             );
           }
-
-          final savedMedicines = provider.medicines;
 
           return savedMedicines.isEmpty
               ? Center(

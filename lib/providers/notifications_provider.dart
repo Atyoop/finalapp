@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../models/notification_schedule.dart';
 import '../services/notification_service.dart';
 import '../services/notification_schedule_service.dart';
+import '../services/reminder_storage_service.dart';
 
 class NotificationsProvider extends ChangeNotifier {
   final NotificationService _notificationService = NotificationService();
@@ -138,5 +138,120 @@ class NotificationsProvider extends ChangeNotifier {
       _error = e.toString();
       notifyListeners();
     }
+  }
+
+  /// Show test alarm immediately (new alarm-style)
+  Future<void> showTestAlarmNow() async {
+    await _notificationService.showTestAlarmNow();
+  }
+
+  /// Schedule a test alarm after a delay
+  Future<void> scheduleTestAlarm(int seconds) async {
+    await _notificationService.scheduleTestAlarm(Duration(seconds: seconds));
+  }
+
+  // ───── Local Reminder Methods ─────
+
+  /// Schedule a repeating local reminder
+  Future<bool> scheduleRepeatingReminder({
+    required String medicineId,
+    required String medicineName,
+    required String dosage,
+    required int hour,
+    required int minute,
+    int repeatIntervalHours = 24,
+  }) async {
+    return await _notificationService.scheduleRepeatingReminder(
+      medicineId: medicineId,
+      medicineName: medicineName,
+      dosage: dosage,
+      hour: hour,
+      minute: minute,
+      repeatIntervalHours: repeatIntervalHours,
+    );
+  }
+
+  /// Snooze a medicine reminder
+  Future<bool> snoozeNotification({
+    required String medicineId,
+    required String medicineName,
+    required String dosage,
+    int minutes = 5,
+  }) async {
+    return await _notificationService.snoozeNotification(
+      medicineId: medicineId,
+      medicineName: medicineName,
+      dosage: dosage,
+      minutes: minutes,
+    );
+  }
+
+  /// Mark medicine as taken
+  Future<bool> markAsTaken({
+    required String medicineId,
+    required String medicineName,
+    required String dosage,
+    required int hour,
+    required int minute,
+    int repeatIntervalHours = 24,
+  }) async {
+    return await _notificationService.markAsTaken(
+      medicineId: medicineId,
+      medicineName: medicineName,
+      dosage: dosage,
+      hour: hour,
+      minute: minute,
+      repeatIntervalHours: repeatIntervalHours,
+    );
+  }
+
+  /// Reschedule all reminders from local storage (call after boot)
+  Future<int> rescheduleAllAfterBoot() async {
+    return await _notificationService.rescheduleAllAfterBoot();
+  }
+
+  /// Cancel a specific medicine notification by ID
+  Future<void> cancelMedicineNotification(String medicineId) async {
+    final notifId = _notificationService.getNotificationIdForMedicine(medicineId);
+    await _notificationService.cancelNotification(notifId);
+  }
+
+  /// Get all local reminders from storage
+  Future<List<LocalReminder>> getLocalReminders() async {
+    return await ReminderStorageService.getReminders();
+  }
+
+  /// Save a local reminder
+  Future<bool> saveLocalReminder(LocalReminder reminder) async {
+    return await ReminderStorageService.saveReminder(reminder);
+  }
+
+  /// Delete a local reminder
+  Future<bool> deleteLocalReminder(String medicineId) async {
+    final cancelled = _notificationService.getNotificationIdForMedicine(medicineId);
+    await _notificationService.cancelNotification(cancelled);
+    return await ReminderStorageService.deleteReminder(medicineId);
+  }
+
+  /// Toggle a local reminder on/off
+  Future<bool> toggleLocalReminder(String medicineId, bool isActive) async {
+    if (isActive) {
+      final reminders = await ReminderStorageService.getReminders();
+      final reminder = reminders.where((r) => r.medicineId == medicineId).firstOrNull;
+      if (reminder != null) {
+        await _notificationService.scheduleRepeatingReminder(
+          medicineId: reminder.medicineId,
+          medicineName: reminder.medicineName,
+          dosage: reminder.dosage,
+          hour: reminder.hour,
+          minute: reminder.minute,
+          repeatIntervalHours: reminder.repeatIntervalHours,
+        );
+      }
+    } else {
+      final notifId = _notificationService.getNotificationIdForMedicine(medicineId);
+      await _notificationService.cancelNotification(notifId);
+    }
+    return await ReminderStorageService.toggleReminder(medicineId, isActive);
   }
 }

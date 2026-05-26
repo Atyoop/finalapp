@@ -1,4 +1,4 @@
-import 'package:shared_preferences/shared_preferences.dart';
+import 'medicine_storage_service.dart';
 
 /// Centralized service to manage and persist the selected app language.
 class LanguageService {
@@ -31,16 +31,11 @@ class LanguageService {
     return uri.replace(queryParameters: merged);
   }
 
-  /// Initializes the service by reading the stored language from SharedPreferences.
+  /// Initializes the service by reading the stored language from Hive.
   /// Call this in the main() function before running the app.
   static Future<void> init() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final storedLanguage = prefs.getString(_key);
-      _currentLanguage = supportedLanguages.contains(storedLanguage)
-          ? storedLanguage!
-          : 'en';
-    } catch (_) {
+    _currentLanguage = MedicineStorageService.getSetting<String>(_key) ?? 'en';
+    if (!supportedLanguages.contains(_currentLanguage)) {
       _currentLanguage = 'en';
     }
   }
@@ -49,9 +44,6 @@ class LanguageService {
   static Future<void> setLanguage(String langCode) async {
     if (!supportedLanguages.contains(langCode)) return;
     _currentLanguage = langCode;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_key, langCode);
-    } catch (_) {}
+    await MedicineStorageService.saveSetting(_key, langCode);
   }
 }

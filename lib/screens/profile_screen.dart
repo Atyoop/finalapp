@@ -15,6 +15,7 @@ import 'appearance_screen.dart';
 import 'privacy_security_screen.dart';
 import 'support_screen.dart';
 import 'premium_screen.dart';
+import 'find_pharmacy_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -333,6 +334,18 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   );
                 },
+              ),
+              const Divider(height: 1, indent: 56, color: Color(0xFFEEEEEE)),
+              _buildTile(
+                icon: Icons.local_pharmacy_outlined,
+                title: "Find Pharmacy",
+                subtitle: "Find nearby pharmacies on the map.",
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const FindPharmacyScreen(),
+                  ),
+                ),
               ),
               const Divider(height: 1, indent: 56, color: Color(0xFFEEEEEE)),
               _buildTile(
