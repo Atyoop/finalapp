@@ -24,7 +24,9 @@ class MedicineProvider extends ChangeNotifier {
     try {
       _medicines = MedicineStorageService.getAllMedicines();
       _loadedFromLocal = true;
-      debugPrint('[MedicineProvider] 📂 Loaded ${_medicines.length} from local');
+      debugPrint(
+        '[MedicineProvider] 📂 Loaded ${_medicines.length} from local',
+      );
       notifyListeners();
     } catch (e) {
       debugPrint('[MedicineProvider] ❌ Local load error: $e');
@@ -42,7 +44,8 @@ class MedicineProvider extends ChangeNotifier {
     if (ok) {
       final index = _medicines.indexWhere((m) => m.id == id);
       if (index != -1) {
-        _medicines[index] = MedicineStorageService.getMedicine(id) ?? _medicines[index];
+        _medicines[index] =
+            MedicineStorageService.getMedicine(id) ?? _medicines[index];
         notifyListeners();
       }
     }

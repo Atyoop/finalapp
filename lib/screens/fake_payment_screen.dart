@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../main.dart';
 
 class FakePaymentScreen extends StatefulWidget {
@@ -30,7 +31,7 @@ class _FakePaymentScreenState extends State<FakePaymentScreen> {
   Future<void> _confirmPayment() async {
     if (_phoneController.text.isEmpty || _phoneController.text.length < 10) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid phone number')),
+        SnackBar(content: Text(context.l10n.t('validPhoneRequired'))),
       );
       return;
     }
@@ -55,11 +56,12 @@ class _FakePaymentScreenState extends State<FakePaymentScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.textDark),
+          icon: const BackButtonIcon(),
+          color: AppColors.textDark,
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Payment',
+          context.l10n.t('payment'),
           style: TextStyle(
             color: AppColors.textDark,
             fontSize: 18,
@@ -85,7 +87,7 @@ class _FakePaymentScreenState extends State<FakePaymentScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Order Summary',
+                      context.l10n.t('orderSummary'),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -97,7 +99,9 @@ class _FakePaymentScreenState extends State<FakePaymentScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'DrugSafe Premium - ${widget.planName}',
+                          context.l10n.t('premiumOrderName', {
+                            'plan': widget.planName,
+                          }),
                           style: TextStyle(
                             fontSize: 14,
                             color: AppColors.textDark,
@@ -120,7 +124,7 @@ class _FakePaymentScreenState extends State<FakePaymentScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Total',
+                          context.l10n.t('total'),
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -155,7 +159,7 @@ class _FakePaymentScreenState extends State<FakePaymentScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Payment Method',
+                      context.l10n.t('paymentMethod'),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -195,9 +199,9 @@ class _FakePaymentScreenState extends State<FakePaymentScreen> {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          const Text(
-                            'Fawry Payment',
-                            style: TextStyle(
+                          Text(
+                            context.l10n.t('fawryPayment'),
+                            style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                               color: Colors.grey,
@@ -211,7 +215,7 @@ class _FakePaymentScreenState extends State<FakePaymentScreen> {
 
                     // Phone number field
                     Text(
-                      'Phone Number',
+                      context.l10n.t('phoneNumber'),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -223,7 +227,7 @@ class _FakePaymentScreenState extends State<FakePaymentScreen> {
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
                       decoration: InputDecoration(
-                        hintText: 'Enter your phone number',
+                        hintText: context.l10n.t('enterPhoneNumber'),
                         prefixText: '+20 ',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -269,9 +273,9 @@ class _FakePaymentScreenState extends State<FakePaymentScreen> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text(
-                          'Confirm Payment',
-                          style: TextStyle(
+                      : Text(
+                          context.l10n.t('confirmPayment'),
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -284,7 +288,7 @@ class _FakePaymentScreenState extends State<FakePaymentScreen> {
 
               Center(
                 child: Text(
-                  'Your payment information is secure',
+                  context.l10n.t('paymentSecure'),
                   style: TextStyle(fontSize: 12, color: AppColors.textGrey),
                 ),
               ),

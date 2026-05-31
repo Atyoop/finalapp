@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../l10n/app_localizations.dart';
 import '../main.dart';
 import '../models/pharmacy_model.dart';
 import '../services/location_service.dart';
@@ -81,7 +82,11 @@ class _FindPharmacyScreenState extends State<FindPharmacyScreen> {
     }
   }
 
-  void _fitMapBounds(double userLat, double userLng, List<PharmacyModel> pharmacies) {
+  void _fitMapBounds(
+    double userLat,
+    double userLng,
+    List<PharmacyModel> pharmacies,
+  ) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_mapReady) return;
 
@@ -102,10 +107,12 @@ class _FindPharmacyScreenState extends State<FindPharmacyScreen> {
 
       final sw = LatLng(minLat - 0.005, minLng - 0.005);
       final ne = LatLng(maxLat + 0.005, maxLng + 0.005);
-      _mapController.fitCamera(CameraFit.bounds(
-        bounds: LatLngBounds(sw, ne),
-        padding: const EdgeInsets.all(60),
-      ));
+      _mapController.fitCamera(
+        CameraFit.bounds(
+          bounds: LatLngBounds(sw, ne),
+          padding: const EdgeInsets.all(60),
+        ),
+      );
     });
   }
 
@@ -178,8 +185,8 @@ class _FindPharmacyScreenState extends State<FindPharmacyScreen> {
               _error?.contains('denied') == true
                   ? Icons.location_off_rounded
                   : _error?.contains('internet') == true
-                      ? Icons.wifi_off_rounded
-                      : Icons.error_outline_rounded,
+                  ? Icons.wifi_off_rounded
+                  : Icons.error_outline_rounded,
               size: 64,
               color: AppColors.textGrey,
             ),
@@ -201,9 +208,9 @@ class _FindPharmacyScreenState extends State<FindPharmacyScreen> {
                 onPressed: () async {
                   await LocationService.openAppSettings();
                 },
-                child: const Text(
-                  'Open App Settings',
-                  style: TextStyle(color: AppColors.primaryTeal),
+                child: Text(
+                  context.l10n.t('openAppSettings'),
+                  style: const TextStyle(color: AppColors.primaryTeal),
                 ),
               ),
             ],
@@ -214,9 +221,9 @@ class _FindPharmacyScreenState extends State<FindPharmacyScreen> {
                 onPressed: () async {
                   await LocationService.openLocationSettings();
                 },
-                child: const Text(
-                  'Enable GPS',
-                  style: TextStyle(color: AppColors.primaryTeal),
+                child: Text(
+                  context.l10n.t('enableGps'),
+                  style: const TextStyle(color: AppColors.primaryTeal),
                 ),
               ),
             ],
@@ -227,7 +234,7 @@ class _FindPharmacyScreenState extends State<FindPharmacyScreen> {
               child: ElevatedButton.icon(
                 onPressed: _requestLocation,
                 icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Try Again'),
+                label: Text(context.l10n.t('tryAgain')),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryTeal,
                   foregroundColor: Colors.white,
@@ -249,10 +256,10 @@ class _FindPharmacyScreenState extends State<FindPharmacyScreen> {
       return Container(
         height: 200,
         color: Colors.grey[100],
-        child: const Center(
+        child: Center(
           child: Text(
-            'Map unavailable',
-            style: TextStyle(color: AppColors.textGrey),
+            context.l10n.t('mapUnavailable'),
+            style: const TextStyle(color: AppColors.textGrey),
           ),
         ),
       );
@@ -358,10 +365,7 @@ class _FindPharmacyScreenState extends State<FindPharmacyScreen> {
           if (_pharmacies.isNotEmpty)
             Text(
               '${_pharmacies.length} found',
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.textGrey,
-              ),
+              style: const TextStyle(fontSize: 13, color: AppColors.textGrey),
             ),
         ],
       ),
@@ -374,7 +378,11 @@ class _FindPharmacyScreenState extends State<FindPharmacyScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.local_pharmacy_outlined, size: 48, color: AppColors.textGrey),
+            Icon(
+              Icons.local_pharmacy_outlined,
+              size: 48,
+              color: AppColors.textGrey,
+            ),
             SizedBox(height: 12),
             Text(
               'No pharmacies found nearby',
@@ -468,11 +476,15 @@ class _FindPharmacyScreenState extends State<FindPharmacyScreen> {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: AppColors.primaryTeal.withValues(alpha: 0.1),
+                                color: AppColors.primaryTeal.withValues(
+                                  alpha: 0.1,
+                                ),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                pharmacy.address.isEmpty ? 'Pharmacy' : 'Open now',
+                                pharmacy.address.isEmpty
+                                    ? 'Pharmacy'
+                                    : 'Open now',
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500,
@@ -491,7 +503,9 @@ class _FindPharmacyScreenState extends State<FindPharmacyScreen> {
                               pharmacy.formattedDistance,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.textGrey.withValues(alpha: 0.8),
+                                color: AppColors.textGrey.withValues(
+                                  alpha: 0.8,
+                                ),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -597,9 +611,9 @@ class _FindPharmacyScreenState extends State<FindPharmacyScreen> {
                       _openDirections(pharmacy.latitude, pharmacy.longitude);
                     },
                     icon: const Icon(Icons.directions_rounded),
-                    label: const Text(
-                      'Open Directions',
-                      style: TextStyle(
+                    label: Text(
+                      context.l10n.t('openDirections'),
+                      style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
                       ),

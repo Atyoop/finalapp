@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../main.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
@@ -21,15 +22,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios,
-            color: AppColors.textDark,
-            size: 20,
-          ),
+          icon: const BackButtonIcon(),
+          color: AppColors.textDark,
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          "Change Password",
+          context.l10n.t('changePassword'),
           style: TextStyle(
             color: AppColors.textDark,
             fontWeight: FontWeight.bold,
@@ -44,7 +42,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           children: [
             const SizedBox(height: 16),
             Text(
-              "Old Password",
+              context.l10n.t('oldPassword'),
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: AppColors.textDark,
@@ -52,14 +50,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
             ),
             const SizedBox(height: 8),
             _buildTextField(
-              "Enter your Old Password",
+              context.l10n.t('enterOldPassword'),
               _obsOld,
               () => setState(() => _obsOld = !_obsOld),
             ),
 
             const SizedBox(height: 20),
             Text(
-              "New Password",
+              context.l10n.t('newPassword'),
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: AppColors.textDark,
@@ -67,14 +65,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
             ),
             const SizedBox(height: 8),
             _buildTextField(
-              "Enter your New Password",
+              context.l10n.t('enterNewPassword'),
               _obsNew,
               () => setState(() => _obsNew = !_obsNew),
             ),
 
             const SizedBox(height: 20),
             Text(
-              "Confirm New Password",
+              context.l10n.t('confirmNewPassword'),
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: AppColors.textDark,
@@ -82,7 +80,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
             ),
             const SizedBox(height: 8),
             _buildTextField(
-              "Re-Enter your New Password",
+              context.l10n.t('reenterNewPassword'),
               _obsConfirm,
               () => setState(() => _obsConfirm = !_obsConfirm),
             ),
@@ -103,9 +101,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
-              child: const Text(
-                "Change Password",
-                style: TextStyle(
+              child: Text(
+                context.l10n.t('changePassword'),
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,

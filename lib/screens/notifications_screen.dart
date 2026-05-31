@@ -4,6 +4,7 @@ import '../providers/alerts_provider.dart';
 import '../providers/user_provider.dart';
 import '../providers/language_provider.dart';
 import '../main.dart';
+import '../l10n/app_localizations.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -70,18 +71,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Notification'),
-        content: const Text(
-          'Are you sure you want to delete this notification?',
-        ),
+        title: Text(context.l10n.t('deleteNotification')),
+        content: Text(context.l10n.t('deleteNotificationConfirm')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.t('cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text(
+              context.l10n.t('delete'),
+              style: const TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
@@ -103,20 +105,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete All Notifications'),
-        content: const Text(
-          'This will delete all notifications. This action cannot be undone.',
-        ),
+        title: Text(context.l10n.t('deleteAllNotifications')),
+        content: Text(context.l10n.t('deleteAllNotificationsConfirm')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.t('cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              'Delete All',
-              style: TextStyle(color: Colors.red),
+            child: Text(
+              context.l10n.t('deleteAll'),
+              style: const TextStyle(color: Colors.red),
             ),
           ),
         ],
@@ -127,9 +127,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       final success = await alertsProvider.deleteAllAlerts(token);
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('All notifications deleted'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(context.l10n.t('allNotificationsDeleted')),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -137,19 +137,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   String _formatDateTime(DateTime? dateTime) {
-    if (dateTime == null) return 'Unknown time';
+    if (dateTime == null) return context.l10n.t('unknownTime');
 
     final now = DateTime.now();
     final difference = now.difference(dateTime);
 
     if (difference.inSeconds < 60) {
-      return 'Just now';
+      return context.l10n.t('justNow');
     } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m ago';
+      return context.l10n.t('minutesAgo', {'count': difference.inMinutes});
     } else if (difference.inHours < 24) {
-      return '${difference.inHours}h ago';
+      return context.l10n.t('hoursAgo', {'count': difference.inHours});
     } else if (difference.inDays < 7) {
-      return '${difference.inDays}d ago';
+      return context.l10n.t('daysAgo', {'count': difference.inDays});
     } else {
       return '${dateTime.month}/${dateTime.day}/${dateTime.year}';
     }
@@ -190,12 +190,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textDark),
+          icon: const BackButtonIcon(),
+          color: AppColors.textDark,
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Notifications',
-          style: TextStyle(
+        title: Text(
+          context.l10n.t('notifications'),
+          style: const TextStyle(
             color: AppColors.textDark,
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -223,7 +224,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'No notifications yet',
+                    context.l10n.t('noNotificationsYet'),
                     style: TextStyle(
                       fontSize: 18,
                       color: Colors.grey[600],
@@ -264,7 +265,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 valueColor: AlwaysStoppedAnimation(Colors.red),
                               ),
                             )
-                          : const Text('Delete All Notifications'),
+                          : Text(context.l10n.t('deleteAllNotifications')),
                     ),
                   ),
                 ),
@@ -402,9 +403,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                         ),
                                         borderRadius: BorderRadius.circular(4),
                                       ),
-                                      child: const Text(
-                                        'New',
-                                        style: TextStyle(
+                                      child: Text(
+                                        context.l10n.t('newLabel'),
+                                        style: const TextStyle(
                                           fontSize: 11,
                                           color: AppColors.primaryTeal,
                                           fontWeight: FontWeight.w600,

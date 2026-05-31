@@ -1,9 +1,10 @@
 import 'dart:async';
-import 'dart:convert'; // لتحويل البيانات لـ JSON
+import 'dart:convert'; // Ù„ØªØ­ÙˆÙŠÙ„ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ù„Ù€ JSON
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http; // للاتصال بالسيرفر
+import 'package:http/http.dart' as http; // Ù„Ù„Ø§ØªØµØ§Ù„ Ø¨Ø§Ù„Ø³ÙŠØ±ÙØ±
 import 'package:provider/provider.dart';
-import '../main.dart'; // لاستيراد الألوان والودجت
+import '../l10n/app_localizations.dart';
+import '../main.dart'; // Ù„Ø§Ø³ØªÙŠØ±Ø§Ø¯ Ø§Ù„Ø£Ù„ÙˆØ§Ù† ÙˆØ§Ù„ÙˆØ¯Ø¬Øª
 import '../providers/user_provider.dart';
 import 'home.dart'; // MainNavScreen
 
@@ -47,8 +48,8 @@ class _SignupScreenState extends State<SignupScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Create an account",
+            Text(
+              context.l10n.t('createAccount'),
               style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 30),
@@ -56,7 +57,10 @@ class _SignupScreenState extends State<SignupScreen> {
             // Name Input
 
             // Email Input
-            Text("Email", style: TextStyle(color: AppColors.textGrey)),
+            Text(
+              context.l10n.t('email'),
+              style: TextStyle(color: AppColors.textGrey),
+            ),
             const SizedBox(height: 8),
             TextField(
               controller: _emailController,
@@ -64,7 +68,7 @@ class _SignupScreenState extends State<SignupScreen> {
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.white,
-                hintText: "Enter your email",
+                hintText: context.l10n.t('enterEmail'),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
@@ -75,7 +79,10 @@ class _SignupScreenState extends State<SignupScreen> {
             const SizedBox(height: 20),
 
             // Password Input
-            Text("Password", style: TextStyle(color: AppColors.textGrey)),
+            Text(
+              context.l10n.t('password'),
+              style: TextStyle(color: AppColors.textGrey),
+            ),
             const SizedBox(height: 8),
             TextField(
               controller: _passwordController,
@@ -84,7 +91,7 @@ class _SignupScreenState extends State<SignupScreen> {
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.white,
-                hintText: "Create password",
+                hintText: context.l10n.t('createPassword'),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
@@ -103,9 +110,9 @@ class _SignupScreenState extends State<SignupScreen> {
             const SizedBox(height: 10),
 
             // Password Validations
-            _buildReqRow("Min 8 characters", _hasMinLength),
-            _buildReqRow("Min 2 numbers", _hasMinNumber),
-            _buildReqRow("Min 1 uppercase", _hasUppercase),
+            _buildReqRow(context.l10n.t('min8Characters'), _hasMinLength),
+            _buildReqRow(context.l10n.t('min2Numbers'), _hasMinNumber),
+            _buildReqRow(context.l10n.t('min1Uppercase'), _hasUppercase),
 
             const SizedBox(height: 40),
             SizedBox(
@@ -118,8 +125,8 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        "Create an account",
+                    : Text(
+                        context.l10n.t('createAccount'),
                         style: TextStyle(color: Colors.white),
                       ),
               ),
@@ -135,8 +142,8 @@ class _SignupScreenState extends State<SignupScreen> {
 
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please fill all fields"),
+        SnackBar(
+          content: Text(context.l10n.t('pleaseFillAllFields')),
           backgroundColor: Colors.red,
         ),
       );
@@ -160,8 +167,8 @@ class _SignupScreenState extends State<SignupScreen> {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Registration successful"),
+          SnackBar(
+            content: Text(context.l10n.t('registrationSuccessful')),
             backgroundColor: Colors.green,
           ),
         );
@@ -191,15 +198,17 @@ class _SignupScreenState extends State<SignupScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Failed: ${response.body}"),
+            content: Text(
+              context.l10n.t('failedWithBody', {'body': response.body}),
+            ),
             backgroundColor: Colors.red,
           ),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Connection Error. Check Internet/CORS."),
+        SnackBar(
+          content: Text(context.l10n.t('connectionErrorCors')),
           backgroundColor: Colors.orange,
         ),
       );
@@ -239,18 +248,18 @@ class OtpVerifyScreen extends StatefulWidget {
   final bool isReset;
   final String? email;
 
-  // ── CHANGE 1: added pendingToken parameter ──────────────────────────────
+  // â”€â”€ CHANGE 1: added pendingToken parameter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // For the register flow, the backend returns a pendingToken after register.
   // The register screen must pass it here. It is optional so the reset flow
   // (which may not use pendingToken) is not broken.
   final String? pendingToken;
-  // ────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const OtpVerifyScreen({
     super.key,
     required this.isReset,
     this.email,
-    this.pendingToken, // ← added
+    this.pendingToken, // â† added
   });
 
   @override
@@ -289,7 +298,9 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
         child: Column(
           children: [
             Text(
-              widget.isReset ? "Enter 4-digit code" : "Code sent to email",
+              widget.isReset
+                  ? context.l10n.t('enter4DigitCodeTitle')
+                  : context.l10n.t('codeSentToEmail'),
               style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 40),
@@ -336,7 +347,9 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
                 child: _isVerifying
                     ? const CircularProgressIndicator(color: Colors.white)
                     : Text(
-                        widget.isReset ? "Reset Password" : "Confirm",
+                        widget.isReset
+                            ? context.l10n.t('resetPassword')
+                            : context.l10n.t('confirm'),
                         style: const TextStyle(color: Colors.white),
                       ),
               ),
@@ -351,8 +364,8 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
     final code = _otpControllers.map((c) => c.text).join();
     if (code.length < 4) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Enter the 4-digit code'),
+        SnackBar(
+          content: Text(context.l10n.t('enter4DigitCode')),
           backgroundColor: Colors.red,
         ),
       );
@@ -361,10 +374,10 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
 
     setState(() => _isVerifying = true);
 
-    // ── CHANGE 2: choose endpoint and body based on flow ─────────────────
-    // Register flow  → POST verify-register-otp  with { pendingToken, otp }
-    // Reset flow     → POST verify-otp (or your reset endpoint) with { email, otp }
-    // The user never types email or pendingToken — they come from widget params.
+    // â”€â”€ CHANGE 2: choose endpoint and body based on flow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Register flow  â†’ POST verify-register-otp  with { pendingToken, otp }
+    // Reset flow     â†’ POST verify-otp (or your reset endpoint) with { email, otp }
+    // The user never types email or pendingToken â€” they come from widget params.
     const String registerVerifyUrl =
         'https://drugsafe.runasp.net/api/Auth/verify-register-otp';
     const String resetVerifyUrl =
@@ -379,11 +392,11 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
             'otp': code,
           }
         : {
-            // Register flow: uses pendingToken + otp — NO email sent
+            // Register flow: uses pendingToken + otp â€” NO email sent
             'pendingToken': widget.pendingToken,
             'otp': code,
           };
-    // ─────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     try {
       final response = await http.post(
@@ -396,8 +409,8 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Verification successful'),
+          SnackBar(
+            content: Text(context.l10n.t('verificationSuccessful')),
             backgroundColor: Colors.green,
           ),
         );
@@ -416,15 +429,17 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed: ${response.body}'),
+            content: Text(
+              context.l10n.t('failedWithBody', {'body': response.body}),
+            ),
             backgroundColor: Colors.red,
           ),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Connection Error. Check Internet/CORS.'),
+        SnackBar(
+          content: Text(context.l10n.t('connectionErrorCors')),
           backgroundColor: Colors.orange,
         ),
       );
@@ -459,8 +474,8 @@ class SuccessVerifiedScreen extends StatelessWidget {
           const Spacer(),
           const PlaceholderImageWidget(color: Colors.pink),
           const SizedBox(height: 20),
-          const Text(
-            "Successfully verified",
+          Text(
+            context.l10n.t('successfullyVerified'),
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const Spacer(),
@@ -478,8 +493,8 @@ class SuccessVerifiedScreen extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryTeal,
                 ),
-                child: const Text(
-                  "Get Started",
+                child: Text(
+                  context.l10n.t('getStarted'),
                   style: TextStyle(color: Colors.white),
                 ),
               ),
@@ -515,8 +530,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please fill all fields"),
+        SnackBar(
+          content: Text(context.l10n.t('pleaseFillAllFields')),
           backgroundColor: Colors.red,
         ),
       );
@@ -569,8 +584,8 @@ class _LoginScreenState extends State<LoginScreen> {
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Login Successful!"),
+          SnackBar(
+            content: Text(context.l10n.t('loginSuccessful')),
             backgroundColor: Colors.green,
           ),
         );
@@ -585,7 +600,9 @@ class _LoginScreenState extends State<LoginScreen> {
         // --- ERROR ---
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Failed: ${response.body}"),
+            content: Text(
+              context.l10n.t('failedWithBody', {'body': response.body}),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -593,8 +610,8 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       // --- NETWORK ERROR ---
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Connection Error. Check Internet/CORS."),
+        SnackBar(
+          content: Text(context.l10n.t('connectionErrorCors')),
           backgroundColor: Colors.orange,
         ),
       );
@@ -616,8 +633,8 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Log in",
+            Text(
+              context.l10n.t('login'),
               style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 30),
@@ -630,7 +647,7 @@ class _LoginScreenState extends State<LoginScreen> {
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.white,
-                hintText: "Enter your email",
+                hintText: context.l10n.t('enterEmail'),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
@@ -648,7 +665,7 @@ class _LoginScreenState extends State<LoginScreen> {
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.white,
-                hintText: "Enter your password",
+                hintText: context.l10n.t('enterPassword'),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
@@ -672,7 +689,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 child: Text(
-                  "Forgot password?",
+                  context.l10n.t('forgotPassword'),
                   style: TextStyle(color: AppColors.primaryTeal),
                 ),
               ),
@@ -689,8 +706,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        "Log in",
+                    : Text(
+                        context.l10n.t('login'),
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -708,7 +725,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   MaterialPageRoute(builder: (context) => const SignupScreen()),
                 ),
                 child: Text(
-                  "Create account",
+                  context.l10n.t('createAccountPrompt'),
                   style: TextStyle(color: AppColors.primaryTeal),
                 ),
               ),
@@ -737,8 +754,8 @@ class ForgotPasswordScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
           children: [
-            const Text(
-              "Forgot password?",
+            Text(
+              context.l10n.t('forgotPassword'),
               style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 40),
@@ -746,7 +763,7 @@ class ForgotPasswordScreen extends StatelessWidget {
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.white,
-                hintText: "Enter Email",
+                hintText: context.l10n.t('enterEmailShort'),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
@@ -767,8 +784,8 @@ class ForgotPasswordScreen extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryTeal,
                 ),
-                child: const Text(
-                  "Reset password",
+                child: Text(
+                  context.l10n.t('resetPasswordLower'),
                   style: TextStyle(color: Colors.white),
                 ),
               ),
@@ -797,8 +814,8 @@ class NewPasswordScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
           children: [
-            const Text(
-              "New Password",
+            Text(
+              context.l10n.t('newPassword'),
               style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 40),
@@ -806,7 +823,7 @@ class NewPasswordScreen extends StatelessWidget {
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.white,
-                hintText: "New Password",
+                hintText: context.l10n.t('newPassword'),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
@@ -818,7 +835,7 @@ class NewPasswordScreen extends StatelessWidget {
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.white,
-                hintText: "Confirm Password",
+                hintText: context.l10n.t('confirmPassword'),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
@@ -832,8 +849,8 @@ class NewPasswordScreen extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Password Changed!"),
+                    SnackBar(
+                      content: Text(context.l10n.t('passwordChanged')),
                       backgroundColor: Colors.green,
                     ),
                   );
@@ -848,8 +865,8 @@ class NewPasswordScreen extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryTeal,
                 ),
-                child: const Text(
-                  "Create new Password",
+                child: Text(
+                  context.l10n.t('createNewPassword'),
                   style: TextStyle(color: Colors.white),
                 ),
               ),

@@ -42,7 +42,7 @@ String formatApiTimeForDisplay(String value) {
   }
 }
 
-/// Normalize dose times: remove duplicates, sort, convert to List<String>
+/// Normalize dose times: remove duplicates, sort, convert to a string list.
 /// Never returns [""] or list with empty strings
 List<String> normalizeDoseTimesBeforeSave(List<TimeOfDay> times) {
   // Remove duplicates
@@ -69,7 +69,8 @@ List<String> normalizeDoseTimesBeforeSave(List<TimeOfDay> times) {
 /// Build schedule summary for display in My Meds card
 /// Example: "Every 6 hours - starts 8:00 AM"
 /// Example: "3 times per day - 3:00 AM, 8:00 AM, 10:00 AM"
-String buildScheduleSummary(dynamic medicine) {
+String buildScheduleSummary(dynamic medicine, {String locale = 'en'}) {
+  final isAr = locale == 'ar';
   final scheduleType = medicine.scheduleType as String?;
   final intervalHours = medicine.intervalHours as int?;
   final doseTimes = medicine.doseTimes as List<String>?;
@@ -81,7 +82,9 @@ String buildScheduleSummary(dynamic medicine) {
     final firstTime = timeOfDay != null
         ? formatTimeOfDayForDisplay(timeOfDay)
         : 'N/A';
-    return 'Every $intervalHours hours - starts $firstTime';
+    return isAr
+        ? 'كل $intervalHours ساعات - يبدأ $firstTime'
+        : 'Every $intervalHours hours - starts $firstTime';
   }
 
   if (scheduleType == 'CustomTimes' &&
@@ -90,7 +93,9 @@ String buildScheduleSummary(dynamic medicine) {
     final timeStrings = doseTimes
         .map((t) => formatApiTimeForDisplay(t))
         .toList();
-    return '${doseTimes.length} times per day - ${timeStrings.join(', ')}';
+    return isAr
+        ? '${doseTimes.length} مرات يوميا - ${timeStrings.join(', ')}'
+        : '${doseTimes.length} times per day - ${timeStrings.join(', ')}';
   }
 
   // Fallback logic
@@ -98,24 +103,30 @@ String buildScheduleSummary(dynamic medicine) {
     final firstTime = timeOfDay != null
         ? formatTimeOfDayForDisplay(timeOfDay)
         : 'N/A';
-    return 'Every $intervalHours hours - starts $firstTime';
+    return isAr
+        ? 'كل $intervalHours ساعات - يبدأ $firstTime'
+        : 'Every $intervalHours hours - starts $firstTime';
   }
 
   if (doseTimes != null && doseTimes.isNotEmpty) {
     final timeStrings = doseTimes
         .map((t) => formatApiTimeForDisplay(t))
         .toList();
-    return '${doseTimes.length} times per day - ${timeStrings.join(', ')}';
+    return isAr
+        ? '${doseTimes.length} مرات يوميا - ${timeStrings.join(', ')}'
+        : '${doseTimes.length} times per day - ${timeStrings.join(', ')}';
   }
 
   if (dosesPerPeriod != null && dosesPerPeriod > 0) {
-    return '$dosesPerPeriod times per day';
+    return isAr
+        ? '$dosesPerPeriod مرات يوميا'
+        : '$dosesPerPeriod times per day';
   }
 
-  return 'Schedule not set';
+  return isAr ? 'لم يتم ضبط الجدول' : 'Schedule not set';
 }
 
-/// Parse doseTimes from JSON, ensuring List<String> type
+/// Parse doseTimes from JSON, ensuring a string list type.
 /// Example: "doseTimes": ["03:00:00", "08:00:00", "10:00:00"]
 List<String> parseDoseTimesFromJson(dynamic jsonValue) {
   final doseTimes =
@@ -128,17 +139,20 @@ List<String> parseDoseTimesFromJson(dynamic jsonValue) {
 }
 
 /// Format remaining pills for display
-String formatRemainingPills(int? currentPillCount) {
+String formatRemainingPills(int? currentPillCount, {String locale = 'en'}) {
   if (currentPillCount == null) {
-    return 'Stock not set';
+    return locale == 'ar' ? 'لم يتم تحديد المخزون' : 'Stock not set';
   }
-  return '$currentPillCount pills remaining';
+  return locale == 'ar'
+      ? 'المتبقي: $currentPillCount'
+      : '$currentPillCount pills remaining';
 }
 
 /// Format expiry date for display
-String formatExpiryDate(DateTime? expiryDate) {
+String formatExpiryDate(DateTime? expiryDate, {String locale = 'en'}) {
   if (expiryDate == null) {
     return '';
   }
-  return 'Expires: ${DateFormat('MMM d, yyyy').format(expiryDate)}';
+  final formatted = DateFormat('MMM d, yyyy', locale).format(expiryDate);
+  return locale == 'ar' ? 'ينتهي: $formatted' : 'Expires: $formatted';
 }

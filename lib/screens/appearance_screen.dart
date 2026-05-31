@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../main.dart';
 import '../providers/alerts_provider.dart';
 import '../providers/language_provider.dart';
@@ -34,10 +35,14 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
     await _refreshLocalizedData();
     if (!mounted) return;
 
-    final languageName = langCode == 'ar' ? 'Arabic' : 'English';
+    final languageName = langCode == 'ar'
+        ? context.l10n.t('arabic')
+        : context.l10n.t('english');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Language changed to $languageName'),
+        content: Text(
+          context.l10n.t('languageChangedTo', {'language': languageName}),
+        ),
         backgroundColor: AppColors.primaryTeal,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -73,7 +78,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
                 children: [
                   const SizedBox(width: 48),
                   Text(
-                    "Display Zoom",
+                    context.l10n.t('displayZoom'),
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -106,7 +111,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
                         ),
                       ),
                       child: Text(
-                        "Default (100%)",
+                        context.l10n.t('defaultZoom'),
                         style: TextStyle(
                           fontSize: 18,
                           color: AppColors.textDark,
@@ -117,9 +122,9 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
                     Container(
                       height: 50,
                       alignment: Alignment.center,
-                      child: const Text(
-                        "Larger text",
-                        style: TextStyle(
+                      child: Text(
+                        context.l10n.t('largerText'),
+                        style: const TextStyle(
                           fontSize: 18,
                           color: Colors.grey,
                           fontWeight: FontWeight.w400,
@@ -143,9 +148,9 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    child: const Text(
-                      "Done",
-                      style: TextStyle(
+                    child: Text(
+                      context.l10n.t('done'),
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -170,11 +175,12 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: AppColors.textDark, size: 20),
+          icon: BackButtonIcon(),
+          color: AppColors.textDark,
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          "Appearance",
+          context.l10n.t('appearance'),
           style: TextStyle(
             color: AppColors.textDark,
             fontWeight: FontWeight.bold,
@@ -189,7 +195,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
           children: [
             // ── Language Section ──
             Text(
-              "Language",
+              context.l10n.t('language'),
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -216,7 +222,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
                     children: [
                       _LanguageTile(
                         langCode: 'en',
-                        label: 'English',
+                        label: context.l10n.t('english'),
                         nativeLabel: 'English',
                         flagEmoji: 'EN',
                         isSelected: langProvider.currentLanguage == 'en',
@@ -225,7 +231,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
                       Divider(height: 1, indent: 72, color: Colors.grey[100]),
                       _LanguageTile(
                         langCode: 'ar',
-                        label: 'Arabic',
+                        label: context.l10n.t('arabic'),
                         nativeLabel:
                             '\u0627\u0644\u0639\u0631\u0628\u064a\u0629',
                         flagEmoji: 'AR',
@@ -242,7 +248,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
 
             // ── Display Section ──
             Text(
-              "Display",
+              context.l10n.t('display'),
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -287,7 +293,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Display Zoom",
+                            context.l10n.t('displayZoom'),
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
@@ -296,7 +302,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            "Change the display zoom for better vision.",
+                            context.l10n.t('displayZoomSubtitle'),
                             style: TextStyle(
                               fontSize: 12,
                               color: AppColors.textGrey,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../main.dart';
 
 class ReminderPreferencesScreen extends StatefulWidget {
@@ -41,7 +42,7 @@ class _ReminderPreferencesScreenState extends State<ReminderPreferencesScreen> {
                 children: [
                   const SizedBox(width: 48), // Balancing for close button
                   Text(
-                    "Snooze Duration",
+                    context.l10n.t('snoozeDuration'),
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -147,9 +148,9 @@ class _ReminderPreferencesScreenState extends State<ReminderPreferencesScreen> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    child: const Text(
-                      "Done",
-                      style: TextStyle(
+                    child: Text(
+                      context.l10n.t('done'),
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -174,15 +175,12 @@ class _ReminderPreferencesScreenState extends State<ReminderPreferencesScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios,
-            color: AppColors.textDark,
-            size: 20,
-          ),
+          icon: const BackButtonIcon(),
+          color: AppColors.textDark,
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          "Reminder Preferences",
+          context.l10n.t('reminderPreferences'),
           style: TextStyle(
             color: AppColors.textDark,
             fontWeight: FontWeight.bold,
@@ -196,23 +194,23 @@ class _ReminderPreferencesScreenState extends State<ReminderPreferencesScreen> {
           children: [
             _buildActionCard(
               icon: Icons.alarm_rounded,
-              title: "Snooze Duration",
-              subtitle: "select your Preferred snooze time.",
+              title: context.l10n.t('snoozeDuration'),
+              subtitle: context.l10n.t('selectPreferredSnooze'),
               onTap: () => _showSnoozeDurationBottomSheet(context),
             ),
             const SizedBox(height: 16),
             _buildToggleCard(
               icon: Icons.phone_android_rounded,
-              title: "Early Reminder Alert",
-              subtitle: "An alert before your medication is due.",
+              title: context.l10n.t('earlyReminderAlert'),
+              subtitle: context.l10n.t('alertBeforeMedicationDue'),
               value: _earlyReminder,
               onChanged: (v) => setState(() => _earlyReminder = v),
             ),
             const SizedBox(height: 16),
             _buildToggleCard(
               icon: Icons.notifications_active_outlined,
-              title: "Missed Dose Notifications",
-              subtitle: "If a dose isn't marked within 30 minutes.",
+              title: context.l10n.t('missedDoseNotifications'),
+              subtitle: context.l10n.t('doseNotMarkedWithin30'),
               value: _missedDose,
               onChanged: (v) => setState(() => _missedDose = v),
             ),

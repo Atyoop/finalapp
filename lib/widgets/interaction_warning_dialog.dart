@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 
 Future<void> showInteractionWarningDialog(
   BuildContext context,
@@ -33,20 +34,20 @@ Future<void> showInteractionWarningDialog(
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
-            'Drug Interaction Warning',
+          Text(
+            context.l10n.t('drugInteractionWarning'),
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
               color: Color(0xFF1A1C1E),
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'This medicine may interact with your current medications.',
+          Text(
+            context.l10n.t('medicineMayInteract'),
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 15,
               color: Color(0xFF74777F),
               height: 1.5,
@@ -107,9 +108,12 @@ Future<void> showInteractionWarningDialog(
                 ),
                 elevation: 0,
               ),
-              child: const Text(
-                'Continue Anyway',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              child: Text(
+                context.l10n.t('continueAnyway'),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),

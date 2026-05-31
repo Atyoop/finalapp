@@ -150,7 +150,9 @@ class NotificationService {
   /// Called when user taps the notification
   void _onDidReceiveNotificationResponse(NotificationResponse response) {
     final payload = response.payload;
-    _debugPrint('📲 Notification tapped - payload: $payload, actionId: ${response.actionId}');
+    _debugPrint(
+      '📲 Notification tapped - payload: $payload, actionId: ${response.actionId}',
+    );
   }
 
   // ───── Schedule backend notifications (original flow) ─────
@@ -159,7 +161,9 @@ class NotificationService {
     final scheduledIds = <int>[];
     try {
       if (schedule.status != 'Pending') {
-        _debugPrint('⏭️ Skipping ${schedule.medName} - status: ${schedule.status}');
+        _debugPrint(
+          '⏭️ Skipping ${schedule.medName} - status: ${schedule.status}',
+        );
         return scheduledIds;
       }
 
@@ -167,7 +171,8 @@ class NotificationService {
       final localScheduledAt = schedule.scheduledAt.toLocal();
       final localNotificationTime = schedule.notificationTime.toLocal();
 
-      if (localScheduledAt.isBefore(now) || localNotificationTime.isBefore(now)) {
+      if (localScheduledAt.isBefore(now) ||
+          localNotificationTime.isBefore(now)) {
         _debugPrint('⏭️ Skipping ${schedule.medName} - time in past');
         return scheduledIds;
       }
@@ -307,9 +312,9 @@ class NotificationService {
       final notifId = getNotificationIdForMedicine(medicineId);
       await cancelNotification(notifId);
 
-      final snoozeTime = tz.TZDateTime.now(tz.local).add(
-        Duration(minutes: minutes),
-      );
+      final snoozeTime = tz.TZDateTime.now(
+        tz.local,
+      ).add(Duration(minutes: minutes));
 
       _debugPrint('⏰ Snoozing $medicineName for $minutes min (ID: $notifId)');
 

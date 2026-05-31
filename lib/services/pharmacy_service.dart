@@ -6,8 +6,7 @@ import '../models/pharmacy_model.dart';
 import 'medicine_storage_service.dart';
 
 class PharmacyService {
-  static const String _overpassUrl =
-      'https://overpass-api.de/api/interpreter';
+  static const String _overpassUrl = 'https://overpass-api.de/api/interpreter';
   static const String _cacheKey = 'cached_pharmacies';
 
   static Future<List<PharmacyModel>> searchNearbyPharmacies({
@@ -16,7 +15,8 @@ class PharmacyService {
     int radiusMeters = 3000,
   }) async {
     try {
-      final query = '[out:json];'
+      final query =
+          '[out:json];'
           'node[amenity=pharmacy](around:$radiusMeters,$latitude,$longitude);'
           'out;';
 
@@ -63,9 +63,7 @@ class PharmacyService {
         decoded = jsonDecode(response.body) as Map<String, dynamic>;
       } catch (e) {
         debugPrint('[PharmacyService] Invalid JSON: $e');
-        throw PharmacyException(
-          'Invalid response format. Please try again.',
-        );
+        throw PharmacyException('Invalid response format. Please try again.');
       }
 
       final elements = decoded['elements'] as List<dynamic>? ?? [];
@@ -90,12 +88,16 @@ class PharmacyService {
       throw PharmacyException('Request timed out. Please try again.');
     } on http.ClientException catch (e) {
       debugPrint('[PharmacyService] Network error: $e');
-      throw PharmacyException('No internet connection. Please check your network.');
+      throw PharmacyException(
+        'No internet connection. Please check your network.',
+      );
     } on PharmacyException {
       rethrow;
     } catch (e) {
       debugPrint('[PharmacyService] Unexpected error: $e');
-      throw PharmacyException('An unexpected error occurred. Please try again.');
+      throw PharmacyException(
+        'An unexpected error occurred. Please try again.',
+      );
     }
   }
 

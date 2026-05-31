@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../main.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/support_provider.dart';
 import '../providers/user_provider.dart';
 import '../models/support_ticket.dart';
@@ -26,6 +27,19 @@ class _SupportScreenState extends State<SupportScreen> {
     'Other',
   ];
 
+  String _categoryLabel(BuildContext context, String category) {
+    return switch (category) {
+      'BugReport' => context.l10n.t('supportCategoryBugReport'),
+      'TechnicalIssue' => context.l10n.t('supportCategoryTechnicalIssue'),
+      'PaymentProblem' => context.l10n.t('supportCategoryPaymentProblem'),
+      'PremiumSubscription' => context.l10n.t(
+        'supportCategoryPremiumSubscription',
+      ),
+      'Suggestion' => context.l10n.t('supportCategorySuggestion'),
+      _ => context.l10n.t('supportCategoryOther'),
+    };
+  }
+
   @override
   void initState() {
     super.initState();
@@ -42,9 +56,9 @@ class _SupportScreenState extends State<SupportScreen> {
 
   Future<void> _submitSupport() async {
     if (_messageController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please enter a message')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.t('pleaseEnterMessage'))),
+      );
       return;
     }
 
@@ -52,9 +66,9 @@ class _SupportScreenState extends State<SupportScreen> {
     final userProvider = context.read<UserProvider>();
 
     if (userProvider.token == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Authentication required')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.t('authenticationRequired'))),
+      );
       return;
     }
 
@@ -68,16 +82,22 @@ class _SupportScreenState extends State<SupportScreen> {
       if (success) {
         _messageController.clear();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Support request submitted successfully.'),
-            duration: Duration(seconds: 3),
+          SnackBar(
+            content: Text(context.l10n.t('supportRequestSubmitted')),
+            duration: const Duration(seconds: 3),
           ),
         );
         // Reload tickets
         _loadTickets();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${supportProvider.error}')),
+          SnackBar(
+            content: Text(
+              context.l10n.t('errorWithMessage', {
+                'message': supportProvider.error ?? '',
+              }),
+            ),
+          ),
         );
       }
     }
@@ -98,11 +118,12 @@ class _SupportScreenState extends State<SupportScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.textDark),
+          icon: const BackButtonIcon(),
+          color: AppColors.textDark,
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'IT Support',
+          context.l10n.t('itSupport'),
           style: TextStyle(
             color: AppColors.textDark,
             fontSize: 18,
@@ -130,7 +151,7 @@ class _SupportScreenState extends State<SupportScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Submit a Request',
+                          context.l10n.t('supportSubmitRequest'),
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -141,7 +162,7 @@ class _SupportScreenState extends State<SupportScreen> {
 
                         // Category dropdown
                         Text(
-                          'Category',
+                          context.l10n.t('category'),
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
@@ -163,7 +184,9 @@ class _SupportScreenState extends State<SupportScreen> {
                                 value: category,
                                 child: Padding(
                                   padding: const EdgeInsets.all(12.0),
-                                  child: Text(category),
+                                  child: Text(
+                                    _categoryLabel(context, category),
+                                  ),
                                 ),
                               );
                             }).toList(),
@@ -178,7 +201,7 @@ class _SupportScreenState extends State<SupportScreen> {
 
                         // Message field
                         Text(
-                          'Message',
+                          context.l10n.t('message'),
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
@@ -191,7 +214,7 @@ class _SupportScreenState extends State<SupportScreen> {
                           maxLines: 5,
                           minLines: 4,
                           decoration: InputDecoration(
-                            hintText: 'Describe your issue...',
+                            hintText: context.l10n.t('describeIssue'),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(color: Colors.grey[300]!),
@@ -236,9 +259,9 @@ class _SupportScreenState extends State<SupportScreen> {
                                       strokeWidth: 2,
                                     ),
                                   )
-                                : const Text(
-                                    'Submit Request',
-                                    style: TextStyle(
+                                : Text(
+                                    context.l10n.t('submitRequest'),
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
@@ -254,7 +277,7 @@ class _SupportScreenState extends State<SupportScreen> {
 
                   // Ticket history
                   Text(
-                    'Your Tickets',
+                    context.l10n.t('yourTickets'),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -270,7 +293,7 @@ class _SupportScreenState extends State<SupportScreen> {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 32.0),
                         child: Text(
-                          'No support tickets yet',
+                          context.l10n.t('noSupportTickets'),
                           style: TextStyle(
                             color: AppColors.textGrey,
                             fontSize: 14,
@@ -324,6 +347,19 @@ class _SupportTicketCardState extends State<_SupportTicketCard> {
     }
   }
 
+  String _categoryLabel(BuildContext context, String category) {
+    return switch (category) {
+      'BugReport' => context.l10n.t('supportCategoryBugReport'),
+      'TechnicalIssue' => context.l10n.t('supportCategoryTechnicalIssue'),
+      'PaymentProblem' => context.l10n.t('supportCategoryPaymentProblem'),
+      'PremiumSubscription' => context.l10n.t(
+        'supportCategoryPremiumSubscription',
+      ),
+      'Suggestion' => context.l10n.t('supportCategorySuggestion'),
+      _ => context.l10n.t('supportCategoryOther'),
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -347,7 +383,7 @@ class _SupportTicketCardState extends State<_SupportTicketCard> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '#${widget.ticket.ticketId} - ${widget.ticket.category}',
+                            '#${widget.ticket.ticketId} - ${_categoryLabel(context, widget.ticket.category)}',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
@@ -412,7 +448,7 @@ class _SupportTicketCardState extends State<_SupportTicketCard> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Admin Reply',
+                      context.l10n.t('adminReply'),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,

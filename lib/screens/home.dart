@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
+import '../l10n/app_localizations.dart';
 import 'home_screen.dart';
 import 'interaction_screen.dart';
 import 'saved_medicines_screen.dart';
@@ -69,14 +70,14 @@ class _MainNavScreenState extends State<MainNavScreen> {
               _NavItem(
                 icon: Icons.home_outlined,
                 activeIcon: Icons.home_rounded,
-                label: "Today",
+                label: context.l10n.t('today'),
                 isActive: _currentIndex == 0,
                 onTap: () => _onTabTapped(0),
               ),
               _NavItem(
                 icon: Icons.medication_outlined,
                 activeIcon: Icons.medication_rounded,
-                label: "My Meds",
+                label: context.l10n.t('myMeds'),
                 isActive: _currentIndex == 1,
                 onTap: () => _onTabTapped(1),
               ),
@@ -84,21 +85,21 @@ class _MainNavScreenState extends State<MainNavScreen> {
               _NavItem(
                 icon: Icons.document_scanner_outlined,
                 activeIcon: Icons.document_scanner_rounded,
-                label: "Check Meds",
+                label: context.l10n.t('checkMeds'),
                 isActive: _currentIndex == 2,
                 onTap: () => _onTabTapped(2),
               ),
               _NavItem(
                 icon: Icons.add_box_outlined,
                 activeIcon: Icons.add_box_rounded,
-                label: "Add Meds",
+                label: context.l10n.t('addMeds'),
                 isActive: _currentIndex == 3,
                 onTap: () => _onTabTapped(3),
               ),
               _NavItem(
                 icon: Icons.settings_outlined,
                 activeIcon: Icons.settings_rounded,
-                label: "Setting",
+                label: context.l10n.t('setting'),
                 isActive: _currentIndex == 4,
                 onTap: () => _onTabTapped(4),
               ),

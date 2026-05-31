@@ -5,7 +5,7 @@ import 'package:flutter/scheduler.dart';
 
 class SupportProvider extends ChangeNotifier {
   List<SupportTicket> _tickets = [];
-  bool _isLoading = false;
+  final bool _isLoading = false;
   bool _isSubmitting = false;
   bool _isFetching = false;
   String? _error;
@@ -105,8 +105,4 @@ class SupportProvider extends ChangeNotifier {
     _error = null;
     _safeNotifyListeners();
   }
-}
-
-void debugPrint(String message) {
-  print('[SupportProvider] $message');
 }

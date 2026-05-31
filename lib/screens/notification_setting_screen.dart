@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../main.dart';
 
 class NotificationSettingScreen extends StatefulWidget {
@@ -13,7 +14,6 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
   bool _appNotification = true;
   bool _vibration = true;
   bool _showOnLockScreen = true;
-
 
   void _showSoundBottomSheet() {
     showModalBottomSheet(
@@ -43,7 +43,7 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
                 children: [
                   const SizedBox(width: 48),
                   Text(
-                    "Notification Sound",
+                    context.l10n.t('notificationSound'),
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -60,7 +60,7 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
               ListTile(
                 title: Center(
                   child: Text(
-                    "Default app sound",
+                    context.l10n.t('defaultAppSound'),
                     style: TextStyle(fontSize: 16, color: AppColors.textDark),
                   ),
                 ),
@@ -73,7 +73,7 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
               ListTile(
                 title: Center(
                   child: Text(
-                    "Silent",
+                    context.l10n.t('silent'),
                     style: TextStyle(fontSize: 16, color: AppColors.textGrey),
                   ),
                 ),
@@ -96,9 +96,9 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    child: const Text(
-                      "Done",
-                      style: TextStyle(
+                    child: Text(
+                      context.l10n.t('done'),
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -123,15 +123,12 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios,
-            color: AppColors.textDark,
-            size: 20,
-          ),
+          icon: const BackButtonIcon(),
+          color: AppColors.textDark,
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          "Notification Setting",
+          context.l10n.t('notificationSetting'),
           style: TextStyle(
             color: AppColors.textDark,
             fontWeight: FontWeight.bold,
@@ -145,31 +142,31 @@ class _NotificationSettingScreenState extends State<NotificationSettingScreen> {
           children: [
             _buildActionCard(
               icon: Icons.notifications_active_outlined,
-              title: "Notification Sound",
-              subtitle: "Change How notifications Sound.",
+              title: context.l10n.t('notificationSound'),
+              subtitle: context.l10n.t('changeNotificationSound'),
               onTap: _showSoundBottomSheet,
             ),
             const SizedBox(height: 16),
             _buildToggleCard(
               icon: Icons.phone_android_rounded,
-              title: "App Notification",
-              subtitle: "Receive mobile app notifications.",
+              title: context.l10n.t('appNotification'),
+              subtitle: context.l10n.t('receiveAppNotifications'),
               value: _appNotification,
               onChanged: (v) => setState(() => _appNotification = v),
             ),
             const SizedBox(height: 16),
             _buildToggleCard(
               icon: Icons.vibration_rounded,
-              title: "Vibration",
-              subtitle: "Vibrate device when a reminder is due.",
+              title: context.l10n.t('vibration'),
+              subtitle: context.l10n.t('vibrateReminderDue'),
               value: _vibration,
               onChanged: (v) => setState(() => _vibration = v),
             ),
             const SizedBox(height: 16),
             _buildToggleCard(
               icon: Icons.screen_lock_portrait_rounded,
-              title: "Show on lock screen",
-              subtitle: "Display medication reminder on lock screen.",
+              title: context.l10n.t('showOnLockScreen'),
+              subtitle: context.l10n.t('displayReminderLockScreen'),
               value: _showOnLockScreen,
               onChanged: (v) => setState(() => _showOnLockScreen = v),
             ),

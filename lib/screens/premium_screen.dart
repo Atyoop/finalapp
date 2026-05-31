@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../main.dart';
 import '../providers/premium_provider.dart';
 import '../providers/user_provider.dart';
@@ -59,9 +60,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
     final premiumProvider = context.read<PremiumProvider>();
 
     if (userProvider.token == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Authentication required')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.t('authenticationRequired'))),
+      );
       return;
     }
 
@@ -115,11 +116,15 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 color: Colors.green.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.check_circle, size: 50, color: Colors.green),
+              child: const Icon(
+                Icons.check_circle,
+                size: 50,
+                color: Colors.green,
+              ),
             ),
             const SizedBox(height: 16),
             Text(
-              'Premium Updated',
+              context.l10n.t('premiumUpdated'),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -128,7 +133,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Your Premium subscription has been renewed successfully.',
+              context.l10n.t('premiumRenewedSuccess'),
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: AppColors.textGrey),
             ),
@@ -145,9 +150,12 @@ class _PremiumScreenState extends State<PremiumScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text(
-                  'Done',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                child: Text(
+                  context.l10n.t('done'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -170,7 +178,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
         backgroundColor: AppColors.cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
-          'Cancel Premium?',
+          context.l10n.t('cancelPremiumQuestion'),
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -178,14 +186,14 @@ class _PremiumScreenState extends State<PremiumScreen> {
           ),
         ),
         content: Text(
-          'Are you sure you want to cancel your Premium subscription?',
+          context.l10n.t('cancelPremiumConfirm'),
           style: TextStyle(fontSize: 14, color: AppColors.textDark),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
-              'Keep Premium',
+              context.l10n.t('keepPremium'),
               style: TextStyle(color: AppColors.primaryTeal),
             ),
           ),
@@ -198,9 +206,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
               if (success && mounted) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Subscription cancelled successfully.'),
-                      duration: Duration(seconds: 3),
+                    SnackBar(
+                      content: Text(context.l10n.t('subscriptionCancelled')),
+                      duration: const Duration(seconds: 3),
                     ),
                   );
                 }
@@ -209,9 +217,14 @@ class _PremiumScreenState extends State<PremiumScreen> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
-            child: const Text('Cancel Subscription', style: TextStyle(color: Colors.white)),
+            child: Text(
+              context.l10n.t('cancelSubscription'),
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -253,13 +266,13 @@ class _PremiumScreenState extends State<PremiumScreen> {
                   const Icon(Icons.error_outline, size: 64, color: Colors.red),
                   const SizedBox(height: 16),
                   Text(
-                    'Failed to load premium status',
+                    context.l10n.t('failedLoadPremium'),
                     style: TextStyle(color: AppColors.textDark),
                   ),
                   const SizedBox(height: 8),
                   ElevatedButton(
                     onPressed: _loadPremiumStatus,
-                    child: const Text('Retry'),
+                    child: Text(context.l10n.t('retry')),
                   ),
                 ],
               ),
@@ -295,11 +308,15 @@ class _PremiumScreenState extends State<PremiumScreen> {
                     color: Colors.amber.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.workspace_premium, size: 80, color: Colors.amber),
+                  child: const Icon(
+                    Icons.workspace_premium,
+                    size: 80,
+                    color: Colors.amber,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'DrugSafe Premium',
+                  context.l10n.t('drugSafePremium'),
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -308,7 +325,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'You are currently enjoying Premium access.',
+                  context.l10n.t('premiumEnjoying'),
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 16, color: AppColors.textGrey),
                 ),
@@ -335,18 +352,30 @@ class _PremiumScreenState extends State<PremiumScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildInfoRow('Premium Status', 'Active', valueColor: Colors.green),
+                _buildInfoRow(
+                  context.l10n.t('premiumStatus'),
+                  context.l10n.t('active'),
+                  valueColor: Colors.green,
+                ),
                 const Divider(height: 24),
                 if (status?.startDate != null) ...[
-                  _buildInfoRow('Start Date', _formatDate(status!.startDate!)),
+                  _buildInfoRow(
+                    context.l10n.t('startDate'),
+                    _formatDate(status!.startDate!),
+                  ),
                   const Divider(height: 24),
                 ],
                 if (status?.endDate != null) ...[
-                  _buildInfoRow('End Date', _formatDate(status!.endDate!)),
+                  _buildInfoRow(
+                    context.l10n.t('endDate'),
+                    _formatDate(status!.endDate!),
+                  ),
                   const Divider(height: 24),
                   _buildInfoRow(
-                    'Remaining Days',
-                    '${premiumProvider.remainingDays} days',
+                    context.l10n.t('remainingDays'),
+                    context.l10n.t('daysCount', {
+                      'count': premiumProvider.remainingDays,
+                    }),
                     valueColor: AppColors.primaryTeal,
                   ),
                 ],
@@ -363,11 +392,17 @@ class _PremiumScreenState extends State<PremiumScreen> {
               onPressed: () => setState(() => _showPlansForRenewal = true),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryTeal,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              child: const Text(
-                'Renew Subscription',
-                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              child: Text(
+                context.l10n.t('renewSubscription'),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -379,11 +414,17 @@ class _PremiumScreenState extends State<PremiumScreen> {
               onPressed: _cancelPremium,
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Colors.red),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              child: const Text(
-                'Cancel Subscription',
-                style: TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold),
+              child: Text(
+                context.l10n.t('cancelSubscription'),
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -399,7 +440,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            _showPlansForRenewal ? 'Renew Your Premium' : 'DrugSafe Premium',
+            _showPlansForRenewal
+                ? context.l10n.t('renewYourPremium')
+                : context.l10n.t('drugSafePremium'),
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
@@ -408,12 +451,16 @@ class _PremiumScreenState extends State<PremiumScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Enjoy an ad-free experience and unlock future premium features.',
-            style: TextStyle(fontSize: 14, color: AppColors.textGrey, height: 1.5),
+            context.l10n.t('premiumDescription'),
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColors.textGrey,
+              height: 1.5,
+            ),
           ),
           const SizedBox(height: 32),
           Text(
-            'Choose Your Plan',
+            context.l10n.t('chooseYourPlan'),
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -427,9 +474,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: PremiumPlanCard(
-                title: plan['title']!,
+                title: _planTitle(key),
                 price: plan['price']!,
-                description: plan['description']!,
+                description: _planDescription(key),
                 isSelected: _selectedPlan == key,
                 onTap: () => setState(() => _selectedPlan = key),
               ),
@@ -440,16 +487,22 @@ class _PremiumScreenState extends State<PremiumScreen> {
             width: double.infinity,
             height: 56,
             child: ElevatedButton(
-              onPressed: premiumProvider.isActivating ? null : _proceedToPayment,
+              onPressed: premiumProvider.isActivating
+                  ? null
+                  : _proceedToPayment,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryTeal,
                 disabledBackgroundColor: Colors.grey[400],
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: premiumProvider.isActivating
                   ? const CircularProgressIndicator(color: Colors.white)
                   : Text(
-                      _showPlansForRenewal ? 'Renew Now' : 'Go Without Ads',
+                      _showPlansForRenewal
+                          ? context.l10n.t('renewNow')
+                          : context.l10n.t('goWithoutAds'),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -478,6 +531,24 @@ class _PremiumScreenState extends State<PremiumScreen> {
         ),
       ],
     );
+  }
+
+  String _planTitle(String key) {
+    return switch (key) {
+      'Month' => context.l10n.t('monthlyPlan'),
+      'ThreeMonths' => context.l10n.t('threeMonthsPlan'),
+      'Year' => context.l10n.t('yearlyPlan'),
+      _ => key,
+    };
+  }
+
+  String _planDescription(String key) {
+    return switch (key) {
+      'Month' => context.l10n.t('billedMonthly'),
+      'ThreeMonths' => context.l10n.t('bestValueRegular'),
+      'Year' => context.l10n.t('fullPremiumYear'),
+      _ => '',
+    };
   }
 
   String _formatDate(DateTime date) {

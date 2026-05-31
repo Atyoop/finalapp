@@ -3,6 +3,7 @@ import 'package:final88/screens/add_reminder_screen.dart';
 import 'package:final88/utils/time_helpers.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../main.dart';
 import '../providers/medicine_provider.dart';
 import '../providers/user_provider.dart';
@@ -58,7 +59,7 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
         elevation: 0,
         iconTheme: IconThemeData(color: AppColors.textDark),
         title: Text(
-          'My Meds',
+          context.l10n.t('myMeds'),
           style: TextStyle(
             color: AppColors.textDark,
             fontWeight: FontWeight.bold,
@@ -88,7 +89,7 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                   Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
                   const SizedBox(height: 12),
                   Text(
-                    'Failed to load medicines',
+                    context.l10n.t('failedToLoadMedicines'),
                     style: TextStyle(color: AppColors.textGrey),
                   ),
                   const SizedBox(height: 12),
@@ -104,9 +105,9 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryTeal,
                     ),
-                    child: const Text(
-                      'Retry',
-                      style: TextStyle(color: Colors.white),
+                    child: Text(
+                      context.l10n.t('retry'),
+                      style: const TextStyle(color: Colors.white),
                     ),
                   ),
                 ],
@@ -126,7 +127,7 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'No medicines added yet',
+                        context.l10n.t('noMedicinesAdded'),
                         style: TextStyle(
                           fontSize: 16,
                           color: AppColors.textGrey,
@@ -214,7 +215,10 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                                   const SizedBox(height: 4),
                                   // Schedule summary
                                   Text(
-                                    buildScheduleSummary(med),
+                                    buildScheduleSummary(
+                                      med,
+                                      locale: _currentLanguage ?? 'en',
+                                    ),
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: AppColors.textGrey,
@@ -235,7 +239,7 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                                             med.quantityUnit,
                                             locale: _currentLanguage ?? 'en',
                                           )
-                                        : 'Stock not set',
+                                        : context.l10n.t('stockNotSet'),
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: AppColors.textGrey,
@@ -324,7 +328,10 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                                   Padding(
                                     padding: const EdgeInsets.only(top: 2),
                                     child: Text(
-                                      formatExpiryDate(med.expiryDate),
+                                      formatExpiryDate(
+                                        med.expiryDate,
+                                        locale: _currentLanguage ?? 'en',
+                                      ),
                                       style: TextStyle(
                                         fontSize: 11,
                                         color: AppColors.textGrey,
@@ -342,14 +349,20 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                                 final confirmed = await showDialog<bool>(
                                   context: context,
                                   builder: (ctx) => AlertDialog(
-                                    title: const Text('Delete medicine'),
-                                    content: Text('Delete ${med.name}?'),
+                                    title: Text(
+                                      context.l10n.t('deleteMedicine'),
+                                    ),
+                                    content: Text(
+                                      context.l10n.t('deleteMedicineConfirm', {
+                                        'name': med.name,
+                                      }),
+                                    ),
                                     actions: [
                                       TextButton(
                                         onPressed: () =>
                                             Navigator.pop(ctx, false),
                                         child: Text(
-                                          'Cancel',
+                                          context.l10n.t('cancel'),
                                           style: TextStyle(
                                             color: AppColors.textGrey,
                                           ),
@@ -358,9 +371,11 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                                       TextButton(
                                         onPressed: () =>
                                             Navigator.pop(ctx, true),
-                                        child: const Text(
-                                          'Delete',
-                                          style: TextStyle(color: Colors.red),
+                                        child: Text(
+                                          context.l10n.t('delete'),
+                                          style: const TextStyle(
+                                            color: Colors.red,
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -382,8 +397,14 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                                         SnackBar(
                                           content: Text(
                                             success
-                                                ? '${med.name} deleted.'
-                                                : 'Failed to delete ${med.name}.',
+                                                ? context.l10n.t(
+                                                    'medicineDeleted',
+                                                    {'name': med.name},
+                                                  )
+                                                : context.l10n.t(
+                                                    'failedToDeleteMedicine',
+                                                    {'name': med.name},
+                                                  ),
                                           ),
                                           backgroundColor: success
                                               ? AppColors.primaryTeal
@@ -437,7 +458,9 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      'Interacts with ${inter.withMedication}',
+                      context.l10n.t('interactsWith', {
+                        'name': inter.withMedication,
+                      }),
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
@@ -457,7 +480,9 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
               child: Padding(
                 padding: const EdgeInsets.only(top: 2),
                 child: Text(
-                  '+${interactions.length - visibleCount} more interaction${interactions.length - visibleCount > 1 ? 's' : ''}',
+                  context.l10n.t('moreInteractions', {
+                    'count': interactions.length - visibleCount,
+                  }),
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
@@ -499,7 +524,7 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
             ),
             const SizedBox(height: 20),
             Text(
-              'Interactions for ${med.name}',
+              context.l10n.t('interactionsFor', {'name': med.name}),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -508,7 +533,7 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'The following medications may have interactions:',
+              context.l10n.t('followingInteractions'),
               style: TextStyle(fontSize: 14, color: AppColors.textGrey),
             ),
             const SizedBox(height: 20),
@@ -553,7 +578,7 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                         Padding(
                           padding: const EdgeInsets.only(left: 28),
                           child: Text(
-                            'Reason: ${inter.reason}',
+                            context.l10n.t('reason', {'reason': inter.reason}),
                             style: TextStyle(
                               fontSize: 13,
                               color: AppColors.textGrey,
@@ -580,9 +605,9 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                   ),
                   elevation: 0,
                 ),
-                child: const Text(
-                  'Close',
-                  style: TextStyle(color: Colors.white),
+                child: Text(
+                  context.l10n.t('close'),
+                  style: const TextStyle(color: Colors.white),
                 ),
               ),
             ),

@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 
 import '../main.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/language_provider.dart';
 import '../providers/user_provider.dart';
 import '../services/language_service.dart';
@@ -452,7 +453,7 @@ class InteractionResultScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 14),
                     Text(
-                      'No known interactions found',
+                      context.l10n.t('noKnownInteractions'),
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
@@ -461,7 +462,7 @@ class InteractionResultScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Always consult your doctor or pharmacist\nbefore combining medications.',
+                      context.l10n.t('consultBeforeCombining'),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 13,
@@ -490,9 +491,7 @@ class InteractionResultScreen extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'This tool is for informational purposes only. '
-                      'Always consult a healthcare professional before '
-                      'making any medical decisions.',
+                      context.l10n.t('medicalDisclaimer'),
                       style: TextStyle(
                         fontSize: 11,
                         color: AppColors.textGrey,
@@ -517,9 +516,9 @@ class InteractionResultScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-                child: const Text(
-                  'Check Again',
-                  style: TextStyle(
+                child: Text(
+                  context.l10n.t('checkAgain'),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
@@ -647,7 +646,9 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
     final token = context.read<UserProvider>().token;
     if (token == null || token.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please sign in to check interactions')),
+        SnackBar(
+          content: Text(context.l10n.t('pleaseSignInCheckInteractions')),
+        ),
       );
       return;
     }
@@ -703,7 +704,7 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
         context,
         MaterialPageRoute(
           builder: (_) => InteractionResultScreen(
-            message: 'Failed to check interactions. Please try again.',
+            message: context.l10n.t('failedCheckInteractions'),
             results: const [],
             selectedMeds: List.from(_selectedMeds),
           ),
@@ -725,7 +726,7 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
               child: Text(
-                'Check Meds',
+                context.l10n.t('checkMeds'),
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -736,7 +737,7 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 6, 20, 20),
               child: Text(
-                'Select up to $_maxMeds medications to check interactions',
+                context.l10n.t('selectUpToMeds', {'count': _maxMeds}),
                 style: TextStyle(fontSize: 14, color: AppColors.textGrey),
               ),
             ),
@@ -764,7 +765,7 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
                         controller: _searchController,
                         onChanged: (v) => setState(() => _query = v),
                         decoration: InputDecoration(
-                          hintText: 'Type medication name...',
+                          hintText: context.l10n.t('typeMedicationName'),
                           hintStyle: TextStyle(
                             color: AppColors.textGrey.withValues(alpha: 0.6),
                             fontSize: 14,
@@ -827,7 +828,10 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
                     Row(
                       children: [
                         Text(
-                          'Selected (${_selectedMeds.length}/$_maxMeds)',
+                          context.l10n.t('selectedCount', {
+                            'selected': _selectedMeds.length,
+                            'max': _maxMeds,
+                          }),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -837,9 +841,9 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
                         const Spacer(),
                         GestureDetector(
                           onTap: () => setState(() => _selectedMeds.clear()),
-                          child: const Text(
-                            'Clear all',
-                            style: TextStyle(
+                          child: Text(
+                            context.l10n.t('clearAll'),
+                            style: const TextStyle(
                               fontSize: 12,
                               color: Colors.redAccent,
                               fontWeight: FontWeight.w500,
@@ -933,8 +937,10 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
                         )
                       : Text(
                           _selectedMeds.length >= 2
-                              ? 'Check Interactions (${_selectedMeds.length} meds)'
-                              : 'Select at least 2 medications',
+                              ? context.l10n.t('checkInteractionsCount', {
+                                  'count': _selectedMeds.length,
+                                })
+                              : context.l10n.t('selectAtLeastTwo'),
                           style: TextStyle(
                             color: _selectedMeds.length >= 2
                                 ? Colors.white
@@ -967,7 +973,7 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'No results found',
+              context.l10n.t('noResultsFound'),
               style: TextStyle(color: AppColors.textGrey, fontSize: 15),
             ),
           ],
@@ -994,7 +1000,7 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      'You can select up to $_maxMeds medications only',
+                      context.l10n.t('selectUpToOnly', {'count': _maxMeds}),
                     ),
                     behavior: SnackBarBehavior.floating,
                   ),

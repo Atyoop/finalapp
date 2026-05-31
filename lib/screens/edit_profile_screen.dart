@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import '../l10n/app_localizations.dart';
 import '../main.dart';
 import '../providers/user_provider.dart';
 
@@ -119,9 +120,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Date of Birth',
-                        style: TextStyle(
+                      Text(
+                        context.l10n.t('dateOfBirth'),
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -239,9 +240,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           borderRadius: BorderRadius.circular(26),
                         ),
                       ),
-                      child: const Text(
-                        'Done',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      child: Text(
+                        context.l10n.t('done'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
                   ),
@@ -274,9 +278,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Choose Gender',
-                        style: TextStyle(
+                      Text(
+                        context.l10n.t('chooseGender'),
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -289,13 +293,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                   const SizedBox(height: 20),
                   _GenderOption(
-                    label: 'Male',
+                    label: context.l10n.t('male'),
                     isSelected: tempGender == 'Male',
                     onTap: () => setModalState(() => tempGender = 'Male'),
                   ),
                   const SizedBox(height: 12),
                   _GenderOption(
-                    label: 'Female',
+                    label: context.l10n.t('female'),
                     isSelected: tempGender == 'Female',
                     onTap: () => setModalState(() => tempGender = 'Female'),
                   ),
@@ -314,9 +318,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           borderRadius: BorderRadius.circular(26),
                         ),
                       ),
-                      child: const Text(
-                        'Done',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      child: Text(
+                        context.l10n.t('done'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
                   ),
@@ -349,9 +356,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Choose Avatar',
-                        style: TextStyle(
+                      Text(
+                        context.l10n.t('chooseAvatar'),
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -369,9 +376,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       await _pickImage();
                     },
                     icon: const Icon(Icons.photo_library, color: Colors.white),
-                    label: const Text(
-                      'Choose from Gallery',
-                      style: TextStyle(color: Colors.white),
+                    label: Text(
+                      context.l10n.t('chooseFromGallery'),
+                      style: const TextStyle(color: Colors.white),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryTeal,
@@ -435,9 +442,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           borderRadius: BorderRadius.circular(26),
                         ),
                       ),
-                      child: const Text(
-                        'Done',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      child: Text(
+                        context.l10n.t('done'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
                   ),
@@ -467,7 +477,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         elevation: 0,
         iconTheme: IconThemeData(color: AppColors.textDark),
         title: Text(
-          'Edit Profile',
+          context.l10n.t('editProfile'),
           style: TextStyle(
             color: AppColors.textDark,
             fontWeight: FontWeight.bold,
@@ -491,7 +501,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     height: 100,
                     decoration: BoxDecoration(
                       color: _imagePath == null
-                          ? _avatarColors[_selectedAvatar].withValues(alpha: 0.15)
+                          ? _avatarColors[_selectedAvatar].withValues(
+                              alpha: 0.15,
+                            )
                           : AppColors.backgroundCream,
                       shape: BoxShape.circle,
                       border: Border.all(
@@ -532,19 +544,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
             const SizedBox(height: 28),
             // Name
-            _buildLabel('Full Name'),
+            _buildLabel(context.l10n.t('fullName')),
             _buildTextField(_nameController, Icons.person_outline),
             const SizedBox(height: 16),
             // Email
-            _buildLabel('Email'),
+            _buildLabel(context.l10n.t('email')),
             _buildTextField(_emailController, Icons.email_outlined),
             const SizedBox(height: 16),
             // Phone
-            _buildLabel('Phone Number'),
+            _buildLabel(context.l10n.t('phoneNumber')),
             _buildTextField(_phoneController, Icons.phone_outlined),
             const SizedBox(height: 16),
             // DOB
-            _buildLabel('Date of Birth'),
+            _buildLabel(context.l10n.t('dateOfBirth')),
             GestureDetector(
               onTap: _showDateOfBirthPicker,
               child: Container(
@@ -574,10 +586,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     const SizedBox(width: 12),
                     Text(
                       _dob,
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: AppColors.textDark,
-                      ),
+                      style: TextStyle(fontSize: 15, color: AppColors.textDark),
                     ),
                     const Spacer(),
                     Icon(
@@ -591,7 +600,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
             const SizedBox(height: 16),
             // Gender
-            _buildLabel('Gender'),
+            _buildLabel(context.l10n.t('gender')),
             GestureDetector(
               onTap: _showGenderPicker,
               child: Container(
@@ -621,10 +630,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     const SizedBox(width: 12),
                     Text(
                       _gender,
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: AppColors.textDark,
-                      ),
+                      style: TextStyle(fontSize: 15, color: AppColors.textDark),
                     ),
                     const Spacer(),
                     Icon(
@@ -649,8 +655,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     imagePath: _imagePath,
                   );
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Profile Updated Successfully!'),
+                    SnackBar(
+                      content: Text(context.l10n.t('profileUpdated')),
                       backgroundColor: Colors.green,
                     ),
                   );
@@ -664,9 +670,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   elevation: 3,
                   shadowColor: AppColors.primaryTeal.withValues(alpha: 0.3),
                 ),
-                child: const Text(
-                  'Save',
-                  style: TextStyle(
+                child: Text(
+                  context.l10n.t('save'),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,

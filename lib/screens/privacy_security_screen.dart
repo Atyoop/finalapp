@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../main.dart';
 import 'change_password_screen.dart';
 
@@ -20,15 +21,12 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios,
-            color: AppColors.textDark,
-            size: 20,
-          ),
+          icon: const BackButtonIcon(),
+          color: AppColors.textDark,
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          "Privacy & Security",
+          context.l10n.t('privacySecurity'),
           style: TextStyle(
             color: AppColors.textDark,
             fontWeight: FontWeight.bold,
@@ -42,8 +40,8 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
           children: [
             _buildActionCard(
               icon: Icons.lock_person_outlined,
-              title: "Change Profile Password",
-              subtitle: "Change the user's profile password.",
+              title: context.l10n.t('changeProfilePassword'),
+              subtitle: context.l10n.t('changeUserProfilePassword'),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
@@ -52,16 +50,16 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
             const SizedBox(height: 16),
             _buildToggleCard(
               icon: Icons.mobile_friendly_rounded,
-              title: "App lock",
-              subtitle: "Use your device's biometrics for access.",
+              title: context.l10n.t('appLock'),
+              subtitle: context.l10n.t('useBiometrics'),
               value: _appLock,
               onChanged: (v) => setState(() => _appLock = v),
             ),
             const SizedBox(height: 16),
             _buildActionCard(
               icon: Icons.person_off_outlined,
-              title: "Delete My Account & Data",
-              subtitle: "Permanently delete all your medication account.",
+              title: context.l10n.t('deleteAccountData'),
+              subtitle: context.l10n.t('deleteMedicationAccount'),
               onTap: () {},
               hideChevron: true,
             ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../main.dart';
 import '../models/medicine.dart';
 import '../providers/medicine_provider.dart';
@@ -100,14 +101,17 @@ class _ScheduleConfig {
     }
   }
 
-  String getDisplayText() {
+  String getDisplayText(BuildContext context) {
     if (type == ScheduleType.everyXHours) {
       final h = firstDoseTime.hour.toString().padLeft(2, '0');
       final m = firstDoseTime.minute.toString().padLeft(2, '0');
-      return 'Every $intervalHours hours starting $h:$m';
+      return context.l10n.t('everyHoursStarting', {
+        'hours': intervalHours,
+        'time': '$h:$m',
+      });
     } else {
       if (doseTimes.isEmpty) {
-        return 'Add dose times';
+        return context.l10n.t('addDoseTimes');
       }
       final sortedTimes = List<TimeOfDay>.from(doseTimes)
         ..sort(
@@ -120,7 +124,10 @@ class _ScheduleConfig {
         return '$hour:$minute';
       }).toList();
 
-      return '${doseTimes.length} times per day: ${timeStrings.join(', ')}';
+      return context.l10n.t('timesPerDay', {
+        'count': doseTimes.length,
+        'times': timeStrings.join(', '),
+      });
     }
   }
 }
@@ -269,12 +276,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       return 'Dose quantity cannot be greater than total quantity';
     }
     if (_lowStockThreshold != null && _lowStockThreshold! < 0) {
-      return 'Low stock threshold cannot be negative';
+      return context.l10n.t('lowStockNegative');
     }
     if (_lowStockThreshold != null &&
         _stock != null &&
         _lowStockThreshold! >= _stock!) {
-      return 'Low stock threshold must be less than total quantity';
+      return context.l10n.t('lowStockLessTotal');
     }
     return null;
   }
@@ -349,11 +356,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: AppColors.textDark, size: 20),
+          icon: const BackButtonIcon(),
+          color: AppColors.textDark,
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Add Medicine',
+          context.l10n.t('addMedicine'),
           style: TextStyle(
             color: AppColors.textDark,
             fontWeight: FontWeight.bold,
@@ -368,7 +376,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
           children: [
             // 1. Medication Name Card
             _buildCardSection(
-              title: 'Medication',
+              title: context.l10n.t('medication'),
               icon: Icons.medication_rounded,
               child: Column(
                 children: [
@@ -382,7 +390,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                             text: _nameController.text,
                           );
                           return AlertDialog(
-                            title: const Text('Medication Name'),
+                            title: Text(context.l10n.t('medicationName')),
                             content: TextField(
                               controller: controller,
                               decoration: InputDecoration(
@@ -396,7 +404,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                               TextButton(
                                 onPressed: () => Navigator.pop(context),
                                 child: Text(
-                                  'Cancel',
+                                  context.l10n.t('cancel'),
                                   style: TextStyle(color: AppColors.textGrey),
                                 ),
                               ),
@@ -410,9 +418,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primaryTeal,
                                 ),
-                                child: const Text(
-                                  'Save',
-                                  style: TextStyle(color: Colors.white),
+                                child: Text(
+                                  context.l10n.t('save'),
+                                  style: const TextStyle(color: Colors.white),
                                 ),
                               ),
                             ],
@@ -439,7 +447,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                                 Text(
                                   _nameController.text.isNotEmpty
                                       ? _nameController.text
-                                      : 'Tap to enter medication name',
+                                      : context.l10n.t('tapMedicationName'),
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
@@ -466,7 +474,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
             // 2. Dosage Card
             _buildCardSection(
-              title: 'Dosage',
+              title: context.l10n.t('dosage'),
               icon: Icons.medication_liquid,
               child: Column(
                 children: [
@@ -479,7 +487,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                             text: _dosageController.text,
                           );
                           return AlertDialog(
-                            title: const Text('Dosage Strength'),
+                            title: Text(context.l10n.t('dosageStrength')),
                             content: TextField(
                               controller: controller,
                               decoration: InputDecoration(
@@ -493,7 +501,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                               TextButton(
                                 onPressed: () => Navigator.pop(context),
                                 child: Text(
-                                  'Cancel',
+                                  context.l10n.t('cancel'),
                                   style: TextStyle(color: AppColors.textGrey),
                                 ),
                               ),
@@ -507,9 +515,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primaryTeal,
                                 ),
-                                child: const Text(
-                                  'Save',
-                                  style: TextStyle(color: Colors.white),
+                                child: Text(
+                                  context.l10n.t('save'),
+                                  style: const TextStyle(color: Colors.white),
                                 ),
                               ),
                             ],
@@ -533,7 +541,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Strength',
+                                context.l10n.t('strength'),
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: AppColors.textGrey,
@@ -544,7 +552,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                               Text(
                                 _dosageController.text.isNotEmpty
                                     ? _dosageController.text
-                                    : 'Not set',
+                                    : context.l10n.t('notSet'),
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -675,7 +683,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
             // 3. Schedule Card
             _buildCardSection(
-              title: 'Schedule',
+              title: context.l10n.t('schedule'),
               icon: Icons.schedule_rounded,
               child: GestureDetector(
                 onTap: _showScheduleSheet,
@@ -696,7 +704,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _schedule.getDisplayText(),
+                              _schedule.getDisplayText(context),
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -729,7 +737,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
             // 4. Stock Card
             _buildCardSection(
-              title: 'Stock Management',
+              title: context.l10n.t('stockManagement'),
               icon: Icons.inventory_2_outlined,
               child: Column(
                 children: [
@@ -778,7 +786,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                                         _selectedQuantityUnit,
                                         locale: _locale,
                                       )
-                                    : 'Not set',
+                                    : context.l10n.t('notSet'),
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -802,7 +810,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       _showNumberInputDialog(
                         title: _locale == 'ar'
                             ? 'حد التنبيه عند انخفاض الكمية'
-                            : 'Low stock threshold',
+                            : context.l10n.t('lowStockThreshold'),
                         initialValue: _lowStockThreshold,
                         onSave: (val) =>
                             setState(() => _lowStockThreshold = val),
@@ -826,7 +834,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                               Text(
                                 _locale == 'ar'
                                     ? 'حد التنبيه عند انخفاض الكمية'
-                                    : 'Low stock threshold',
+                                    : context.l10n.t('lowStockThreshold'),
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: AppColors.textGrey,
@@ -839,7 +847,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                                     ? (_locale == 'ar'
                                           ? 'نبه عند ${formatQuantityWithUnit(_lowStockThreshold, _selectedQuantityUnit, locale: _locale)}'
                                           : 'Remind at ${formatQuantityWithUnit(_lowStockThreshold, _selectedQuantityUnit, locale: _locale)}')
-                                    : 'Not set',
+                                    : context.l10n.t('notSet'),
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -898,7 +906,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Expiry Date',
+                                context.l10n.t('expiryDate'),
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: AppColors.textGrey,
@@ -911,7 +919,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                                     ? DateFormat(
                                         'MMM d, yyyy',
                                       ).format(_expiryDate!)
-                                    : 'Not set',
+                                    : context.l10n.t('notSet'),
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -936,7 +944,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
             // 5. Notifications Card
             _buildCardSection(
-              title: 'Notifications',
+              title: context.l10n.t('notifications'),
               icon: Icons.notifications_active_rounded,
               child: Container(
                 padding: const EdgeInsets.all(14),
@@ -951,7 +959,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      _notificationActive ? 'Enabled' : 'Disabled',
+                      _notificationActive
+                          ? context.l10n.t('enabled')
+                          : context.l10n.t('disabled'),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -972,7 +982,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
             // 6. Notes Card
             _buildCardSection(
-              title: 'Notes',
+              title: context.l10n.t('notes'),
               icon: Icons.note_alt_outlined,
               child: GestureDetector(
                 onTap: () {
@@ -983,13 +993,13 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                         text: _noteController.text,
                       );
                       return AlertDialog(
-                        title: const Text('Notes'),
+                        title: Text(context.l10n.t('notes')),
                         content: TextField(
                           controller: controller,
                           minLines: 3,
                           maxLines: 5,
                           decoration: InputDecoration(
-                            hintText: 'Optional notes about this medication',
+                            hintText: context.l10n.t('optionalMedicationNotes'),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -999,7 +1009,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                           TextButton(
                             onPressed: () => Navigator.pop(context),
                             child: Text(
-                              'Cancel',
+                              context.l10n.t('cancel'),
                               style: TextStyle(color: AppColors.textGrey),
                             ),
                           ),
@@ -1013,9 +1023,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primaryTeal,
                             ),
-                            child: const Text(
-                              'Save',
-                              style: TextStyle(color: Colors.white),
+                            child: Text(
+                              context.l10n.t('save'),
+                              style: const TextStyle(color: Colors.white),
                             ),
                           ),
                         ],
@@ -1042,7 +1052,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                             Text(
                               _noteController.text.isNotEmpty
                                   ? _noteController.text
-                                  : 'Tap to add notes',
+                                  : context.l10n.t('tapAddNotes'),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -1090,9 +1100,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                           strokeWidth: 2,
                         ),
                       )
-                    : const Text(
-                        'Save Medicine',
-                        style: TextStyle(
+                    : Text(
+                        context.l10n.t('saveMedicine'),
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -1152,7 +1162,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             controller: controller,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              hintText: 'Enter a number',
+              hintText: context.l10n.t('enterNumber'),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -1162,7 +1172,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(
-                'Cancel',
+                context.l10n.t('cancel'),
                 style: TextStyle(color: AppColors.textGrey),
               ),
             ),
@@ -1175,7 +1185,10 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryTeal,
               ),
-              child: const Text('Save', style: TextStyle(color: Colors.white)),
+              child: Text(
+                context.l10n.t('save'),
+                style: const TextStyle(color: Colors.white),
+              ),
             ),
           ],
         );
@@ -1202,7 +1215,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
     if (token == null || token.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please sign in to save medication')),
+        SnackBar(content: Text(context.l10n.t('pleaseSignInSaveMedication'))),
       );
       return;
     }
@@ -1228,7 +1241,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         deadlineDate: DateTime.now(),
         expiryDate:
             _expiryDate ?? DateTime.now().add(const Duration(days: 365)),
-        frequency: _schedule.getDisplayText(),
+        frequency: _schedule.getDisplayText(context),
         time: firstDoseTime,
         doseAmount: formatQuantityWithUnit(
           _pillsPerDose,
@@ -1266,14 +1279,18 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
           await medProvider.fetchMedicinesFromApi(token);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Medicine updated successfully')),
+              SnackBar(content: Text(context.l10n.t('medicineUpdated'))),
             );
             Navigator.pop(context);
           }
         } else {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(medProvider.error ?? 'Failed to update')),
+              SnackBar(
+                content: Text(
+                  medProvider.error ?? context.l10n.t('failedToUpdate'),
+                ),
+              ),
             );
           }
         }
@@ -1291,23 +1308,29 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Medicine added successfully')),
+              SnackBar(content: Text(context.l10n.t('medicineAdded'))),
             );
             Navigator.pop(context);
           }
         } else {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(medProvider.error ?? 'Failed to add')),
+              SnackBar(
+                content: Text(
+                  medProvider.error ?? context.l10n.t('failedToAdd'),
+                ),
+              ),
             );
           }
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(context.l10n.t('errorWithMessage', {'message': e})),
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -1372,9 +1395,12 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Schedule',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Text(
+                  context.l10n.t('schedule'),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
@@ -1383,9 +1409,9 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
               ],
             ),
             const SizedBox(height: 20),
-            const Text(
-              'Schedule Type',
-              style: TextStyle(
+            Text(
+              context.l10n.t('scheduleType'),
+              style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textGrey,
@@ -1578,55 +1604,49 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
                 ),
               ),
               const SizedBox(height: 12),
-              ..._doseTimes
-                  .asMap()
-                  .entries
-                  .map(
-                    (entry) => Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppColors.textGrey.withValues(alpha: 0.2),
+              ..._doseTimes.asMap().entries.map(
+                (entry) => Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.textGrey.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        entry.value.format(context),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            entry.value.format(context),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.delete,
-                              color: Colors.redAccent,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _doseTimes.removeAt(entry.key);
-                              });
-                            },
-                          ),
-                        ],
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.redAccent),
+                        onPressed: () {
+                          setState(() {
+                            _doseTimes.removeAt(entry.key);
+                          });
+                        },
                       ),
-                    ),
-                  )
-                  .toList(),
+                    ],
+                  ),
+                ),
+              ),
               TextButton.icon(
                 onPressed: () async {
                   final TimeOfDay? picked = await showTimePicker(
                     context: context,
                     initialTime: const TimeOfDay(hour: 8, minute: 0),
                   );
+                  if (!context.mounted) return;
                   if (picked != null) {
                     final exists = _doseTimes.any(
                       (t) => t.hour == picked.hour && t.minute == picked.minute,
@@ -1642,8 +1662,8 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
                       });
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('This time is already added.'),
+                        SnackBar(
+                          content: Text(context.l10n.t('timeAlreadyAdded')),
                         ),
                       );
                     }
@@ -1653,7 +1673,7 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
                   Icons.add_circle,
                   color: AppColors.primaryTeal,
                 ),
-                label: const Text('Add dose time'),
+                label: Text(context.l10n.t('addDoseTime')),
               ),
               if (_doseTimes.isEmpty)
                 const Padding(
@@ -1776,7 +1796,7 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
                     Text(
                       _endDate != null
                           ? DateFormat('MMM d, yyyy').format(_endDate!)
-                          : 'Not set',
+                          : context.l10n.t('notSet'),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -1827,9 +1847,9 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: const Text(
-                  'Save Schedule',
-                  style: TextStyle(
+                child: Text(
+                  context.l10n.t('saveSchedule'),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,

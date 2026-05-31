@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 
 /// Clean and modern bottom sheet for displaying drug interaction warnings.
 ///
@@ -56,9 +57,9 @@ class InteractionBottomSheet extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        '⚠️ Drug Interaction Warning',
-                        style: TextStyle(
+                      Text(
+                        context.l10n.t('drugInteractionWarning'),
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFFE65100),
@@ -66,7 +67,9 @@ class InteractionBottomSheet extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '$medicationName may interact with:',
+                        context.l10n.t('mayInteractWith', {
+                          'name': medicationName,
+                        }),
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.grey[600],
@@ -155,7 +158,7 @@ class InteractionBottomSheet extends StatelessWidget {
                   ),
                 ),
               );
-            }).toList(),
+            }),
 
             const SizedBox(height: 20),
 
@@ -178,7 +181,7 @@ class InteractionBottomSheet extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'This is informational only. Please consult your healthcare provider before making any changes.',
+                      context.l10n.t('interactionInfoOnly'),
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.blue[900],
@@ -205,9 +208,9 @@ class InteractionBottomSheet extends StatelessWidget {
                   ),
                   elevation: 0,
                 ),
-                child: const Text(
-                  'Understood',
-                  style: TextStyle(
+                child: Text(
+                  context.l10n.t('gotIt'),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14,
                     fontWeight: FontWeight.bold,

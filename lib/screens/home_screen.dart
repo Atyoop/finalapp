@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io';
+import 'package:intl/intl.dart' as intl;
 import '../main.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/user_provider.dart';
 import '../providers/medicine_provider.dart';
 import '../providers/alerts_provider.dart';
@@ -121,20 +123,11 @@ class HomeScreenState extends State<HomeScreen> {
         .add(Duration(days: index)),
   );
 
-  String get _monthName => [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ][_selectedDate.month - 1];
+  String _formatDisplayDate(DateTime date, {bool includeYear = false}) {
+    final locale = _currentLanguage == 'ar' ? 'ar' : 'en';
+    final pattern = includeYear ? 'MMMM d, y' : 'MMMM d';
+    return intl.DateFormat(pattern, locale).format(date);
+  }
 
   @override
   void initState() {
@@ -187,7 +180,7 @@ class HomeScreenState extends State<HomeScreen> {
       final token = context.read<UserProvider>().token;
       if (token == null || token.isEmpty) {
         setState(() {
-          _errorMessage = 'Please sign in to view your schedules';
+          _errorMessage = context.l10n.t('pleaseSignInSchedules');
           _isLoading = false;
         });
         return;
@@ -226,18 +219,20 @@ class HomeScreenState extends State<HomeScreen> {
         });
       } else if (res.statusCode == 401) {
         setState(() {
-          _errorMessage = 'Authentication failed. Please sign in again.';
+          _errorMessage = context.l10n.t('authenticationFailedSignIn');
           _isLoading = false;
         });
       } else {
         setState(() {
-          _errorMessage = 'Failed to load schedules (${res.statusCode}).';
+          _errorMessage = context.l10n.t('failedToLoadSchedules', {
+            'code': res.statusCode,
+          });
           _isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Network error. Please check your connection.';
+        _errorMessage = context.l10n.t('networkErrorConnection');
         _isLoading = false;
       });
     }
@@ -274,10 +269,10 @@ class HomeScreenState extends State<HomeScreen> {
             SnackBar(
               content: Text(
                 remaining != null
-                    ? '${locale == 'ar' ? 'تم تسجيل الجرعة.' : 'Dose taken.'} ${remainingQuantityLabel(remaining, unit, locale: locale)}'
+                    ? '${context.l10n.t('doseTaken')} ${remainingQuantityLabel(remaining, unit, locale: locale)}'
                     : result.lowStockAlertCreated
-                    ? 'Dose marked as taken · Low stock alert created'
-                    : 'Dose marked as taken',
+                    ? context.l10n.t('doseMarkedTakenLowStock')
+                    : context.l10n.t('doseMarkedTaken'),
               ),
               backgroundColor: Colors.green[700],
             ),
@@ -297,7 +292,9 @@ class HomeScreenState extends State<HomeScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result.error ?? 'Failed to mark dose as taken'),
+              content: Text(
+                result.error ?? context.l10n.t('failedMarkDoseTaken'),
+              ),
               backgroundColor: Colors.red[700],
             ),
           );
@@ -312,8 +309,8 @@ class HomeScreenState extends State<HomeScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Connection error. Please try again.'),
+          SnackBar(
+            content: Text(context.l10n.t('connectionErrorTryAgain')),
             backgroundColor: Colors.red,
           ),
         );
@@ -332,7 +329,7 @@ class HomeScreenState extends State<HomeScreen> {
     if (mounted) {
       messenger.showSnackBar(
         SnackBar(
-          content: Text(result.message ?? 'Reminder snoozed for 1 hour'),
+          content: Text(result.message ?? context.l10n.t('reminderSnoozed')),
           backgroundColor: Colors.orange[700],
         ),
       );
@@ -355,8 +352,8 @@ class HomeScreenState extends State<HomeScreen> {
 
     if (mounted) {
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Dose skipped'),
+        SnackBar(
+          content: Text(context.l10n.t('doseSkipped')),
           backgroundColor: Colors.blueGrey,
         ),
       );
@@ -439,7 +436,9 @@ class HomeScreenState extends State<HomeScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "Hello, ${userProvider.name}",
+                                  context.l10n.t('helloName', {
+                                    'name': userProvider.name,
+                                  }),
                                   style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
@@ -447,7 +446,7 @@ class HomeScreenState extends State<HomeScreen> {
                                   ),
                                 ),
                                 Text(
-                                  "Welcome!",
+                                  context.l10n.t('welcome'),
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: AppColors.textGrey,
@@ -517,8 +516,10 @@ class HomeScreenState extends State<HomeScreen> {
                   // ── Weekly Calendar label ──
                   Text(
                     _isSelectedDateToday
-                        ? 'Today, $_monthName ${_selectedDate.day}'
-                        : '$_monthName ${_selectedDate.day}, ${_selectedDate.year}',
+                        ? context.l10n.t('todayDate', {
+                            'date': _formatDisplayDate(_selectedDate),
+                          })
+                        : _formatDisplayDate(_selectedDate, includeYear: true),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -530,13 +531,17 @@ class HomeScreenState extends State<HomeScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Icon(
-                        Icons.chevron_left,
+                        Directionality.of(context) == TextDirection.rtl
+                            ? Icons.chevron_right
+                            : Icons.chevron_left,
                         color: AppColors.textGrey,
                         size: 20,
                       ),
                       ..._weeklyDates.map((date) => _buildDayItem(date)),
                       Icon(
-                        Icons.chevron_right,
+                        Directionality.of(context) == TextDirection.rtl
+                            ? Icons.chevron_left
+                            : Icons.chevron_right,
                         color: AppColors.textGrey,
                         size: 20,
                       ),
@@ -550,8 +555,10 @@ class HomeScreenState extends State<HomeScreen> {
                     children: [
                       Text(
                         _isSelectedDateToday
-                            ? "Today's Medication"
-                            : '$_monthName ${_selectedDate.day} Medication',
+                            ? context.l10n.t('todaysMedication')
+                            : context.l10n.t('medicationForDate', {
+                                'date': _formatDisplayDate(_selectedDate),
+                              }),
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -585,15 +592,23 @@ class HomeScreenState extends State<HomeScreen> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        _filterChip("ALL", _schedules.length, null),
-                        _filterChip("Taken", _countByStatus('taken'), 'taken'),
                         _filterChip(
-                          "Missed",
+                          context.l10n.t('all'),
+                          _schedules.length,
+                          null,
+                        ),
+                        _filterChip(
+                          context.l10n.t('taken'),
+                          _countByStatus('taken'),
+                          'taken',
+                        ),
+                        _filterChip(
+                          context.l10n.t('missed'),
                           _countByStatus('missed'),
                           'missed',
                         ),
                         _filterChip(
-                          "Pending",
+                          context.l10n.t('pending'),
                           _countByStatus('pending'),
                           'pending',
                         ),
@@ -747,7 +762,7 @@ class HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 24),
           Text(
-            "No Medications Scheduled",
+            context.l10n.t('noMedicationsScheduled'),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 18,
@@ -757,7 +772,7 @@ class HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            "Add a medication to see it here.",
+            context.l10n.t('addMedicationToSeeHere'),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
@@ -781,7 +796,7 @@ class HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            _errorMessage ?? 'Something went wrong',
+            _errorMessage ?? context.l10n.t('somethingWentWrong'),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 15,
@@ -793,7 +808,7 @@ class HomeScreenState extends State<HomeScreen> {
           ElevatedButton.icon(
             onPressed: () => _fetchSchedulesForDate(_selectedDate),
             icon: const Icon(Icons.refresh),
-            label: const Text('Retry'),
+            label: Text(context.l10n.t('retry')),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryTeal,
               foregroundColor: Colors.white,
@@ -1297,8 +1312,8 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Connection error. Please try again.'),
+          SnackBar(
+            content: Text(context.l10n.t('connectionErrorTryAgain')),
             backgroundColor: Colors.red,
           ),
         );
@@ -1326,8 +1341,8 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Connection error. Please try again.'),
+          SnackBar(
+            content: Text(context.l10n.t('connectionErrorTryAgain')),
             backgroundColor: Colors.red,
           ),
         );
@@ -1352,8 +1367,8 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Connection error. Please try again.'),
+          SnackBar(
+            content: Text(context.l10n.t('connectionErrorTryAgain')),
             backgroundColor: Colors.red,
           ),
         );
@@ -1807,9 +1822,9 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
                                 size: 18,
                                 color: Colors.orange,
                               ),
-                        label: const Text(
-                          'Snooze',
-                          style: TextStyle(
+                        label: Text(
+                          context.l10n.t('snooze'),
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: Colors.orange,
@@ -1845,9 +1860,9 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
                                 size: 18,
                                 color: Colors.redAccent,
                               ),
-                        label: const Text(
-                          'Skip',
-                          style: TextStyle(
+                        label: Text(
+                          context.l10n.t('skip'),
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: Colors.redAccent,

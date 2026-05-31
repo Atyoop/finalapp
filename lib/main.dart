@@ -14,6 +14,7 @@ import 'providers/support_provider.dart';
 import 'providers/premium_provider.dart';
 import 'services/language_service.dart';
 import 'providers/language_provider.dart';
+import 'l10n/app_localizations.dart';
 
 void main() async {
   // Initialize Flutter binding
@@ -89,11 +90,12 @@ class DrugSafeApp extends StatelessWidget {
     return Consumer<LanguageProvider>(
       builder: (context, languageProvider, child) {
         return MaterialApp(
-          title: 'DrugSafe',
+          onGenerateTitle: (context) => context.l10n.t('appName'),
           debugShowCheckedModeBanner: false,
           locale: Locale(languageProvider.currentLanguage),
-          supportedLocales: const [Locale('en'), Locale('ar')],
+          supportedLocales: AppLocalizations.supportedLocales,
           localizationsDelegates: const [
+            AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
@@ -182,15 +184,9 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  final List<Map<String, String>> _data = [
-    {
-      "title": "Stay Safe with Drug Safe",
-      "desc": "Check for harmful drug interactions instantly.",
-    },
-    {
-      "title": "Here for You, Always",
-      "desc": "Identify medications and never miss a dose again.",
-    },
+  final List<Map<String, String>> _data = const [
+    {"title": "staySafeTitle", "desc": "staySafeDesc"},
+    {"title": "alwaysHereTitle", "desc": "alwaysHereDesc"},
   ];
 
   @override
@@ -234,14 +230,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
             const SizedBox(height: 30),
             Text(
-              _data[_currentPage]["title"]!,
+              context.l10n.t(_data[_currentPage]["title"]!),
               style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 10),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Text(
-                _data[_currentPage]["desc"]!,
+                context.l10n.t(_data[_currentPage]["desc"]!),
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 14, color: AppColors.textGrey),
               ),
@@ -272,7 +269,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     backgroundColor: AppColors.primaryTeal,
                   ),
                   child: Text(
-                    _currentPage == _data.length - 1 ? "Get started" : "Next",
+                    _currentPage == _data.length - 1
+                        ? context.l10n.t('getStartedLower')
+                        : context.l10n.t('next'),
                     style: const TextStyle(color: Colors.white),
                   ),
                 ),
@@ -305,14 +304,16 @@ class WelcomeScreen extends StatelessWidget {
                   child: PlaceholderImageWidget(color: Colors.blueAccent),
                 ),
               ),
-              const Text(
-                "Welcome to Drug Save!",
+              Text(
+                context.l10n.t('welcomeTitle'),
                 style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
-                "Your Smart Health Companion",
+                context.l10n.t('welcomeSubtitle'),
                 style: TextStyle(fontSize: 16, color: AppColors.textGrey),
+                textAlign: TextAlign.center,
               ),
               const Spacer(),
               SizedBox(
@@ -328,8 +329,8 @@ class WelcomeScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryTeal,
                   ),
-                  child: const Text(
-                    "Create an account",
+                  child: Text(
+                    context.l10n.t('createAccount'),
                     style: TextStyle(color: Colors.white),
                   ),
                 ),
@@ -349,7 +350,7 @@ class WelcomeScreen extends StatelessWidget {
                     side: BorderSide(color: AppColors.primaryTeal),
                   ),
                   child: Text(
-                    "Log in",
+                    context.l10n.t('login'),
                     style: TextStyle(color: AppColors.primaryTeal),
                   ),
                 ),

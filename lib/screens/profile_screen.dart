@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../main.dart';
 import 'dart:io';
 import 'package:provider/provider.dart';
@@ -48,7 +49,7 @@ class ProfileScreen extends StatelessWidget {
                 children: [
                   const SizedBox(width: 48),
                   Text(
-                    "Account Center",
+                    context.l10n.t('accountCenter'),
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -96,7 +97,7 @@ class ProfileScreen extends StatelessWidget {
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(Icons.add, color: AppColors.textDark),
                       title: Text(
-                        "Add another account",
+                        context.l10n.t('addAnotherAccount'),
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
@@ -130,9 +131,9 @@ class ProfileScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    child: const Text(
-                      "Done",
-                      style: TextStyle(
+                    child: Text(
+                      context.l10n.t('done'),
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -157,7 +158,7 @@ class ProfileScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          "Setting",
+          context.l10n.t('setting'),
           style: TextStyle(
             color: AppColors.textDark,
             fontWeight: FontWeight.bold,
@@ -212,7 +213,9 @@ class ProfileScreen extends StatelessWidget {
                     Consumer<UserProvider>(
                       builder: (context, userProvider, child) {
                         return Text(
-                          "Hello, ${userProvider.name}",
+                          context.l10n.t('helloName', {
+                            'name': userProvider.name,
+                          }),
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -229,7 +232,7 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ),
                       child: Text(
-                        "Edit Profile",
+                        context.l10n.t('editProfile'),
                         style: TextStyle(
                           fontSize: 14,
                           color: AppColors.primaryTeal,
@@ -243,23 +246,23 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 32),
 
-            _buildSectionHeader("Profile"),
+            _buildSectionHeader(context.l10n.t('profile')),
             _buildSettingsCard([
               _buildTile(
                 icon: Icons.person_outline,
-                title: "Accounts Center",
-                subtitle: "Manage your Account Details",
+                title: context.l10n.t('accountCenter'),
+                subtitle: context.l10n.t('manageAccountDetails'),
                 onTap: () => _showAccountCenterBottomSheet(context),
               ),
             ]),
 
             const SizedBox(height: 24),
-            _buildSectionHeader("Reminders & Alarm"),
+            _buildSectionHeader(context.l10n.t('remindersAlarm')),
             _buildSettingsCard([
               _buildTile(
                 icon: Icons.notifications_none_rounded,
-                title: "Notification Settings",
-                subtitle: "Enable or disable various app notifications.",
+                title: context.l10n.t('notificationSettings'),
+                subtitle: context.l10n.t('enableDisableNotifications'),
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -270,8 +273,8 @@ class ProfileScreen extends StatelessWidget {
               const Divider(height: 1, indent: 56, color: Color(0xFFEEEEEE)),
               _buildTile(
                 icon: Icons.volume_up_outlined,
-                title: "Reminder Preferences",
-                subtitle: "Choose the alert sound for medication reminders.",
+                title: context.l10n.t('reminderPreferences'),
+                subtitle: context.l10n.t('chooseReminderSound'),
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -282,17 +285,19 @@ class ProfileScreen extends StatelessWidget {
             ]),
 
             const SizedBox(height: 24),
-            _buildSectionHeader("General"),
+            _buildSectionHeader(context.l10n.t('general')),
             _buildSettingsCard([
               Consumer<LanguageProvider>(
                 builder: (context, languageProvider, child) {
                   final selectedLanguage = languageProvider.isArabic
-                      ? 'Arabic'
-                      : 'English';
+                      ? context.l10n.t('arabic')
+                      : context.l10n.t('english');
                   return _buildTile(
                     icon: Icons.language_rounded,
-                    title: "Language",
-                    subtitle: "Selected: $selectedLanguage",
+                    title: context.l10n.t('language'),
+                    subtitle: context.l10n.t('selectedLanguage', {
+                      'language': selectedLanguage,
+                    }),
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -305,8 +310,8 @@ class ProfileScreen extends StatelessWidget {
               const Divider(height: 1, indent: 56, color: Color(0xFFEEEEEE)),
               _buildTile(
                 icon: Icons.remove_red_eye_outlined,
-                title: "Appearance",
-                subtitle: "Select the preferred zoom for the app.",
+                title: context.l10n.t('appearance'),
+                subtitle: context.l10n.t('selectPreferredZoom'),
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const AppearanceScreen()),
@@ -315,7 +320,7 @@ class ProfileScreen extends StatelessWidget {
             ]),
 
             const SizedBox(height: 24),
-            _buildSectionHeader("Services"),
+            _buildSectionHeader(context.l10n.t('services')),
             _buildSettingsCard([
               Consumer<PremiumProvider>(
                 builder: (context, premium, child) {
@@ -324,10 +329,12 @@ class ProfileScreen extends StatelessWidget {
                     icon: isPremium
                         ? Icons.workspace_premium
                         : Icons.star_outline_rounded,
-                    title: isPremium ? "Premium Membership" : "Go Premium",
+                    title: isPremium
+                        ? context.l10n.t('premiumMembership')
+                        : context.l10n.t('goPremium'),
                     subtitle: isPremium
-                        ? "Manage your active premium subscription."
-                        : "Unlock premium features and remove ads.",
+                        ? context.l10n.t('managePremiumSubscription')
+                        : context.l10n.t('unlockPremium'),
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const PremiumScreen()),
@@ -338,20 +345,18 @@ class ProfileScreen extends StatelessWidget {
               const Divider(height: 1, indent: 56, color: Color(0xFFEEEEEE)),
               _buildTile(
                 icon: Icons.local_pharmacy_outlined,
-                title: "Find Pharmacy",
-                subtitle: "Find nearby pharmacies on the map.",
+                title: context.l10n.t('findPharmacy'),
+                subtitle: context.l10n.t('findNearbyPharmacies'),
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const FindPharmacyScreen(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const FindPharmacyScreen()),
                 ),
               ),
               const Divider(height: 1, indent: 56, color: Color(0xFFEEEEEE)),
               _buildTile(
                 icon: Icons.support_agent_outlined,
-                title: "IT Support",
-                subtitle: "Contact our support team for help.",
+                title: context.l10n.t('itSupport'),
+                subtitle: context.l10n.t('contactSupport'),
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const SupportScreen()),
@@ -360,33 +365,37 @@ class ProfileScreen extends StatelessWidget {
             ]),
 
             const SizedBox(height: 24),
-            _buildSectionHeader("Debug & Test"),
+            _buildSectionHeader(context.l10n.t('debugTest')),
             _buildSettingsCard([
               _buildTile(
                 icon: Icons.notifications_active_outlined,
-                title: "Test Instant Notification",
-                subtitle: "Send a test notification immediately.",
+                title: context.l10n.t('testInstantNotification'),
+                subtitle: context.l10n.t('sendTestNotification'),
                 onTap: () {
                   context
                       .read<NotificationsProvider>()
                       .testInstantNotification();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Test notification sent!')),
+                    SnackBar(
+                      content: Text(context.l10n.t('testNotificationSent')),
+                    ),
                   );
                 },
               ),
               const Divider(height: 1, indent: 56, color: Color(0xFFEEEEEE)),
               _buildTile(
                 icon: Icons.schedule_outlined,
-                title: "Test Delayed Notification",
-                subtitle: "Send a test notification after 10 seconds.",
+                title: context.l10n.t('testDelayedNotification'),
+                subtitle: context.l10n.t('sendDelayedNotification'),
                 onTap: () {
                   context
                       .read<NotificationsProvider>()
                       .testNotificationAfterDelay();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Delayed notification scheduled!'),
+                    SnackBar(
+                      content: Text(
+                        context.l10n.t('delayedNotificationScheduled'),
+                      ),
                     ),
                   );
                 },
@@ -394,8 +403,8 @@ class ProfileScreen extends StatelessWidget {
               const Divider(height: 1, indent: 56, color: Color(0xFFEEEEEE)),
               _buildTile(
                 icon: Icons.sync_outlined,
-                title: "Refresh Medication Notifications",
-                subtitle: "Fetch and reschedule all notifications.",
+                title: context.l10n.t('refreshMedicationNotifications'),
+                subtitle: context.l10n.t('fetchRescheduleNotifications'),
                 onTap: () async {
                   final userProvider = context.read<UserProvider>();
                   if (userProvider.token != null) {
@@ -408,8 +417,10 @@ class ProfileScreen extends StatelessWidget {
                         SnackBar(
                           content: Text(
                             success
-                                ? 'Notifications refreshed!'
-                                : 'Error refreshing notifications',
+                                ? context.l10n.t('notificationsRefreshed')
+                                : context.l10n.t(
+                                    'errorRefreshingNotifications',
+                                  ),
                           ),
                         ),
                       );
@@ -420,16 +431,18 @@ class ProfileScreen extends StatelessWidget {
               const Divider(height: 1, indent: 56, color: Color(0xFFEEEEEE)),
               _buildTile(
                 icon: Icons.close_outlined,
-                title: "Cancel All Notifications",
-                subtitle: "Clear all scheduled notifications.",
+                title: context.l10n.t('cancelAllNotifications'),
+                subtitle: context.l10n.t('clearScheduledNotifications'),
                 isDestructive: true,
                 onTap: () {
                   context
                       .read<NotificationsProvider>()
                       .cancelAllNotifications();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('All notifications cancelled!'),
+                    SnackBar(
+                      content: Text(
+                        context.l10n.t('allNotificationsCancelled'),
+                      ),
                     ),
                   );
                 },
@@ -437,12 +450,12 @@ class ProfileScreen extends StatelessWidget {
             ]),
 
             const SizedBox(height: 24),
-            _buildSectionHeader("Security"),
+            _buildSectionHeader(context.l10n.t('security')),
             _buildSettingsCard([
               _buildTile(
                 icon: Icons.lock_outline_rounded,
-                title: "Privacy & Security",
-                subtitle: "Manage password and account privacy.",
+                title: context.l10n.t('privacySecurity'),
+                subtitle: context.l10n.t('managePasswordPrivacy'),
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -453,8 +466,8 @@ class ProfileScreen extends StatelessWidget {
               const Divider(height: 1, indent: 56, color: Color(0xFFEEEEEE)),
               _buildTile(
                 icon: Icons.logout_rounded,
-                title: "Log Out",
-                subtitle: "Sign out of your account.",
+                title: context.l10n.t('logout'),
+                subtitle: context.l10n.t('signOutAccount'),
                 isDestructive: true,
                 onTap: () => _showLogoutDialog(context),
               ),
@@ -471,15 +484,18 @@ class ProfileScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Log out',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Text(
+          context.l10n.t('logout'),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        content: const Text('Are you sure you want to log out?'),
+        content: Text(context.l10n.t('logoutConfirm')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: TextStyle(color: AppColors.textGrey)),
+            child: Text(
+              context.l10n.t('cancel'),
+              style: TextStyle(color: AppColors.textGrey),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -492,7 +508,7 @@ class ProfileScreen extends StatelessWidget {
               );
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Logged out.'),
+                  content: Text(context.l10n.t('loggedOut')),
                   backgroundColor: AppColors.primaryTeal,
                 ),
               );
@@ -503,7 +519,10 @@ class ProfileScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text('Log out', style: TextStyle(color: Colors.white)),
+            child: Text(
+              context.l10n.t('logout'),
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../main.dart';
 import '../providers/saved_medicines_provider.dart';
 
@@ -224,9 +225,9 @@ class DrugDetailScreen extends StatelessWidget {
                     Icons.compare_arrows_rounded,
                     color: Colors.white,
                   ),
-                  label: const Text(
-                    "Drug Interaction Checker",
-                    style: TextStyle(
+                  label: Text(
+                    context.l10n.t('drugInteractionChecker'),
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 15,
                       fontWeight: FontWeight.w600,

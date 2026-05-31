@@ -212,7 +212,9 @@ class NotificationsProvider extends ChangeNotifier {
 
   /// Cancel a specific medicine notification by ID
   Future<void> cancelMedicineNotification(String medicineId) async {
-    final notifId = _notificationService.getNotificationIdForMedicine(medicineId);
+    final notifId = _notificationService.getNotificationIdForMedicine(
+      medicineId,
+    );
     await _notificationService.cancelNotification(notifId);
   }
 
@@ -228,7 +230,9 @@ class NotificationsProvider extends ChangeNotifier {
 
   /// Delete a local reminder
   Future<bool> deleteLocalReminder(String medicineId) async {
-    final cancelled = _notificationService.getNotificationIdForMedicine(medicineId);
+    final cancelled = _notificationService.getNotificationIdForMedicine(
+      medicineId,
+    );
     await _notificationService.cancelNotification(cancelled);
     return await ReminderStorageService.deleteReminder(medicineId);
   }
@@ -237,7 +241,9 @@ class NotificationsProvider extends ChangeNotifier {
   Future<bool> toggleLocalReminder(String medicineId, bool isActive) async {
     if (isActive) {
       final reminders = await ReminderStorageService.getReminders();
-      final reminder = reminders.where((r) => r.medicineId == medicineId).firstOrNull;
+      final reminder = reminders
+          .where((r) => r.medicineId == medicineId)
+          .firstOrNull;
       if (reminder != null) {
         await _notificationService.scheduleRepeatingReminder(
           medicineId: reminder.medicineId,
@@ -249,7 +255,9 @@ class NotificationsProvider extends ChangeNotifier {
         );
       }
     } else {
-      final notifId = _notificationService.getNotificationIdForMedicine(medicineId);
+      final notifId = _notificationService.getNotificationIdForMedicine(
+        medicineId,
+      );
       await _notificationService.cancelNotification(notifId);
     }
     return await ReminderStorageService.toggleReminder(medicineId, isActive);

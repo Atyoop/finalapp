@@ -1,6 +1,7 @@
 import 'package:final88/screens/medicine_scan_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../main.dart';
 import '../providers/language_provider.dart';
 import '../services/medications_service.dart';
@@ -114,7 +115,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
       });
     } catch (e) {
       setState(() {
-        _loadError = 'Connection error. Check your internet.';
+        _loadError = 'connectionErrorInternet';
         _isLoading = false;
       });
     }
@@ -196,7 +197,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
         elevation: 0,
         iconTheme: IconThemeData(color: AppColors.textDark),
         title: Text(
-          'Add Medicine',
+          context.l10n.t('addMedicine'),
           style: TextStyle(
             color: AppColors.textDark,
             fontWeight: FontWeight.bold,
@@ -214,7 +215,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Search for your medication",
+                  context.l10n.t('searchMedication'),
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -242,7 +243,9 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                           controller: _searchController,
                           onChanged: (v) => setState(() => _query = v),
                           decoration: InputDecoration(
-                            hintText: "Type medication name or ingredient...",
+                            hintText: context.l10n.t(
+                              'typeMedicationOrIngredient',
+                            ),
                             hintStyle: TextStyle(
                               color: AppColors.textGrey.withValues(alpha: 0.6),
                               fontSize: 14,
@@ -299,7 +302,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                         CircularProgressIndicator(color: AppColors.primaryTeal),
                         const SizedBox(height: 16),
                         Text(
-                          'Loading medications...',
+                          context.l10n.t('loadingMedications'),
                           style: TextStyle(color: AppColors.textGrey),
                         ),
                       ],
@@ -317,7 +320,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          _loadError!,
+                          context.l10n.t(_loadError!),
                           textAlign: TextAlign.center,
                           style: TextStyle(color: AppColors.textGrey),
                         ),
@@ -325,7 +328,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                         ElevatedButton.icon(
                           onPressed: _fetchMedications,
                           icon: const Icon(Icons.refresh),
-                          label: const Text('Retry'),
+                          label: Text(context.l10n.t('retry')),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primaryTeal,
                             foregroundColor: Colors.white,
@@ -349,7 +352,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Search for a medication',
+                          context.l10n.t('searchForMedication'),
                           style: TextStyle(
                             color: AppColors.textDark,
                             fontSize: 16,
@@ -358,7 +361,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Start typing to search',
+                          context.l10n.t('startTypingToSearch'),
                           style: TextStyle(
                             color: AppColors.textGrey.withValues(alpha: 0.6),
                             fontSize: 14,
@@ -379,7 +382,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'No results for "$_query"',
+                          context.l10n.t('noResultsFor', {'query': _query}),
                           style: TextStyle(color: AppColors.textGrey),
                         ),
                       ],

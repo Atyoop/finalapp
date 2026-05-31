@@ -111,10 +111,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      icon: Icon(
-                        Icons.chevron_left,
-                        color: AppColors.textDark,
-                      ),
+                      icon: Icon(Icons.chevron_left, color: AppColors.textDark),
                       onPressed: () {
                         setState(() {
                           _selectedDate = DateTime(

@@ -16,13 +16,7 @@ class LocationResult {
   });
 }
 
-enum LocationStatus {
-  success,
-  denied,
-  deniedForever,
-  gpsDisabled,
-  error,
-}
+enum LocationStatus { success, denied, deniedForever, gpsDisabled, error }
 
 class LocationService {
   static Future<LocationResult> getCurrentLocation() async {
@@ -55,7 +49,8 @@ class LocationService {
           latitude: 0,
           longitude: 0,
           status: LocationStatus.deniedForever,
-          message: 'Location permission permanently denied. Please enable from Settings.',
+          message:
+              'Location permission permanently denied. Please enable from Settings.',
         );
       }
 
