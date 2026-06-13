@@ -40,7 +40,14 @@ class AlertsProvider extends ChangeNotifier {
     _safeNotifyListeners();
 
     try {
-      _alerts = await AlertsService.fetchAllAlerts(token);
+      final fetched = await AlertsService.fetchAllAlerts(token);
+      fetched.sort((a, b) {
+        if (a.createdAt == null && b.createdAt == null) return 0;
+        if (a.createdAt == null) return 1;
+        if (b.createdAt == null) return -1;
+        return b.createdAt!.compareTo(a.createdAt!);
+      });
+      _alerts = fetched;
       _error = null;
       return true;
     } catch (e) {

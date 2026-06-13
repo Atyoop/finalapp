@@ -49,6 +49,7 @@ class Medicine {
   final int? periodValue;
   final int? intervalHours;
   final bool notificationActive;
+  final int? advanceReminderMinutes;
   final String? scheduleType;
   final List<String>? doseTimes;
   final int? pillsPerDose;
@@ -97,6 +98,7 @@ class Medicine {
     this.periodValue,
     this.intervalHours,
     this.notificationActive = true,
+    this.advanceReminderMinutes,
     this.scheduleType,
     this.doseTimes,
     this.pillsPerDose,
@@ -147,6 +149,7 @@ class Medicine {
     int? periodValue,
     int? intervalHours,
     bool? notificationActive,
+    int? advanceReminderMinutes,
     String? scheduleType,
     List<String>? doseTimes,
     int? pillsPerDose,
@@ -195,6 +198,8 @@ class Medicine {
       periodValue: periodValue ?? this.periodValue,
       intervalHours: intervalHours ?? this.intervalHours,
       notificationActive: notificationActive ?? this.notificationActive,
+      advanceReminderMinutes:
+          advanceReminderMinutes ?? this.advanceReminderMinutes,
       scheduleType: scheduleType ?? this.scheduleType,
       doseTimes: doseTimes ?? this.doseTimes,
       pillsPerDose: pillsPerDose ?? this.pillsPerDose,
@@ -268,6 +273,7 @@ class Medicine {
       'periodValue': periodValue,
       'intervalHours': intervalHours,
       'notificationActive': notificationActive,
+      'advanceReminderMinutes': advanceReminderMinutes,
       'scheduleType': scheduleType,
       'doseTimes': doseTimesJson,
       'pillsPerDose': pillsPerDose ?? effectiveDoseQuantity,
@@ -426,6 +432,9 @@ class Medicine {
       periodValue: parseInt(json['periodValue']),
       intervalHours: parseInt(json['intervalHours']),
       notificationActive: json['notificationActive'] ?? true,
+      advanceReminderMinutes: parseInt(
+        readAny(['advanceReminderMinutes', 'AdvanceReminderMinutes']),
+      ),
       scheduleType: json['scheduleType'],
       doseTimes: parsedDoseTimes.isNotEmpty ? parsedDoseTimes : null,
       pillsPerDose: parseInt(json['pillsPerDose']) ?? parsedDoseQuantity,

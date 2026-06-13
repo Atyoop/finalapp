@@ -21,6 +21,11 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   Widget _buildIntro() {
     return Scaffold(
       backgroundColor: AppColors.backgroundCream,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: BackButton(color: AppColors.textDark),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),

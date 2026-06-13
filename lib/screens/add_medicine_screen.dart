@@ -241,17 +241,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
       icon: Icons.medication,
     ),
     _ManualDosageFormOption(
-      value: 'Capsule',
-      unit: 'capsule',
-      icon: Icons.medication,
-    ),
-    _ManualDosageFormOption(
       value: 'Syrup',
-      unit: 'ml',
-      icon: Icons.medication_liquid,
-    ),
-    _ManualDosageFormOption(
-      value: 'Suspension',
       unit: 'ml',
       icon: Icons.medication_liquid,
     ),
@@ -261,24 +251,20 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
       icon: Icons.water_drop_outlined,
     ),
     _ManualDosageFormOption(
-      value: 'Eye Drops',
-      unit: 'drops',
-      icon: Icons.remove_red_eye_outlined,
-    ),
-    _ManualDosageFormOption(
       value: 'Injection',
-      unit: 'ampoule',
+      unit: 'unit',
       icon: Icons.vaccines,
     ),
     _ManualDosageFormOption(
-      value: 'Ampoule',
-      unit: 'ampoule',
-      icon: Icons.vaccines,
+      value: 'Ointment',
+      unit: 'g',
+      icon: Icons.spa,
     ),
-    _ManualDosageFormOption(value: 'Cream', unit: 'g', icon: Icons.spa),
-    _ManualDosageFormOption(value: 'Gel', unit: 'g', icon: Icons.spa),
-    _ManualDosageFormOption(value: 'Ointment', unit: 'g', icon: Icons.spa),
-    _ManualDosageFormOption(value: 'Inhaler', unit: 'puffs', icon: Icons.air),
+    _ManualDosageFormOption(
+      value: 'Inhaler',
+      unit: 'puffs',
+      icon: Icons.air,
+    ),
     _ManualDosageFormOption(
       value: 'Other',
       unit: 'unit',
@@ -287,7 +273,26 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
   ];
 
   String _manualDosageFormLabel(String value) {
-    return context.l10n.t('dosageForm${value.replaceAll(' ', '')}');
+    final locale = context.read<LanguageProvider>().currentLanguage;
+    final isAr = locale == 'ar';
+    switch (value) {
+      case 'Tablet':
+        return isAr ? 'حبوب' : 'Tablets / Pills';
+      case 'Syrup':
+        return isAr ? 'شراب' : 'Syrup';
+      case 'Oral Drops':
+        return isAr ? 'قطرات' : 'Drops';
+      case 'Injection':
+        return isAr ? 'حقن' : 'Injection';
+      case 'Ointment':
+        return isAr ? 'مرهم' : 'Ointment / Cream';
+      case 'Inhaler':
+        return isAr ? 'بخاخ' : 'Spray';
+      case 'Other':
+        return isAr ? 'أخرى' : 'Other';
+      default:
+        return context.l10n.t('dosageForm${value.replaceAll(' ', '')}');
+    }
   }
 
   Future<void> _showManualDosageFormSheet(String medicationName) async {

@@ -611,31 +611,6 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (med.isCustomMedication) ...[
-                          Container(
-                            width: double.infinity,
-                            margin: const EdgeInsets.only(bottom: 14),
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: Colors.orange.withValues(alpha: 0.18),
-                              ),
-                            ),
-                            child: Text(
-                              med.customMedicationWarning ??
-                                  context.l10n.t(
-                                    'databaseFeatureUnavailableManual',
-                                  ),
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textDark,
-                                height: 1.45,
-                              ),
-                            ),
-                          ),
-                        ],
                         _buildDetailSection(
                           title: context.l10n.t('medicationDetails'),
                           children: [

@@ -5,6 +5,7 @@ import '../providers/user_provider.dart';
 import '../providers/language_provider.dart';
 import '../main.dart';
 import '../l10n/app_localizations.dart';
+import '../models/alert.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -156,31 +157,103 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Color _getAlertTypeColor(String? type) {
-    final lowerType = type?.toLowerCase() ?? '';
-    if (lowerType.contains('warning')) {
-      return Colors.orange;
-    } else if (lowerType.contains('error') || lowerType.contains('critical')) {
-      return Colors.red;
-    } else if (lowerType.contains('success')) {
-      return Colors.green;
-    } else if (lowerType.contains('info') || lowerType.contains('reminder')) {
-      return AppColors.primaryTeal;
+    if (type == null) return Colors.grey;
+    switch (type) {
+      case 'TakenConfirmation':
+        return Colors.green;
+      case 'SkippedConfirmation':
+        return Colors.blueGrey;
+      case 'SnoozeReminder':
+        return Colors.orange;
+      case 'AdvanceReminder':
+        return Colors.teal;
+      case 'DoseReminder':
+        return AppColors.primaryTeal;
+      case 'MissedDose':
+        return Colors.red;
+      default:
+        final lowerType = type.toLowerCase();
+        if (lowerType.contains('warning')) {
+          return Colors.orange;
+        } else if (lowerType.contains('error') || lowerType.contains('critical')) {
+          return Colors.red;
+        } else if (lowerType.contains('success')) {
+          return Colors.green;
+        } else if (lowerType.contains('info') || lowerType.contains('reminder')) {
+          return AppColors.primaryTeal;
+        }
+        return Colors.grey;
     }
-    return Colors.grey;
   }
 
   IconData _getAlertTypeIcon(String? type) {
-    final lowerType = type?.toLowerCase() ?? '';
-    if (lowerType.contains('warning')) {
-      return Icons.warning_outlined;
-    } else if (lowerType.contains('error') || lowerType.contains('critical')) {
-      return Icons.error_outline;
-    } else if (lowerType.contains('success')) {
-      return Icons.check_circle_outline;
-    } else if (lowerType.contains('info') || lowerType.contains('reminder')) {
-      return Icons.notifications_outlined;
+    if (type == null) return Icons.notifications_none;
+    switch (type) {
+      case 'TakenConfirmation':
+        return Icons.check_circle_outline;
+      case 'SkippedConfirmation':
+        return Icons.remove_circle_outline;
+      case 'SnoozeReminder':
+        return Icons.snooze_rounded;
+      case 'AdvanceReminder':
+        return Icons.access_time;
+      case 'DoseReminder':
+        return Icons.notifications_active_outlined;
+      case 'MissedDose':
+        return Icons.error_outline;
+      default:
+        final lowerType = type.toLowerCase();
+        if (lowerType.contains('warning')) {
+          return Icons.warning_outlined;
+        } else if (lowerType.contains('error') || lowerType.contains('critical')) {
+          return Icons.error_outline;
+        } else if (lowerType.contains('success')) {
+          return Icons.check_circle_outline;
+        } else if (lowerType.contains('info') || lowerType.contains('reminder')) {
+          return Icons.notifications_outlined;
+        }
+        return Icons.notifications_none;
     }
-    return Icons.notifications_none;
+  }
+
+  String _getAlertTitle(Alert alert) {
+    final type = alert.type;
+    if (type != null) {
+      switch (type) {
+        case 'TakenConfirmation':
+          return context.l10n.t('alertTakenConfirmation');
+        case 'SkippedConfirmation':
+          return context.l10n.t('alertSkippedConfirmation');
+        case 'SnoozeReminder':
+          return context.l10n.t('alertSnoozeReminder');
+        case 'AdvanceReminder':
+          return context.l10n.t('alertAdvanceReminder');
+        case 'DoseReminder':
+          return context.l10n.t('alertDoseReminder');
+        case 'MissedDose':
+          return context.l10n.t('alertMissedDose');
+      }
+    }
+    final title = alert.title;
+    if (title != null) {
+      switch (title) {
+        case 'TakenConfirmation':
+          return context.l10n.t('alertTakenConfirmation');
+        case 'SkippedConfirmation':
+          return context.l10n.t('alertSkippedConfirmation');
+        case 'SnoozeReminder':
+          return context.l10n.t('alertSnoozeReminder');
+        case 'AdvanceReminder':
+          return context.l10n.t('alertAdvanceReminder');
+        case 'DoseReminder':
+          return context.l10n.t('alertDoseReminder');
+        case 'MissedDose':
+          return context.l10n.t('alertMissedDose');
+        default:
+          return title;
+      }
+    }
+    return '';
   }
 
   @override
@@ -321,10 +394,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        if (alert.title != null &&
-                                            alert.title!.isNotEmpty)
+                                        if (_getAlertTitle(alert).isNotEmpty)
                                           Text(
-                                            alert.title!,
+                                            _getAlertTitle(alert),
                                             style: const TextStyle(
                                               fontSize: 16,
                                               fontWeight: FontWeight.w600,

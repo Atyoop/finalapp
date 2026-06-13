@@ -192,41 +192,26 @@ String getMedicationTypeLabel(String? dosageForm, {String locale = 'en'}) {
   final isAr = locale == 'ar';
   switch (normalizeDosageForm(dosageForm)) {
     case 'tablet':
-      return isAr ? 'أقراص' : 'Tablet';
     case 'capsule':
-      return isAr ? 'كبسولات' : 'Capsule';
+      return isAr ? 'حبوب' : 'Tablets / Pills';
     case 'syrup':
-      return isAr ? 'شراب' : 'Syrup';
     case 'suspension':
-      return isAr ? 'معلق' : 'Suspension';
     case 'oral_solution':
-      return isAr ? 'محلول فموي' : 'Oral solution';
+      return isAr ? 'شراب' : 'Syrup';
     case 'oral_drops':
-      return isAr ? 'نقط فموية' : 'Oral drops';
     case 'eye_drops':
-      return isAr ? 'قطرة عين' : 'Eye drops';
-    case 'gel':
-      return isAr ? 'جل' : 'Gel';
-    case 'emulgel':
-      return isAr ? 'إيمولجل' : 'Emulgel';
-    case 'cream':
-      return isAr ? 'كريم' : 'Cream';
-    case 'ointment':
-      return isAr ? 'مرهم' : 'Ointment';
+      return isAr ? 'قطرات' : 'Drops';
     case 'ampoule':
-      return isAr ? 'أمبول' : 'Ampoule';
     case 'injection':
-      return isAr ? 'حقنة' : 'Injection';
-    case 'inhaler':
-      return isAr ? 'بخاخ' : 'Inhaler';
     case 'vial':
-      return isAr ? 'فيال' : 'Vial';
-    case 'suppository':
-      return isAr ? 'لبوس' : 'Suppository';
-    case 'sachet':
-      return isAr ? 'أكياس' : 'Sachet';
-    case 'patch':
-      return isAr ? 'لاصقة' : 'Patch';
+      return isAr ? 'حقن' : 'Injection';
+    case 'gel':
+    case 'emulgel':
+    case 'cream':
+    case 'ointment':
+      return isAr ? 'مرهم' : 'Ointment / Cream';
+    case 'inhaler':
+      return isAr ? 'بخاخ' : 'Spray';
     default:
       return isAr ? 'أخرى' : 'Other';
   }

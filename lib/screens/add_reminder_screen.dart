@@ -173,6 +173,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
   // Notifications
   bool _notificationActive = true;
+  int? _advanceReminderMinutes;
+  bool _advanceReminderEnabled = false;
+  late TextEditingController _customAdvanceReminderMinutesController;
 
   // UI state
   bool _isSaving = false;
@@ -256,6 +259,16 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     _pillsPerDose = med?.doseQuantity ?? med?.pillsPerDose ?? 1;
 
     _notificationActive = med?.notificationActive ?? true;
+    _advanceReminderMinutes = med?.advanceReminderMinutes;
+    _advanceReminderEnabled = _advanceReminderMinutes != null;
+
+    final initialMinutes = med?.advanceReminderMinutes;
+    final isPredefined = initialMinutes != null && const [15, 30, 45].contains(initialMinutes);
+    _customAdvanceReminderMinutesController = TextEditingController(
+      text: (initialMinutes != null && !isPredefined)
+          ? initialMinutes.toString()
+          : '',
+    );
   }
 
   @override
@@ -264,6 +277,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     _dosageController.dispose();
     _noteController.dispose();
     _afterOpeningDurationController.dispose();
+    _customAdvanceReminderMinutesController.dispose();
     super.dispose();
   }
 
@@ -332,6 +346,11 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         return context.l10n.t(
           'expiryDurationAfterOpeningMustBeGreaterThanZero',
         );
+      }
+    }
+    if (_notificationActive && _advanceReminderEnabled) {
+      if (_advanceReminderMinutes == null || _advanceReminderMinutes! <= 0) {
+        return context.l10n.t('advanceReminderMinutesInvalid');
       }
     }
     return null;
@@ -1485,6 +1504,61 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 ),
               ),
             ),
+            if (_notificationActive) ...[
+              const SizedBox(height: 20),
+              _buildCardSection(
+                title: context.l10n.t('advanceReminder'),
+                icon: Icons.alarm_rounded,
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.textGrey.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _advanceReminderEnabled
+                                ? context.l10n.t('enabled')
+                                : context.l10n.t('disabled'),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textDark,
+                            ),
+                          ),
+                          Switch(
+                            value: _advanceReminderEnabled,
+                            activeThumbColor: AppColors.primaryTeal,
+                            onChanged: (val) {
+                              setState(() {
+                                _advanceReminderEnabled = val;
+                                if (!val) {
+                                  _advanceReminderMinutes = null;
+                                } else {
+                                  _advanceReminderMinutes = 15;
+                                }
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                      if (_advanceReminderEnabled) ...[
+                        const Divider(height: 24),
+                        _buildAdvanceReminderOptions(),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 20),
 
             // 6. Notes Card
@@ -1648,6 +1722,90 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         ),
         const SizedBox(height: 10),
         child,
+      ],
+    );
+  }
+
+  Widget _buildAdvanceReminderOptions() {
+    final options = [15, 30, 45];
+    final isCustom = _advanceReminderMinutes != null && !options.contains(_advanceReminderMinutes);
+    final lang = context.read<LanguageProvider>().currentLanguage;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 8.0,
+          runSpacing: 4.0,
+          children: [
+            ...options.map((optionVal) {
+              final isSelected = !isCustom && _advanceReminderMinutes == optionVal;
+              final labelText = lang == 'ar' ? '$optionVal د' : '$optionVal min';
+
+              return ChoiceChip(
+                label: Text(labelText),
+                selected: isSelected,
+                selectedColor: AppColors.primaryTeal.withValues(alpha: 0.15),
+                checkmarkColor: AppColors.primaryTeal,
+                labelStyle: TextStyle(
+                  color: isSelected ? AppColors.primaryTeal : AppColors.textDark,
+                  fontSize: 13,
+                ),
+                onSelected: (selected) {
+                  if (selected) {
+                    setState(() {
+                      _advanceReminderMinutes = optionVal;
+                    });
+                  }
+                },
+              );
+            }),
+            ChoiceChip(
+              label: Text(lang == 'ar' ? 'مخصص' : 'Custom'),
+              selected: isCustom,
+              selectedColor: AppColors.primaryTeal.withValues(alpha: 0.15),
+              checkmarkColor: AppColors.primaryTeal,
+              labelStyle: TextStyle(
+                color: isCustom ? AppColors.primaryTeal : AppColors.textDark,
+                fontSize: 13,
+              ),
+              onSelected: (selected) {
+                if (selected) {
+                  setState(() {
+                    final parsedCustom = int.tryParse(_customAdvanceReminderMinutesController.text);
+                    _advanceReminderMinutes = (parsedCustom != null && parsedCustom > 0) ? parsedCustom : 60;
+                    _customAdvanceReminderMinutesController.text = _advanceReminderMinutes.toString();
+                  });
+                }
+              },
+            ),
+          ],
+        ),
+        if (isCustom) ...[
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _customAdvanceReminderMinutesController,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              labelText: context.l10n.t('customMinutes'),
+              hintText: context.l10n.t('customMinutesInputHint'),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            ),
+            onChanged: (val) {
+              final parsed = int.tryParse(val);
+              setState(() {
+                if (parsed != null && parsed > 0) {
+                  _advanceReminderMinutes = parsed;
+                } else {
+                  _advanceReminderMinutes = null;
+                }
+              });
+            },
+          ),
+        ],
       ],
     );
   }
@@ -1832,6 +1990,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         periodValue: scheduleFields['periodValue'] as int?,
         intervalHours: scheduleFields['intervalHours'] as int?,
         notificationActive: _notificationActive,
+        advanceReminderMinutes: (_notificationActive && _advanceReminderEnabled)
+            ? _advanceReminderMinutes
+            : null,
         status: widget.initialMedicine?.status ?? MedicineStatus.scheduled,
         scheduleType: scheduleFields['scheduleType'] as String?,
         doseTimes: scheduleFields['doseTimes'] as List<String>?,
@@ -2197,38 +2358,81 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
               ),
               const SizedBox(height: 12),
               ..._doseTimes.asMap().entries.map(
-                (entry) => Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: AppColors.textGrey.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        entry.value.format(context),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                (entry) => GestureDetector(
+                  onTap: () async {
+                    final TimeOfDay? picked = await showTimePicker(
+                      context: context,
+                      initialTime: entry.value,
+                      builder: (ctx, child) => Theme(
+                        data: Theme.of(ctx).copyWith(
+                          colorScheme: ColorScheme.light(
+                            primary: AppColors.primaryTeal,
+                            onPrimary: Colors.white,
+                            onSurface: AppColors.textDark,
+                          ),
                         ),
+                        child: child!,
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.redAccent),
-                        onPressed: () {
-                          setState(() {
-                            _doseTimes.removeAt(entry.key);
-                          });
-                        },
+                    );
+                    if (!context.mounted) return;
+                    if (picked != null) {
+                      final exists = _doseTimes.asMap().entries.any(
+                        (e) =>
+                            e.key != entry.key &&
+                            e.value.hour == picked.hour &&
+                            e.value.minute == picked.minute,
+                      );
+                      if (!exists) {
+                        setState(() {
+                          _doseTimes[entry.key] = picked;
+                          _doseTimes.sort(
+                            (a, b) => a.hour != b.hour
+                                ? a.hour - b.hour
+                                : a.minute - b.minute,
+                          );
+                        });
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(context.l10n.t('timeAlreadyAdded')),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.textGrey.withValues(alpha: 0.2),
                       ),
-                    ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          entry.value.format(context),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.redAccent),
+                          onPressed: () {
+                            setState(() {
+                              _doseTimes.removeAt(entry.key);
+                            });
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -2237,6 +2441,16 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
                   final TimeOfDay? picked = await showTimePicker(
                     context: context,
                     initialTime: const TimeOfDay(hour: 8, minute: 0),
+                    builder: (ctx, child) => Theme(
+                      data: Theme.of(ctx).copyWith(
+                        colorScheme: ColorScheme.light(
+                          primary: AppColors.primaryTeal,
+                          onPrimary: Colors.white,
+                          onSurface: AppColors.textDark,
+                        ),
+                      ),
+                      child: child!,
+                    ),
                   );
                   if (!context.mounted) return;
                   if (picked != null) {

@@ -481,14 +481,14 @@ class SchedulesService {
     throw _parseError(response, 'take dose');
   }
 
-  /// POST /api/schedules/{scheduleId}/snooze
+  /// POST /api/schedules/{scheduleId}/snooze?minutes={minutes}
   ///
-  /// Snoozes a pending dose by 1 hour. Max snooze count is 2.
+  /// Snoozes a pending dose by specified minutes.
   /// Backend keeps status as Pending, increments snoozeCount, and shifts scheduledAt.
-  static Future<SnoozeResult> snoozeDose(String token, int scheduleId) async {
+  static Future<SnoozeResult> snoozeDose(String token, int scheduleId, int minutes) async {
     final response = await http
         .post(
-          Uri.parse('$_baseUrl/$scheduleId/snooze'),
+          Uri.parse('$_baseUrl/$scheduleId/snooze?minutes=$minutes'),
           headers: _headers(token),
           body: '{}',
         )
@@ -507,7 +507,7 @@ class SchedulesService {
       }
       return SnoozeResult(
         succeeded: true,
-        message: 'Reminder snoozed for 1 hour',
+        message: 'Reminder snoozed for $minutes minutes',
       );
     }
     throw _parseError(response, 'snooze dose');

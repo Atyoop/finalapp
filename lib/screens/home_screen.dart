@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
 import 'package:intl/intl.dart' as intl;
 import '../main.dart';
 import '../l10n/app_localizations.dart';
@@ -35,6 +36,7 @@ class TodaySchedule {
   final int snoozeCount;
   final bool hasInteractions;
   final List<Map<String, String>> interactions;
+  final DateTime? snoozedUntil;
 
   TodaySchedule({
     required this.id,
@@ -48,6 +50,7 @@ class TodaySchedule {
     required this.snoozeCount,
     required this.hasInteractions,
     required this.interactions,
+    this.snoozedUntil,
   });
 
   factory TodaySchedule.fromJson(Map<String, dynamic> j) {
@@ -77,6 +80,7 @@ class TodaySchedule {
       snoozeCount: j['snoozeCount'] as int? ?? 0,
       hasInteractions: j['hasInteractions'] as bool? ?? false,
       interactions: interactions,
+      snoozedUntil: DateTime.tryParse(j['snoozedUntil']?.toString() ?? ''),
     );
   }
 
@@ -88,6 +92,7 @@ class TodaySchedule {
   bool get isTaken => status.toLowerCase() == 'taken';
   bool get isMissed => status.toLowerCase() == 'missed';
   bool get isPending => status.toLowerCase() == 'pending';
+  bool get isSnoozed => status.toLowerCase() == 'snoozed';
 }
 
 // ─────────────────────────────────────────────
@@ -102,13 +107,14 @@ class HomeScreen extends StatefulWidget {
 
 // Public so MainNavScreen can hold a GlobalKey<HomeScreenState> and call
 // refreshSchedules() when the user switches back to the Today tab.
-class HomeScreenState extends State<HomeScreen> {
+class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   DateTime _selectedDate = DateTime.now();
   bool _isLoading = true;
   String? _errorMessage;
   List<TodaySchedule> _schedules = [];
   String? _filterStatus; // null = ALL
   String? _currentLanguage;
+  Timer? _refreshTimer;
 
   /// Public method so the nav shell can trigger a refresh when the user
   /// switches back to the Today tab after editing a medicine.
@@ -116,12 +122,22 @@ class HomeScreenState extends State<HomeScreen> {
     _fetchSchedulesForDate(_selectedDate);
   }
 
-  final List<DateTime> _weeklyDates = List.generate(
-    7,
-    (index) => DateTime.now()
-        .subtract(Duration(days: DateTime.now().weekday - 1))
-        .add(Duration(days: index)),
-  );
+  late DateTime _startOfWeek;
+  late List<DateTime> _weeklyDates;
+
+  void _navigateWeek(int direction) {
+    setState(() {
+      _startOfWeek = _startOfWeek.add(Duration(days: direction * 7));
+      _weeklyDates = List.generate(
+        7,
+        (index) => _startOfWeek.add(Duration(days: index)),
+      );
+      // Keep the same weekday index selected in the new week
+      final weekdayIndex = _selectedDate.weekday - 1; // 0 to 6
+      _selectedDate = _weeklyDates[weekdayIndex];
+    });
+    _fetchSchedulesForDate(_selectedDate);
+  }
 
   String _formatDisplayDate(DateTime date, {bool includeYear = false}) {
     final locale = _currentLanguage == 'ar' ? 'ar' : 'en';
@@ -132,10 +148,62 @@ class HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    final now = DateTime.now();
+    _startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    _weeklyDates = List.generate(
+      7,
+      (index) => _startOfWeek.add(Duration(days: index)),
+    );
     // Fetch schedules for today on first load
     _fetchSchedulesForDate(_selectedDate);
     // Load unread alerts count
     _loadUnreadAlerts();
+    _startRefreshTimer();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _stopRefreshTimer();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startRefreshTimer();
+      _silentRefresh();
+    } else if (state == AppLifecycleState.paused ||
+               state == AppLifecycleState.inactive ||
+               state == AppLifecycleState.detached) {
+      _stopRefreshTimer();
+    }
+  }
+
+  void _startRefreshTimer() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 60), (timer) {
+      _silentRefresh();
+    });
+  }
+
+  void _stopRefreshTimer() {
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
+  }
+
+  Future<void> _silentRefresh() async {
+    final token = context.read<UserProvider>().token;
+    if (token == null || token.isEmpty) return;
+    try {
+      await Future.wait([
+        context.read<AlertsProvider>().refreshUnreadCount(token),
+        context.read<NotificationsProvider>().refreshNotifications(token),
+      ]);
+    } catch (_) {
+      // ignore background refresh errors
+    }
   }
 
   @override
@@ -238,144 +306,381 @@ class HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _markAsTaken(int scheduleId) async {
+  String _formatTimeNoContext(DateTime dt) {
+    final local = dt.toLocal();
+    final hour = local.hour % 12 == 0 ? 12 : local.hour % 12;
+    final minute = local.minute.toString().padLeft(2, '0');
+    final lang = context.read<LanguageProvider>().currentLanguage;
+    final period = local.hour < 12 
+        ? (lang == 'ar' ? 'ص' : 'AM') 
+        : (lang == 'ar' ? 'م' : 'PM');
+    return '$hour:$minute $period';
+  }
+
+  void _rollbackSchedule(int scheduleId, String previousStatus, DateTime? previousSnoozedUntil, bool previousIsTaken) {
+    final index = _schedules.indexWhere((s) => s.id == scheduleId);
+    if (index != -1) {
+      final s = _schedules[index];
+      setState(() {
+        _schedules[index] = TodaySchedule(
+          id: s.id,
+          userMedId: s.userMedId,
+          medId: s.medId,
+          medName: s.medName,
+          scheduledAt: s.scheduledAt,
+          notificationTime: s.notificationTime,
+          status: previousStatus,
+          reminderSent: s.reminderSent,
+          snoozeCount: s.snoozeCount,
+          snoozedUntil: previousSnoozedUntil,
+          hasInteractions: s.hasInteractions,
+          interactions: s.interactions,
+        );
+      });
+    }
+  }
+
+  Future<void> _fetchSchedulesForDateSilently(DateTime date) async {
     try {
       final token = context.read<UserProvider>().token;
-      if (token == null) return;
-      final medicineProvider = context.read<MedicineProvider>();
-      final alertsProvider = context.read<AlertsProvider>();
-      final notificationsProvider = context.read<NotificationsProvider>();
-      final locale = context.read<LanguageProvider>().currentLanguage;
-      final schedule = _schedules.where((s) => s.id == scheduleId).firstOrNull;
-      final matchedMedicine = schedule == null
-          ? null
-          : medicineProvider.medicines
-                .where((m) => m.id == schedule.userMedId.toString())
-                .firstOrNull;
+      if (token == null || token.isEmpty) return;
 
-      final result = await SchedulesService.takeDose(token, scheduleId);
+      final uri = _isToday(date)
+          ? LanguageService.appendLanguageQuery(
+              Uri.parse(
+                'https://drugsafe.runasp.net/api/users/me/today-schedules',
+              ),
+            )
+          : LanguageService.appendLanguageQuery(
+              Uri.parse(
+                'https://drugsafe.runasp.net/api/users/me/schedules-by-date',
+              ),
+              {'date': _formatDateForApi(date)},
+            );
 
-      if (result.succeeded) {
-        final remaining = result.remainingQuantity ?? result.remainingPills;
-        final unit = result.quantityUnit ?? matchedMedicine?.quantityUnit;
-        if (remaining != null && matchedMedicine != null) {
-          await medicineProvider.updateStockLocally(
-            matchedMedicine.id,
-            remaining,
-          );
-        }
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        final fetched = data.map((json) => TodaySchedule.fromJson(json)).toList();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                remaining != null
-                    ? '${context.l10n.t('doseTaken')} ${remainingQuantityLabel(remaining, unit, locale: locale)}'
-                    : result.lowStockAlertCreated
-                    ? context.l10n.t('doseMarkedTakenLowStock')
-                    : context.l10n.t('doseMarkedTaken'),
-              ),
-              backgroundColor: Colors.green[700],
-            ),
-          );
+          setState(() {
+            _schedules = fetched;
+          });
         }
-        // Refresh schedules for the currently selected date (not always today)
-        await _fetchSchedulesForDate(_selectedDate);
-        // Refresh My Meds so currentPillCount updates
-        if (mounted) {
-          await medicineProvider.fetchMedicinesFromApi(token);
-          // Refresh unread alerts count
-          await alertsProvider.refreshUnreadCount(token);
-          // Refresh notifications
-          await notificationsProvider.refreshNotifications(token);
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                result.error ?? context.l10n.t('failedMarkDoseTaken'),
-              ),
-              backgroundColor: Colors.red[700],
-            ),
-          );
-        }
-      }
-    } on ApiException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: Colors.red[700]),
-        );
       }
     } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.l10n.t('connectionErrorTryAgain')),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      // Ignore background errors
     }
   }
 
-  /// Snooze a dose — called directly from the bottom sheet via callback.
-  Future<void> _snoozeSchedule(int scheduleId) async {
+  Future<void> _markAsTaken(int scheduleId) async {
     final token = context.read<UserProvider>().token;
     if (token == null) return;
-    final messenger = ScaffoldMessenger.of(context);
+    final medicineProvider = context.read<MedicineProvider>();
+    final alertsProvider = context.read<AlertsProvider>();
+    final notificationsProvider = context.read<NotificationsProvider>();
+    final locale = context.read<LanguageProvider>().currentLanguage;
 
-    final result = await SchedulesService.snoozeDose(token, scheduleId);
+    final scheduleIndex = _schedules.indexWhere((s) => s.id == scheduleId);
+    if (scheduleIndex == -1) return;
+    final schedule = _schedules[scheduleIndex];
+
+    final matchedMedicine = medicineProvider.medicines
+        .where((m) => m.id == schedule.userMedId.toString())
+        .firstOrNull;
+
+    final previousStatus = schedule.status;
+    final previousSnoozedUntil = schedule.snoozedUntil;
+    final previousIsTaken = schedule.isTaken;
+
+    // 1. OPTIMISTIC UI UPDATE
+    setState(() {
+      _schedules[scheduleIndex] = TodaySchedule(
+        id: schedule.id,
+        userMedId: schedule.userMedId,
+        medId: schedule.medId,
+        medName: schedule.medName,
+        scheduledAt: schedule.scheduledAt,
+        notificationTime: schedule.notificationTime,
+        status: 'taken',
+        reminderSent: schedule.reminderSent,
+        snoozeCount: schedule.snoozeCount,
+        snoozedUntil: null,
+        hasInteractions: schedule.hasInteractions,
+        interactions: schedule.interactions,
+      );
+    });
+
+    // Update stock locally optimistically
+    int? optimisticRemaining;
+    String? unit;
+    if (matchedMedicine != null) {
+      final currentStock = matchedMedicine.currentQuantity ?? matchedMedicine.currentPillCount;
+      final needed = matchedMedicine.doseQuantity ?? matchedMedicine.pillsPerDose ?? 1;
+      if (currentStock != null) {
+        optimisticRemaining = (currentStock - needed).clamp(0, 999999);
+        unit = matchedMedicine.quantityUnit;
+      }
+    }
+
+    // Capture localized strings BEFORE any await to prevent "use_build_context_synchronously" warnings.
+    final doseTakenMsgPrefix = context.l10n.t('doseTaken');
+    final doseMarkedTakenMsg = context.l10n.t('doseMarkedTaken');
+    final failedMarkDoseTakenMsg = context.l10n.t('failedMarkDoseTaken');
+    final connectionErrorMsg = context.l10n.t('connectionErrorTryAgain');
+
+    if (matchedMedicine != null && optimisticRemaining != null) {
+      await medicineProvider.updateStockLocally(matchedMedicine.id, optimisticRemaining);
+    }
+
+    // 2. SHOW INSTANT TOP OVERLAY FEEDBACK
+    final takeMsg = optimisticRemaining != null
+        ? '$doseTakenMsgPrefix ${remainingQuantityLabel(optimisticRemaining, unit, locale: locale)}'
+        : doseMarkedTakenMsg;
 
     if (mounted) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(result.message ?? context.l10n.t('reminderSnoozed')),
-          backgroundColor: Colors.orange[700],
-        ),
+      TopOverlayNotification.show(
+        context,
+        message: takeMsg,
+        type: NotificationType.success,
       );
     }
-    // Always refresh so the updated scheduledAt is reflected
-    await _fetchSchedulesForDate(_selectedDate);
-    // Refresh notifications
-    if (mounted) {
-      await context.read<NotificationsProvider>().refreshNotifications(token);
-    }
+
+    // 3. EXECUTE API SILENTLY IN BACKGROUND
+    () async {
+      try {
+        final result = await SchedulesService.takeDose(token, scheduleId);
+        if (result.succeeded) {
+          final remaining = result.remainingQuantity ?? result.remainingPills;
+          if (remaining != null && matchedMedicine != null) {
+            await medicineProvider.updateStockLocally(
+              matchedMedicine.id,
+              remaining,
+            );
+          }
+          if (mounted) {
+            await _fetchSchedulesForDateSilently(_selectedDate);
+            await medicineProvider.fetchMedicinesFromApi(token);
+            await alertsProvider.refreshUnreadCount(token);
+            await notificationsProvider.refreshNotifications(token);
+          }
+        } else {
+          // Rollback on failure
+          if (mounted) {
+            _rollbackSchedule(scheduleId, previousStatus, previousSnoozedUntil, previousIsTaken);
+            if (matchedMedicine != null) {
+              final currentStock = matchedMedicine.currentQuantity ?? matchedMedicine.currentPillCount;
+              if (currentStock != null) {
+                await medicineProvider.updateStockLocally(matchedMedicine.id, currentStock);
+              }
+            }
+            if (mounted) {
+              TopOverlayNotification.show(
+                context,
+                message: result.error ?? failedMarkDoseTakenMsg,
+                type: NotificationType.error,
+              );
+            }
+          }
+        }
+      } catch (e) {
+        // Rollback on error
+        if (mounted) {
+          _rollbackSchedule(scheduleId, previousStatus, previousSnoozedUntil, previousIsTaken);
+          if (matchedMedicine != null) {
+            final currentStock = matchedMedicine.currentQuantity ?? matchedMedicine.currentPillCount;
+            if (currentStock != null) {
+              await medicineProvider.updateStockLocally(matchedMedicine.id, currentStock);
+            }
+          }
+          if (mounted) {
+            TopOverlayNotification.show(
+              context,
+              message: e is ApiException ? e.message : connectionErrorMsg,
+              type: NotificationType.error,
+            );
+          }
+        }
+      }
+    }();
   }
 
-  /// Skip a dose — called directly from the bottom sheet via callback.
+  Future<void> _snoozeSchedule(int scheduleId, int minutes) async {
+    final token = context.read<UserProvider>().token;
+    if (token == null) return;
+    final alertsProvider = context.read<AlertsProvider>();
+    final notificationsProvider = context.read<NotificationsProvider>();
+
+    final scheduleIndex = _schedules.indexWhere((s) => s.id == scheduleId);
+    if (scheduleIndex == -1) return;
+    final schedule = _schedules[scheduleIndex];
+
+    final previousStatus = schedule.status;
+    final previousSnoozedUntil = schedule.snoozedUntil;
+    final previousIsTaken = schedule.isTaken;
+
+    final now = DateTime.now();
+    final optimisticSnoozedUntil = now.add(Duration(minutes: minutes));
+
+    // 1. OPTIMISTIC UI UPDATE
+    setState(() {
+      _schedules[scheduleIndex] = TodaySchedule(
+        id: schedule.id,
+        userMedId: schedule.userMedId,
+        medId: schedule.medId,
+        medName: schedule.medName,
+        scheduledAt: schedule.scheduledAt,
+        notificationTime: schedule.notificationTime,
+        status: 'snoozed',
+        reminderSent: schedule.reminderSent,
+        snoozeCount: schedule.snoozeCount + 1,
+        snoozedUntil: optimisticSnoozedUntil,
+        hasInteractions: schedule.hasInteractions,
+        interactions: schedule.interactions,
+      );
+    });
+
+    // 2. SHOW INSTANT TOP OVERLAY FEEDBACK
+    final formattedTime = _formatTimeNoContext(optimisticSnoozedUntil);
+    final snoozeMsg = context.read<LanguageProvider>().currentLanguage == 'ar'
+        ? 'تم التأجيل حتى $formattedTime'
+        : 'Snoozed until $formattedTime';
+
+    TopOverlayNotification.show(
+      context,
+      message: snoozeMsg,
+      type: NotificationType.success,
+    );
+
+    // 3. EXECUTE API SILENTLY IN BACKGROUND
+    () async {
+      try {
+        final result = await SchedulesService.snoozeDose(token, scheduleId, minutes);
+        if (result.succeeded) {
+          if (mounted) {
+            await _fetchSchedulesForDateSilently(_selectedDate);
+            await alertsProvider.refreshUnreadCount(token);
+            await notificationsProvider.refreshNotifications(token);
+          }
+        } else {
+          // Rollback on failure
+          if (mounted) {
+            _rollbackSchedule(scheduleId, previousStatus, previousSnoozedUntil, previousIsTaken);
+            final msg = result.error ?? 'Snooze failed';
+            final isWarning = msg.toLowerCase().contains('snooze') || msg.toLowerCase().contains('limit') || msg.toLowerCase().contains('already');
+            TopOverlayNotification.show(
+              context,
+              message: msg,
+              type: isWarning ? NotificationType.warning : NotificationType.error,
+            );
+          }
+        }
+      } catch (e) {
+        // Rollback on error
+        if (mounted) {
+          _rollbackSchedule(scheduleId, previousStatus, previousSnoozedUntil, previousIsTaken);
+          TopOverlayNotification.show(
+            context,
+            message: e is ApiException ? e.message : context.l10n.t('connectionErrorTryAgain'),
+            type: NotificationType.error,
+          );
+        }
+      }
+    }();
+  }
+
   Future<void> _skipSchedule(int scheduleId) async {
     final token = context.read<UserProvider>().token;
     if (token == null) return;
-    final messenger = ScaffoldMessenger.of(context);
+    final alertsProvider = context.read<AlertsProvider>();
+    final notificationsProvider = context.read<NotificationsProvider>();
 
-    await SchedulesService.skipDose(token, scheduleId);
+    final scheduleIndex = _schedules.indexWhere((s) => s.id == scheduleId);
+    if (scheduleIndex == -1) return;
+    final schedule = _schedules[scheduleIndex];
 
-    if (mounted) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(context.l10n.t('doseSkipped')),
-          backgroundColor: Colors.blueGrey,
-        ),
+    final previousStatus = schedule.status;
+    final previousSnoozedUntil = schedule.snoozedUntil;
+    final previousIsTaken = schedule.isTaken;
+
+    // 1. OPTIMISTIC UI UPDATE
+    setState(() {
+      _schedules[scheduleIndex] = TodaySchedule(
+        id: schedule.id,
+        userMedId: schedule.userMedId,
+        medId: schedule.medId,
+        medName: schedule.medName,
+        scheduledAt: schedule.scheduledAt,
+        notificationTime: schedule.notificationTime,
+        status: 'skipped',
+        reminderSent: schedule.reminderSent,
+        snoozeCount: schedule.snoozeCount,
+        snoozedUntil: null,
+        hasInteractions: schedule.hasInteractions,
+        interactions: schedule.interactions,
       );
-    }
-    // Refresh so the dose shows as Missed
-    await _fetchSchedulesForDate(_selectedDate);
-    // Refresh notifications
-    if (mounted) {
-      await context.read<NotificationsProvider>().refreshNotifications(token);
-    }
+    });
+
+    // 2. SHOW INSTANT TOP OVERLAY FEEDBACK
+    final skipText = context.l10n.t('doseSkipped');
+    TopOverlayNotification.show(
+      context,
+      message: skipText,
+      type: NotificationType.success,
+    );
+
+    // 3. EXECUTE API SILENTLY IN BACKGROUND
+    () async {
+      try {
+        await SchedulesService.skipDose(token, scheduleId);
+        if (mounted) {
+          await _fetchSchedulesForDateSilently(_selectedDate);
+          await alertsProvider.refreshUnreadCount(token);
+          await notificationsProvider.refreshNotifications(token);
+        }
+      } catch (e) {
+        // Rollback on error
+        if (mounted) {
+          _rollbackSchedule(scheduleId, previousStatus, previousSnoozedUntil, previousIsTaken);
+          TopOverlayNotification.show(
+            context,
+            message: e is ApiException ? e.message : context.l10n.t('connectionErrorTryAgain'),
+            type: NotificationType.error,
+          );
+        }
+      }
+    }();
   }
 
   List<TodaySchedule> get _filtered {
     if (_filterStatus == null) return _schedules;
+    if (_filterStatus!.toLowerCase() == 'missed') {
+      return _schedules
+          .where((s) => s.status.toLowerCase() == 'missed' || s.status.toLowerCase() == 'skipped')
+          .toList();
+    }
     return _schedules
         .where((s) => s.status.toLowerCase() == _filterStatus!.toLowerCase())
         .toList();
   }
 
-  int _countByStatus(String status) => _schedules
-      .where((s) => s.status.toLowerCase() == status.toLowerCase())
-      .length;
+  int _countByStatus(String status) {
+    if (status.toLowerCase() == 'missed') {
+      return _schedules
+          .where((s) => s.status.toLowerCase() == 'missed' || s.status.toLowerCase() == 'skipped')
+          .length;
+    }
+    return _schedules
+        .where((s) => s.status.toLowerCase() == status.toLowerCase())
+        .length;
+  }
 
   /// True when the calendar's selected date is calendar-today.
   bool get _isSelectedDateToday {
@@ -530,20 +835,32 @@ class HomeScreenState extends State<HomeScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(
-                        Directionality.of(context) == TextDirection.rtl
-                            ? Icons.chevron_right
-                            : Icons.chevron_left,
-                        color: AppColors.textGrey,
-                        size: 20,
+                      IconButton(
+                        icon: Icon(
+                          Directionality.of(context) == TextDirection.rtl
+                              ? Icons.chevron_right
+                              : Icons.chevron_left,
+                          color: AppColors.textGrey,
+                          size: 24,
+                        ),
+                        onPressed: () {
+                          final isRtl = Directionality.of(context) == TextDirection.rtl;
+                          _navigateWeek(isRtl ? 1 : -1);
+                        },
                       ),
                       ..._weeklyDates.map((date) => _buildDayItem(date)),
-                      Icon(
-                        Directionality.of(context) == TextDirection.rtl
-                            ? Icons.chevron_left
-                            : Icons.chevron_right,
-                        color: AppColors.textGrey,
-                        size: 20,
+                      IconButton(
+                        icon: Icon(
+                          Directionality.of(context) == TextDirection.rtl
+                              ? Icons.chevron_left
+                              : Icons.chevron_right,
+                          color: AppColors.textGrey,
+                          size: 24,
+                        ),
+                        onPressed: () {
+                          final isRtl = Directionality.of(context) == TextDirection.rtl;
+                          _navigateWeek(isRtl ? -1 : 1);
+                        },
                       ),
                     ],
                   ),
@@ -652,7 +969,8 @@ class HomeScreenState extends State<HomeScreen> {
                               schedule: s,
                               matchedMedicine: matched,
                               onTakeSuccess: () => _markAsTaken(s.id),
-                              onSnoozeSuccess: () => _snoozeSchedule(s.id),
+                              onSnoozeSuccess: (minutes) =>
+                                  _snoozeSchedule(s.id, minutes),
                               onSkipSuccess: () => _skipSchedule(s.id),
                             ),
                           );
@@ -904,11 +1222,14 @@ class _ScheduleCard extends StatelessWidget {
     }
   }
 
-  String _formatTime(DateTime dt) {
+  String _formatTime(BuildContext context, DateTime dt) {
     final local = dt.toLocal();
     final hour = local.hour % 12 == 0 ? 12 : local.hour % 12;
     final minute = local.minute.toString().padLeft(2, '0');
-    final period = local.hour < 12 ? 'AM' : 'PM';
+    final lang = Provider.of<LanguageProvider>(context, listen: false).currentLanguage;
+    final period = local.hour < 12 
+        ? (lang == 'ar' ? 'ص' : 'AM') 
+        : (lang == 'ar' ? 'م' : 'PM');
     return '$hour:$minute $period';
   }
 
@@ -1002,7 +1323,7 @@ class _ScheduleCard extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  _formatTime(schedule.scheduledAt),
+                                  _formatTime(context, schedule.scheduledAt),
                                   style: TextStyle(
                                     fontSize: 13,
                                     color: AppColors.textGrey,
@@ -1010,13 +1331,36 @@ class _ScheduleCard extends StatelessWidget {
                                 ),
                               ],
                             ),
+                            if (schedule.isSnoozed && schedule.snoozedUntil != null && schedule.snoozedUntil!.isAfter(DateTime.now())) ...[
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.snooze,
+                                    size: 13,
+                                    color: Colors.orange,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    context.read<LanguageProvider>().currentLanguage == 'ar'
+                                        ? 'تم التأجيل حتى ${_formatTime(context, schedule.snoozedUntil!)}'
+                                        : 'Snoozed until ${_formatTime(context, schedule.snoozedUntil!)}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.orange,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                             const SizedBox(height: 4),
 
                             // Snooze info
-                            if (schedule.snoozeCount > 0)
+                            if (schedule.isPending && schedule.snoozeCount > 0 && !(schedule.isSnoozed && schedule.snoozedUntil != null && schedule.snoozedUntil!.isAfter(DateTime.now())))
                               Row(
                                 children: [
-                                  Icon(
+                                  const Icon(
                                     Icons.snooze,
                                     size: 13,
                                     color: Colors.orange,
@@ -1032,8 +1376,8 @@ class _ScheduleCard extends StatelessWidget {
                                 ],
                               ),
                             // Compact status chip — visible for Taken/Missed;
-                            // pending items show nothing (card tap opens modal)
-                            if (!schedule.isPending)
+                            // pending/snoozed items show nothing (card tap opens modal)
+                            if (!schedule.isPending && !schedule.isSnoozed)
                               Row(
                                 children: [
                                   Icon(
@@ -1228,7 +1572,7 @@ class _TakeDoseBottomSheet extends StatefulWidget {
   final Future<void> Function() onTakeSuccess;
 
   /// Called when user taps Snooze. Parent handles API + refresh.
-  final Future<void> Function() onSnoozeSuccess;
+  final Future<void> Function(int minutes) onSnoozeSuccess;
 
   /// Called when user taps Skip. Parent handles API + refresh.
   final Future<void> Function() onSkipSuccess;
@@ -1246,7 +1590,7 @@ class _TakeDoseBottomSheet extends StatefulWidget {
 }
 
 class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
-  bool _isLoading = false;
+  bool _interactionsExpanded = false;
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -1258,164 +1602,98 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
     return '$hour:$minute $period';
   }
 
-  String _formatDate(DateTime dt) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
-  }
-
   // ── Action handlers ───────────────────────────────────────────────────────
 
-  Future<void> _onTakeTapped() async {
-    if (_isLoading) return;
+  void _onTakeTapped() {
+    Navigator.pop(context);
+    widget.onTakeSuccess();
+  }
 
-    // ── Stock Check ──
-    final med = widget.matchedMedicine as Medicine?;
-    final currentQuantity = med?.currentQuantity ?? med?.currentPillCount;
-    if (med != null && currentQuantity != null) {
-      final needed = med.doseQuantity ?? med.pillsPerDose ?? 1;
-      if (currentQuantity < needed) {
-        final locale = context.read<LanguageProvider>().currentLanguage;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              locale == 'ar'
-                  ? 'الكمية غير كافية. يرجى تحديث المخزون في أدويتي أولاً.'
-                  : 'Not enough ${getQuantityUnitLabel(med.quantityUnit, locale: locale)}. Please update stock in My Meds first.',
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
+  void _onSnoozeTapped() async {
+    final selectedMinutes = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const _SnoozeDurationSelectorBottomSheet(),
+    );
+
+    if (selectedMinutes == null) return; // user cancelled
+
+    int finalMinutes = selectedMinutes;
+    if (selectedMinutes == -1) {
+      if (!mounted) return;
+      final now = DateTime.now();
+      final selectedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(now),
+      );
+      if (selectedTime == null) return; // user cancelled
+
+      final nowZeroSec = DateTime(now.year, now.month, now.day, now.hour, now.minute);
+      DateTime selectedDateTime = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        selectedTime.hour,
+        selectedTime.minute,
+      );
+      if (selectedDateTime.isBefore(nowZeroSec)) {
+        selectedDateTime = selectedDateTime.add(const Duration(days: 1));
+      }
+      final diffMinutes = selectedDateTime.difference(nowZeroSec).inMinutes;
+      if (diffMinutes <= 0) {
+        if (mounted) {
+          TopOverlayNotification.show(
+            context,
+            message: context.l10n.t('invalidTimeSelected'),
+            type: NotificationType.error,
+          );
+        }
         return;
       }
+      finalMinutes = diffMinutes;
     }
 
-    setState(() => _isLoading = true);
-    try {
-      await widget.onTakeSuccess();
-      if (mounted) Navigator.pop(context);
-    } on ApiException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: Colors.red[700]),
-        );
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.l10n.t('connectionErrorTryAgain')),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    if (mounted) Navigator.pop(context);
+    widget.onSnoozeSuccess(finalMinutes);
   }
 
-  Future<void> _onSnoozeTapped() async {
-    if (_isLoading) return;
-    setState(() => _isLoading = true);
-    try {
-      await widget.onSnoozeSuccess();
-      if (mounted) Navigator.pop(context);
-    } on ApiException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.message),
-            backgroundColor: Colors.orange[700],
-          ),
-        );
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.l10n.t('connectionErrorTryAgain')),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+  void _onSkipTapped() {
+    Navigator.pop(context);
+    widget.onSkipSuccess();
   }
 
-  Future<void> _onSkipTapped() async {
-    if (_isLoading) return;
-    setState(() => _isLoading = true);
-    try {
-      await widget.onSkipSuccess();
-      if (mounted) Navigator.pop(context);
-    } on ApiException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: Colors.red[700]),
-        );
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.l10n.t('connectionErrorTryAgain')),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
+  // ── Compact Info Card Widget ──────────────────────────────────────────────
 
-  // ── Info row widget ───────────────────────────────────────────────────────
-
-  Widget _infoRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+  Widget _compactInfoCard(IconData icon, String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.primaryTeal.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primaryTeal.withValues(alpha: 0.12)),
+      ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: AppColors.primaryTeal.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: AppColors.primaryTeal, size: 18),
-          ),
-          const SizedBox(width: 12),
+          Icon(icon, color: AppColors.primaryTeal, size: 18),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 10,
                     color: AppColors.textGrey,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 1),
                 Text(
                   value,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textDark,
                   ),
@@ -1438,19 +1716,20 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
     // Pull extra info from matched medicine when available
     final int? currentQuantity =
         (med?.currentQuantity ?? med?.currentPillCount) as int?;
-    final int? initialQuantity =
-        (med?.initialQuantity ?? med?.initialPillCount) as int?;
-    final DateTime? packageExpiryDate = med?.expiryDate as DateTime?;
-    final DateTime? expiryDate = med?.actualExpiryDate as DateTime?;
     final int? doseQuantity = (med?.doseQuantity ?? med?.pillsPerDose) as int?;
     final String? dosage = med?.dosage as String?;
-    final String? dosageForm = med?.dosageForm as String?;
     final String? quantityUnit = med?.quantityUnit as String?;
     final locale = context.read<LanguageProvider>().currentLanguage;
 
-    final bool alreadyHandled = !s.isPending;
+    final bool alreadyHandled = s.isTaken || s.isMissed || s.status.toLowerCase() == 'skipped';
+
+    final viewAllText = locale == 'ar' ? 'عرض جميع التفاعلات' : 'View All Interactions';
+    final showLessText = locale == 'ar' ? 'عرض أقل' : 'Show Less';
 
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
@@ -1459,511 +1738,814 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
         left: 24,
         right: 24,
         top: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 32,
+        bottom: MediaQuery.of(context).padding.bottom + 16,
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Handle bar ──
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Handle bar ──
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(height: 16),
+          ),
+          const SizedBox(height: 16),
 
-            // ── Header row ──
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Take Dose',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textDark,
+          // ── Header row ──
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                locale == 'ar' ? 'تناول الجرعة' : 'Take Dose',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textDark,
+                ),
+              ),
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.backgroundCream,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.close,
+                    size: 18,
+                    color: AppColors.textGrey,
                   ),
                 ),
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // ── Scrollable Content ──
+          Flexible(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Medicine hero card ──
+                  Container(
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: AppColors.backgroundCream,
-                      shape: BoxShape.circle,
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    child: Icon(
-                      Icons.close,
-                      size: 18,
-                      color: AppColors.textGrey,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // ── Medicine hero card ──
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.backgroundCream,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryTeal.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Icon(
-                      Icons.medication_rounded,
-                      color: AppColors.primaryTeal,
-                      size: 30,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
                       children: [
-                        Text(
-                          s.medName,
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textDark,
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryTeal.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Icon(
+                            Icons.medication_rounded,
+                            color: AppColors.primaryTeal,
+                            size: 30,
                           ),
                         ),
-                        if (dosage != null && dosage.isNotEmpty) ...[
-                          const SizedBox(height: 3),
-                          Text(
-                            dosage,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: AppColors.textGrey,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  // Status chip for already-handled schedules
-                  if (alreadyHandled)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: s.isTaken
-                            ? Colors.green.withValues(alpha: 0.12)
-                            : Colors.red.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        s.status.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: s.isTaken
-                              ? Colors.green[700]
-                              : Colors.red[700],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // ── Info rows ──
-            _infoRow(
-              Icons.schedule_rounded,
-              'Scheduled Time',
-              _formatTime(s.scheduledAt),
-            ),
-            if (dosageForm != null && dosageForm.isNotEmpty)
-              _infoRow(
-                Icons.category_outlined,
-                locale == 'ar' ? 'شكل الدواء' : 'Dosage form',
-                getMedicationTypeLabel(dosageForm, locale: locale),
-              ),
-            if (currentQuantity != null)
-              _infoRow(
-                Icons.inventory_2_outlined,
-                locale == 'ar' ? 'الكمية الحالية' : 'Current quantity',
-                formatQuantityWithUnit(
-                  currentQuantity,
-                  quantityUnit,
-                  locale: locale,
-                ),
-              ),
-            if (initialQuantity != null)
-              _infoRow(
-                Icons.inventory_outlined,
-                locale == 'ar' ? 'الكمية الكلية' : 'Initial quantity',
-                formatQuantityWithUnit(
-                  initialQuantity,
-                  quantityUnit,
-                  locale: locale,
-                ),
-              ),
-            if (doseQuantity != null)
-              _infoRow(
-                Icons.colorize_rounded,
-                locale == 'ar' ? 'كمية الجرعة' : 'Quantity per dose',
-                formatQuantityWithUnit(
-                  doseQuantity,
-                  quantityUnit,
-                  locale: locale,
-                ),
-              ),
-            if (packageExpiryDate != null)
-              _infoRow(
-                Icons.event_outlined,
-                context.l10n.t('packageExpiry'),
-                _formatDate(packageExpiryDate),
-              ),
-            if (expiryDate != null)
-              _infoRow(
-                Icons.verified_outlined,
-                context.l10n.t('actualExpiry'),
-                _formatDate(expiryDate),
-              ),
-            if (med?.expiryReason == 'AFTER_OPENING_EXPIRY')
-              _infoRow(
-                Icons.info_outline_rounded,
-                context.l10n.t('reasonLabel'),
-                context.l10n.t(
-                  'thisMedicationExpiresEarlierBecauseItWasOpened',
-                ),
-              )
-            else if (med?.expiryReason == 'PACKAGE_EXPIRY')
-              _infoRow(
-                Icons.info_outline_rounded,
-                context.l10n.t('reasonLabel'),
-                context.l10n.t(
-                  'thisMedicationExpiresBasedOnThePackageExpiryDate',
-                ),
-              ),
-            const SizedBox(height: 24),
-
-            // ── Stock Warning in Modal ──
-            if (med != null && currentQuantity != null)
-              Builder(
-                builder: (context) {
-                  final stock = currentQuantity;
-                  final needed = doseQuantity ?? 1;
-                  if (stock < needed) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.red[50],
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.red.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.warning_rounded,
-                              color: Colors.red[700],
-                              size: 20,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                locale == 'ar'
-                                    ? 'الكمية غير كافية لهذه الجرعة. يرجى تحديث المخزون في أدويتي.'
-                                    : 'Not enough ${getQuantityUnitLabel(quantityUnit, locale: locale)} for this dose. Please update stock in My Meds.',
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                s.medName,
                                 style: TextStyle(
-                                  color: Colors.red[900],
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textDark,
                                 ),
                               ),
+                              if (dosage != null && dosage.isNotEmpty) ...[
+                                const SizedBox(height: 3),
+                                Text(
+                                  dosage,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.textGrey,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        // Status chip for already-handled or snoozed schedules
+                        if (alreadyHandled || s.isSnoozed)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
                             ),
-                          ],
+                            decoration: BoxDecoration(
+                              color: s.isTaken
+                                  ? Colors.green.withValues(alpha: 0.12)
+                                  : (s.isSnoozed 
+                                      ? Colors.orange.withValues(alpha: 0.12)
+                                      : Colors.red.withValues(alpha: 0.12)),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              s.isSnoozed
+                                  ? (locale == 'ar' ? 'مؤجل' : 'SNOOZED')
+                                  : (s.isMissed || s.status.toLowerCase() == 'skipped')
+                                      ? (locale == 'ar' ? 'فائتة' : 'MISSED')
+                                      : s.status.toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: s.isTaken
+                                    ? Colors.green[700]
+                                    : (s.isSnoozed ? Colors.orange[700] : Colors.red[700]),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // ── Compact Info Cards Row ──
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _compactInfoCard(
+                          Icons.schedule_rounded,
+                          locale == 'ar' ? 'وقت الجرعة' : 'Scheduled Time',
+                          _formatTime(s.scheduledAt),
                         ),
                       ),
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
-
-            // ── Drug Interactions Section ──
-            if (widget.schedule.hasInteractions) ...[
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3E0),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: const Color(0xFFFF9800).withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.warning_amber_rounded,
-                          color: const Color(0xFFE65100),
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Drug Interactions Detected',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFFE65100),
+                      if (currentQuantity != null) ...[
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _compactInfoCard(
+                            Icons.inventory_2_outlined,
+                            locale == 'ar' ? 'الكمية المتبقية' : 'Remaining Qty',
+                            formatQuantityWithUnit(
+                              currentQuantity,
+                              quantityUnit,
+                              locale: locale,
+                            ),
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 12),
-                    ...widget.schedule.interactions.map((interaction) {
-                      final withMed = interaction['withMedication'] ?? '';
-                      final reason = interaction['reason'] ?? '';
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(
-                              Icons.swap_horiz_rounded,
-                              size: 14,
-                              color: const Color(0xFFFF9800),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // ── Stock Warning in Modal ──
+                  if (med != null && currentQuantity != null)
+                    Builder(
+                      builder: (context) {
+                        final stock = currentQuantity;
+                        final needed = doseQuantity ?? 1;
+                        final threshold = med.lowStockThreshold;
+                        if (stock < needed) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.red[50],
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.red.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Row(
                                 children: [
-                                  Text(
-                                    withMed,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.textDark,
-                                    ),
+                                  Icon(
+                                    Icons.warning_rounded,
+                                    color: Colors.red[700],
+                                    size: 20,
                                   ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    reason,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: AppColors.textGrey,
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      locale == 'ar'
+                                          ? 'الكمية غير كافية لهذه الجرعة. يرجى تحديث المخزون في أدويتي.'
+                                          : 'Not enough ${getQuantityUnitLabel(quantityUnit, locale: locale)} for this dose. Please update stock in My Meds.',
+                                      style: TextStyle(
+                                        color: Colors.red[900],
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
                             ),
+                          );
+                        } else if (threshold != null && stock <= threshold) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.orange[50],
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.orange.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.warning_rounded,
+                                    color: Colors.orange[700],
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      locale == 'ar'
+                                          ? 'الكمية منخفضة (${formatQuantityWithUnit(stock, quantityUnit, locale: locale)} متبقية)'
+                                          : 'Low stock (${formatQuantityWithUnit(stock, quantityUnit, locale: locale)} left)',
+                                      style: TextStyle(
+                                        color: Colors.orange[900],
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+
+                  // ── Drug Interactions Section ──
+                  if (widget.schedule.hasInteractions) ...[
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF3E0),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: const Color(0xFFFF9800).withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.warning_amber_rounded,
+                                color: const Color(0xFFE65100),
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                locale == 'ar' ? 'تم الكشف عن تفاعلات دوائية' : 'Drug Interactions Detected',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFFE65100),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          ...(() {
+                            final list = widget.schedule.interactions;
+                            final displayed = _interactionsExpanded ? list : list.take(2).toList();
+                            return displayed.map((interaction) {
+                              final withMed = interaction['withMedication'] ?? '';
+                              final reason = interaction['reason'] ?? '';
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      Icons.swap_horiz_rounded,
+                                      size: 14,
+                                      color: const Color(0xFFFF9800),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            withMed,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppColors.textDark,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            reason,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: AppColors.textGrey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            });
+                          })(),
+                          if (widget.schedule.interactions.length > 2) ...[
+                            const SizedBox(height: 4),
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _interactionsExpanded = !_interactionsExpanded;
+                                });
+                              },
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    _interactionsExpanded ? showLessText : viewAllText,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFFE65100),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    _interactionsExpanded
+                                        ? Icons.keyboard_arrow_up_rounded
+                                        : Icons.keyboard_arrow_down_rounded,
+                                    size: 16,
+                                    color: const Color(0xFFE65100),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  // ── Info Box ──
+                  if (widget.schedule.hasInteractions)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.blue.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.info_outline_rounded,
+                              size: 16,
+                              color: Colors.blue[700],
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                locale == 'ar'
+                                    ? 'استشر مقدم الرعاية الصحية الخاص بك قبل إجراء أي تغييرات.'
+                                    : 'Consult your healthcare provider before making any changes.',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.blue[900],
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
-                      );
-                    }),
-                  ],
-                ),
-              ),
-            ],
-
-            // ── Info Box ──
-            if (widget.schedule.hasInteractions)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.blue.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        Icons.info_outline_rounded,
-                        size: 16,
-                        color: Colors.blue[700],
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Consult your healthcare provider before making any changes.',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.blue[900],
-                            height: 1.4,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            const SizedBox(height: 24),
-
-            // ── Snooze & Skip row (only for pending doses) ──
-            if (!alreadyHandled) ...[
-              Row(
-                children: [
-                  // Snooze button
-                  Expanded(
-                    child: SizedBox(
-                      height: 48,
-                      child: OutlinedButton.icon(
-                        onPressed: _isLoading ? null : _onSnoozeTapped,
-                        icon: _isLoading
-                            ? const SizedBox(
-                                width: 14,
-                                height: 14,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.orange,
-                                ),
-                              )
-                            : const Icon(
-                                Icons.snooze_rounded,
-                                size: 18,
-                                color: Colors.orange,
-                              ),
-                        label: Text(
-                          context.l10n.t('snooze'),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.orange,
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.orange),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Skip button
-                  Expanded(
-                    child: SizedBox(
-                      height: 48,
-                      child: OutlinedButton.icon(
-                        onPressed: _isLoading ? null : _onSkipTapped,
-                        icon: _isLoading
-                            ? const SizedBox(
-                                width: 14,
-                                height: 14,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.redAccent,
-                                ),
-                              )
-                            : const Icon(
-                                Icons.skip_next_rounded,
-                                size: 18,
-                                color: Colors.redAccent,
-                              ),
-                        label: Text(
-                          context.l10n.t('skip'),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.redAccent,
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.redAccent),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
                 ],
               ),
-              const SizedBox(height: 12),
-            ],
+            ),
+          ),
 
-            // ── Take button ──
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: Builder(
-                builder: (context) {
-                  final stock = med?.currentQuantity ?? med?.currentPillCount;
-                  final needed = med?.doseQuantity ?? med?.pillsPerDose ?? 1;
-                  final canTake = stock == null || stock >= needed;
+          const SizedBox(height: 20),
 
-                  return ElevatedButton(
-                    onPressed: alreadyHandled || _isLoading || !canTake
-                        ? null
-                        : _onTakeTapped,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: alreadyHandled
-                          ? Colors.grey[300]
-                          : const Color(0xFF2E7D32),
-                      disabledBackgroundColor: alreadyHandled
-                          ? Colors.grey[300]
-                          : !canTake
-                          ? Colors.red[200]
-                          : const Color(0xFF2E7D32).withValues(alpha: 0.5),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+          // ── Fixed Bottom Action Bar ──
+          if (!alreadyHandled) ...[
+            Row(
+              children: [
+                // Snooze button
+                Expanded(
+                  child: SizedBox(
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      onPressed: _onSnoozeTapped,
+                      icon: const Icon(
+                        Icons.snooze_rounded,
+                        size: 18,
+                        color: Colors.orange,
                       ),
-                      elevation: 0,
+                      label: Text(
+                        widget.schedule.isSnoozed
+                            ? (locale == 'ar' ? 'تأجيل مرة أخرى' : 'Snooze Again')
+                            : context.l10n.t('snooze'),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.orange,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.orange),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                     ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2.5,
-                            ),
-                          )
-                        : Text(
-                            alreadyHandled
-                                ? s.status.toUpperCase()
-                                : !canTake
-                                ? 'Update stock first'
-                                : 'Take Dose',
-                            style: TextStyle(
-                              color: alreadyHandled
-                                  ? AppColors.textGrey
-                                  : Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                  );
-                },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Skip button
+                Expanded(
+                  child: SizedBox(
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      onPressed: _onSkipTapped,
+                      icon: const Icon(
+                        Icons.skip_next_rounded,
+                        size: 18,
+                        color: Colors.redAccent,
+                      ),
+                      label: Text(
+                        context.l10n.t('skip'),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.redAccent,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.redAccent),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // ── Take button ──
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: Builder(
+              builder: (context) {
+                final stock = med?.currentQuantity ?? med?.currentPillCount;
+                final needed = med?.doseQuantity ?? med?.pillsPerDose ?? 1;
+                final canTake = stock == null || stock >= needed;
+
+                return ElevatedButton(
+                  onPressed: alreadyHandled || !canTake
+                      ? null
+                      : _onTakeTapped,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: alreadyHandled
+                        ? Colors.grey[300]
+                        : const Color(0xFF2E7D32),
+                    disabledBackgroundColor: alreadyHandled
+                        ? Colors.grey[300]
+                        : !canTake
+                        ? Colors.red[200]
+                        : const Color(0xFF2E7D32).withValues(alpha: 0.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    alreadyHandled
+                        ? ((s.isMissed || s.status.toLowerCase() == 'skipped')
+                            ? (locale == 'ar' ? 'فائتة' : 'MISSED')
+                            : s.status.toUpperCase())
+                        : !canTake
+                        ? (locale == 'ar' ? 'حدث المخزون أولاً' : 'Update stock first')
+                        : (locale == 'ar' ? 'تناول الجرعة' : 'Take Dose'),
+                    style: TextStyle(
+                      color: alreadyHandled
+                          ? AppColors.textGrey
+                          : Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SnoozeDurationSelectorBottomSheet extends StatelessWidget {
+  const _SnoozeDurationSelectorBottomSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    context.l10n.t('snoozeDuration'),
+                    style: const TextStyle(
+                      color: AppColors.textDark,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildOption(
+              context,
+              label: context.l10n.t('snoozeForMinutes', {'minutes': '15'}),
+              minutes: 15,
+            ),
+            const SizedBox(height: 8),
+            _buildOption(
+              context,
+              label: context.l10n.t('snoozeForMinutes', {'minutes': '30'}),
+              minutes: 30,
+            ),
+            const SizedBox(height: 8),
+            _buildOption(
+              context,
+              label: context.l10n.t('snoozeForMinutes', {'minutes': '45'}),
+              minutes: 45,
+            ),
+            const SizedBox(height: 8),
+            _buildCustomTimeOption(context),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOption(BuildContext context, {required String label, required int minutes}) {
+    return InkWell(
+      onTap: () => Navigator.pop(context, minutes),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey[200]!),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.snooze_rounded, color: Colors.orange, size: 20),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textDark,
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCustomTimeOption(BuildContext context) {
+    return InkWell(
+      onTap: () {
+        Navigator.pop(context, -1);
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey[200]!),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.access_time_filled_rounded, color: AppColors.primaryTeal, size: 20),
+            const SizedBox(width: 12),
+            Text(
+              context.l10n.t('chooseAnotherTime'),
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textDark,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+enum NotificationType { success, warning, error }
+
+class TopOverlayNotification {
+  static OverlayEntry? _currentEntry;
+
+  static void show(
+    BuildContext context, {
+    required String message,
+    required NotificationType type,
+  }) {
+    // Dismiss any active notification first
+    _currentEntry?.remove();
+    _currentEntry = null;
+
+    final overlayState = Navigator.of(context, rootNavigator: true).overlay;
+    if (overlayState == null) return;
+
+    _currentEntry = OverlayEntry(
+      builder: (context) => _TopNotificationWidget(
+        message: message,
+        type: type,
+        onDismiss: () {
+          _currentEntry?.remove();
+          _currentEntry = null;
+        },
+      ),
+    );
+
+    overlayState.insert(_currentEntry!);
+  }
+}
+
+class _TopNotificationWidget extends StatefulWidget {
+  final String message;
+  final NotificationType type;
+  final VoidCallback onDismiss;
+
+  const _TopNotificationWidget({
+    required this.message,
+    required this.type,
+    required this.onDismiss,
+  });
+
+  @override
+  State<_TopNotificationWidget> createState() => _TopNotificationWidgetState();
+}
+
+class _TopNotificationWidgetState extends State<_TopNotificationWidget> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _offsetAnimation = Tween<Offset>(
+      begin: const Offset(0, -1.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    ));
+
+    _controller.forward();
+
+    // Auto dismiss after 3 seconds
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        _controller.reverse().then((_) => widget.onDismiss());
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Color backgroundColor;
+    IconData icon;
+
+    switch (widget.type) {
+      case NotificationType.success:
+        backgroundColor = const Color(0xFF2E7D32); // Green
+        icon = Icons.check_circle_outline;
+        break;
+      case NotificationType.warning:
+        backgroundColor = const Color(0xFFE65100); // Warning Orange
+        icon = Icons.warning_amber_rounded;
+        break;
+      case NotificationType.error:
+        backgroundColor = const Color(0xFFD32F2F); // Red
+        icon = Icons.error_outline;
+        break;
+    }
+
+    String displayMessage = widget.message;
+    if (widget.type == NotificationType.success && !displayMessage.startsWith('✓')) {
+      displayMessage = '✓ $displayMessage';
+    } else if ((widget.type == NotificationType.warning || widget.type == NotificationType.error) && !displayMessage.startsWith('⚠')) {
+      displayMessage = '⚠ $displayMessage';
+    }
+
+    return SafeArea(
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          child: SlideTransition(
+            position: _offsetAnimation,
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: backgroundColor,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      icon,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Flexible(
+                      child: Text(
+                        displayMessage,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

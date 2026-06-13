@@ -16,6 +16,7 @@ class HiveMedicine {
   int? currentPillCount;
   int? lowStockThreshold;
   bool notificationActive;
+  int? advanceReminderMinutes;
   String? scheduleType;
   String? frequency;
   int? intervalHours;
@@ -57,6 +58,7 @@ class HiveMedicine {
     this.currentPillCount,
     this.lowStockThreshold,
     this.notificationActive = true,
+    this.advanceReminderMinutes,
     this.scheduleType,
     this.frequency,
     this.intervalHours,
@@ -108,6 +110,7 @@ class HiveMedicine {
     'currentPillCount': currentPillCount,
     'lowStockThreshold': lowStockThreshold,
     'notificationActive': notificationActive,
+    'advanceReminderMinutes': advanceReminderMinutes,
     'scheduleType': scheduleType,
     'frequency': frequency,
     'intervalHours': intervalHours,
@@ -150,6 +153,7 @@ class HiveMedicine {
     currentPillCount: m['currentPillCount'] as int?,
     lowStockThreshold: m['lowStockThreshold'] as int?,
     notificationActive: m['notificationActive'] as bool? ?? true,
+    advanceReminderMinutes: _parseNullableInt(m['advanceReminderMinutes']),
     scheduleType: m['scheduleType'] as String?,
     frequency: m['frequency'] as String?,
     intervalHours: m['intervalHours'] as int?,
@@ -193,6 +197,7 @@ class HiveMedicine {
     initialPillCount: initialQuantity ?? initialStock,
     lowStockThreshold: lowStockThreshold,
     notificationActive: notificationActive,
+    advanceReminderMinutes: advanceReminderMinutes,
     scheduleType: scheduleType,
     frequency: frequency ?? '',
     intervalHours: intervalHours,
@@ -244,6 +249,7 @@ class HiveMedicine {
     currentPillCount: m.currentPillCount ?? m.currentQuantity,
     lowStockThreshold: m.lowStockThreshold,
     notificationActive: m.notificationActive,
+    advanceReminderMinutes: m.advanceReminderMinutes,
     scheduleType: m.scheduleType,
     frequency: m.frequency,
     intervalHours: m.intervalHours,

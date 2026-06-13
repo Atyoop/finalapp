@@ -390,5 +390,19 @@
   "interactionsCount": "Interactions: {count}",
   "medicationDetails": "Medication details",
   "fullInteractionDetails": "Full interaction details",
-  "dosageFormLabel": "Dosage form"
+  "dosageFormLabel": "Dosage form",
+  "advanceReminder": "Advance Reminder",
+  "advanceReminderMinutesBefore": "{minutes} minutes before",
+  "customMinutes": "Custom minutes",
+  "customMinutesInputHint": "Enter custom minutes",
+  "advanceReminderMinutesInvalid": "Please enter a valid number of minutes.",
+  "snoozeForMinutes": "Snooze for {minutes} minutes",
+  "chooseAnotherTime": "Choose another time",
+  "invalidTimeSelected": "Please select a future time",
+  "alertTakenConfirmation": "✓ Dose Taken",
+  "alertSkippedConfirmation": "✓ Dose Skipped",
+  "alertSnoozeReminder": "⏰ Snooze Reminder",
+  "alertAdvanceReminder": "🔔 Advance Reminder",
+  "alertDoseReminder": "🔔 Dose Reminder",
+  "alertMissedDose": "⚠ Missed Dose"
 }

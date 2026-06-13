@@ -390,5 +390,19 @@
   "interactionsCount": "التداخلات: {count}",
   "medicationDetails": "تفاصيل الدواء",
   "fullInteractionDetails": "تفاصيل التداخلات كاملة",
-  "dosageFormLabel": "شكل الدواء"
+  "dosageFormLabel": "شكل الدواء",
+  "advanceReminder": "تذكير مسبق",
+  "advanceReminderMinutesBefore": "قبل {minutes} دقيقة",
+  "customMinutes": "دقائق مخصصة",
+  "customMinutesInputHint": "أدخل عدد الدقائق",
+  "advanceReminderMinutesInvalid": "يرجى إدخال عدد دقائق صحيح.",
+  "snoozeForMinutes": "تأجيل لمدة {minutes} دقيقة",
+  "chooseAnotherTime": "اختر وقتًا آخر",
+  "invalidTimeSelected": "يرجى تحديد وقت في المستقبل",
+  "alertTakenConfirmation": "✓ تم أخذ الجرعة",
+  "alertSkippedConfirmation": "✓ تم تخطي الجرعة",
+  "alertSnoozeReminder": "⏰ تذكير التأجيل",
+  "alertAdvanceReminder": "🔔 تذكير مسبق",
+  "alertDoseReminder": "🔔 تذكير الجرعة",
+  "alertMissedDose": "⚠ جرعة فائتة"
 }
