@@ -175,6 +175,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   bool _notificationActive = true;
   int? _advanceReminderMinutes;
   bool _advanceReminderEnabled = false;
+  bool _isCustomAdvanceReminder = false;
   late TextEditingController _customAdvanceReminderMinutesController;
 
   // UI state
@@ -269,6 +270,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
           ? initialMinutes.toString()
           : '',
     );
+    _isCustomAdvanceReminder = initialMinutes != null && !isPredefined;
   }
 
   @override
@@ -1542,8 +1544,10 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                                 _advanceReminderEnabled = val;
                                 if (!val) {
                                   _advanceReminderMinutes = null;
+                                  _isCustomAdvanceReminder = false;
                                 } else {
                                   _advanceReminderMinutes = 15;
+                                  _isCustomAdvanceReminder = false;
                                 }
                               });
                             },
@@ -1728,7 +1732,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
   Widget _buildAdvanceReminderOptions() {
     final options = [15, 30, 45];
-    final isCustom = _advanceReminderMinutes != null && !options.contains(_advanceReminderMinutes);
+    final isCustom = _isCustomAdvanceReminder;
     final lang = context.read<LanguageProvider>().currentLanguage;
 
     return Column(
@@ -1755,6 +1759,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   if (selected) {
                     setState(() {
                       _advanceReminderMinutes = optionVal;
+                      _isCustomAdvanceReminder = false;
                     });
                   }
                 },
@@ -1772,6 +1777,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
               onSelected: (selected) {
                 if (selected) {
                   setState(() {
+                    _isCustomAdvanceReminder = true;
                     final parsedCustom = int.tryParse(_customAdvanceReminderMinutesController.text);
                     _advanceReminderMinutes = (parsedCustom != null && parsedCustom > 0) ? parsedCustom : 60;
                     _customAdvanceReminderMinutesController.text = _advanceReminderMinutes.toString();

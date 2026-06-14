@@ -509,53 +509,6 @@ class ProfileScreen extends StatelessWidget {
                   }
                 },
               ),
-              const Divider(height: 1, indent: 56, color: Color(0xFFEEEEEE)),
-              _buildTile(
-                icon: Icons.sync_outlined,
-                title: context.l10n.t('refreshMedicationNotifications'),
-                subtitle: context.l10n.t('fetchRescheduleNotifications'),
-                onTap: () async {
-                  final userProvider = context.read<UserProvider>();
-                  if (userProvider.token != null) {
-                    final notificationsProvider = context
-                        .read<NotificationsProvider>();
-                    final success = await notificationsProvider
-                        .fetchAndScheduleNotifications(userProvider.token!);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            success
-                                ? context.l10n.t('notificationsRefreshed')
-                                : context.l10n.t(
-                                    'errorRefreshingNotifications',
-                                  ),
-                          ),
-                        ),
-                      );
-                    }
-                  }
-                },
-              ),
-              const Divider(height: 1, indent: 56, color: Color(0xFFEEEEEE)),
-              _buildTile(
-                icon: Icons.close_outlined,
-                title: context.l10n.t('cancelAllNotifications'),
-                subtitle: context.l10n.t('clearScheduledNotifications'),
-                isDestructive: true,
-                onTap: () {
-                  context
-                      .read<NotificationsProvider>()
-                      .cancelAllNotifications();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        context.l10n.t('allNotificationsCancelled'),
-                      ),
-                    ),
-                  );
-                },
-              ),
             ]),
 
             const SizedBox(height: 24),
