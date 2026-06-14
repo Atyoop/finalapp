@@ -889,6 +889,8 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
                         icon: Icon(
                           Directionality.of(context) == TextDirection.rtl
                               ? Icons.chevron_right
@@ -903,6 +905,8 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       ),
                       ..._weeklyDates.map((date) => _buildDayItem(date)),
                       IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
                         icon: Icon(
                           Directionality.of(context) == TextDirection.rtl
                               ? Icons.chevron_left
@@ -1219,73 +1223,77 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ? weekdaysAr[date.weekday - 1]
         : weekdaysEn[date.weekday - 1];
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          setState(() => _selectedDate = date);
-          _fetchSchedulesForDate(date);
-        },
-        borderRadius: BorderRadius.circular(12),
-        splashColor: AppColors.primaryTeal.withValues(alpha: 0.15),
-        highlightColor: AppColors.primaryTeal.withValues(alpha: 0.08),
-        child: Ink(
-          width: 42,
-          height: 60,
-          decoration: isSelected
-              ? BoxDecoration(
-                  color: AppColors.primaryTeal,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primaryTeal.withValues(alpha: 0.25),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                )
-              : isToday
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              setState(() => _selectedDate = date);
+              _fetchSchedulesForDate(date);
+            },
+            borderRadius: BorderRadius.circular(12),
+            splashColor: AppColors.primaryTeal.withValues(alpha: 0.15),
+            highlightColor: AppColors.primaryTeal.withValues(alpha: 0.08),
+            child: Ink(
+              height: 60,
+              decoration: isSelected
                   ? BoxDecoration(
-                      color: Colors.transparent,
-                      border: Border.all(
-                        color: AppColors.primaryTeal.withValues(alpha: 0.5),
-                        width: 1.5,
-                      ),
+                      color: AppColors.primaryTeal,
                       borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primaryTeal.withValues(alpha: 0.25),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     )
-                  : BoxDecoration(
-                      color: Colors.transparent,
-                      borderRadius: BorderRadius.circular(12),
+                  : isToday
+                      ? BoxDecoration(
+                          color: Colors.transparent,
+                          border: Border.all(
+                            color: AppColors.primaryTeal.withValues(alpha: 0.5),
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        )
+                      : BoxDecoration(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    weekdayLabel,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isSelected
+                          ? Colors.white
+                          : isToday
+                              ? AppColors.primaryTeal
+                              : AppColors.textGrey,
+                      fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.normal,
                     ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                weekdayLabel,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: isSelected
-                      ? Colors.white
-                      : isToday
-                          ? AppColors.primaryTeal
-                          : AppColors.textGrey,
-                  fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.normal,
-                ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "${date.day}",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isSelected
+                          ? Colors.white
+                          : isToday
+                              ? AppColors.primaryTeal
+                              : AppColors.textDark,
+                      fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                "${date.day}",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: isSelected
-                      ? Colors.white
-                      : isToday
-                          ? AppColors.primaryTeal
-                          : AppColors.textDark,
-                  fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.w600,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
