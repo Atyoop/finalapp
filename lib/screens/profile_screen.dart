@@ -7,6 +7,10 @@ import '../providers/user_provider.dart';
 import '../providers/notifications_provider.dart';
 import '../providers/premium_provider.dart';
 import '../providers/language_provider.dart';
+import '../providers/medicine_provider.dart';
+import '../providers/saved_medicines_provider.dart';
+import '../providers/alerts_provider.dart';
+import '../providers/support_provider.dart';
 
 import 'edit_profile_screen.dart';
 import 'notification_setting_screen.dart';
@@ -600,17 +604,51 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
               Navigator.pop(context);
-              Navigator.pushAndRemoveUntil(
-                context,
+
+              // Capture states and providers before the async gap
+              final navigator = Navigator.of(context);
+              final messenger = ScaffoldMessenger.of(context);
+              final loggedOutText = context.l10n.t('loggedOut');
+
+              UserProvider? userProv;
+              MedicineProvider? medProv;
+              SavedMedicinesProvider? savedMedProv;
+              AlertsProvider? alertsProv;
+              NotificationsProvider? notifProv;
+              PremiumProvider? premiumProv;
+              SupportProvider? supportProv;
+
+              try { userProv = context.read<UserProvider>(); } catch (_) {}
+              try { medProv = context.read<MedicineProvider>(); } catch (_) {}
+              try { savedMedProv = context.read<SavedMedicinesProvider>(); } catch (_) {}
+              try { alertsProv = context.read<AlertsProvider>(); } catch (_) {}
+              try { notifProv = context.read<NotificationsProvider>(); } catch (_) {}
+              try { premiumProv = context.read<PremiumProvider>(); } catch (_) {}
+              try { supportProv = context.read<SupportProvider>(); } catch (_) {}
+
+              // Perform logout cleanup across all providers
+              try { userProv?.logout(); } catch (_) {}
+              try { medProv?.clearLocalData(); } catch (_) {}
+              try { savedMedProv?.clear(); } catch (_) {}
+              try { alertsProv?.clear(); } catch (_) {}
+              try {
+                if (notifProv != null) {
+                  await notifProv.clearAll();
+                }
+              } catch (_) {}
+              try { premiumProv?.clear(); } catch (_) {}
+              try { supportProv?.clear(); } catch (_) {}
+
+              navigator.pushAndRemoveUntil(
                 MaterialPageRoute(builder: (_) => const WelcomeScreen()),
                 (r) => false,
               );
-              ScaffoldMessenger.of(context).showSnackBar(
+              messenger.showSnackBar(
                 SnackBar(
-                  content: Text(context.l10n.t('loggedOut')),
+                  content: Text(loggedOutText),
                   backgroundColor: AppColors.primaryTeal,
                 ),
               );

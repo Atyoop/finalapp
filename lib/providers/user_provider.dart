@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
+import '../services/medicine_storage_service.dart';
 
 class UserProvider extends ChangeNotifier {
   String _name = 'Omar H.';
@@ -6,6 +8,38 @@ class UserProvider extends ChangeNotifier {
   int _selectedAvatar = 0;
   String? _token;
   String? _userId;
+
+  UserProvider() {
+    _loadPersistedSession();
+  }
+
+  void _loadPersistedSession() {
+    final storedToken = MedicineStorageService.getSetting<String>('auth_token');
+    final storedUserId = MedicineStorageService.getSetting<String>('auth_user_id');
+    
+    if (storedToken != null && storedToken.isNotEmpty) {
+      try {
+        if (JwtDecoder.isExpired(storedToken)) {
+          debugPrint('[UserProvider] ⏳ Stored token is expired, clearing.');
+          _clearSessionStorage();
+        } else {
+          _token = storedToken;
+          _userId = storedUserId;
+          debugPrint('[UserProvider] 🔑 Stored token loaded successfully');
+        }
+      } catch (e) {
+        debugPrint('[UserProvider] ❌ Error decoding token: $e');
+        _clearSessionStorage();
+      }
+    }
+  }
+
+  void _clearSessionStorage() {
+    _token = null;
+    _userId = null;
+    MedicineStorageService.removeSetting('auth_token');
+    MedicineStorageService.removeSetting('auth_user_id');
+  }
 
   static const List<IconData> avatarIcons = [
     Icons.face,
@@ -56,17 +90,23 @@ class UserProvider extends ChangeNotifier {
 
   void setToken(String token) {
     _token = token;
+    MedicineStorageService.saveSetting('auth_token', token);
     notifyListeners();
   }
 
   void setUserId(String id) {
     _userId = id;
+    MedicineStorageService.saveSetting('auth_user_id', id);
     notifyListeners();
   }
 
   void logout() {
     _token = null;
     _userId = null;
+    MedicineStorageService.removeSetting('auth_token');
+    MedicineStorageService.removeSetting('auth_user_id');
+    MedicineStorageService.clearAllMedicines();
+    MedicineStorageService.clearAllReminders();
     notifyListeners();
   }
 

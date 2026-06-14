@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/medicine.dart';
 import 'language_service.dart';
+import '../main.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Add Medicine Response
@@ -340,7 +341,11 @@ class ApiException implements Exception {
   final int statusCode;
   final String responseBody;
 
-  ApiException(this.message, this.statusCode, this.responseBody);
+  ApiException(this.message, this.statusCode, this.responseBody) {
+    if (statusCode == 401) {
+      triggerGlobalLogout();
+    }
+  }
 
   @override
   String toString() => '$message (HTTP $statusCode): $responseBody';

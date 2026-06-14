@@ -262,4 +262,10 @@ class NotificationsProvider extends ChangeNotifier {
     }
     return await ReminderStorageService.toggleReminder(medicineId, isActive);
   }
+
+  Future<void> clearAll() async {
+    _schedules.clear();
+    await _notificationService.cancelAllNotifications();
+    notifyListeners();
+  }
 }

@@ -404,5 +404,6 @@
   "alertSnoozeReminder": "⏰ تذكير التأجيل",
   "alertAdvanceReminder": "🔔 تذكير مسبق",
   "alertDoseReminder": "🔔 تذكير الجرعة",
-  "alertMissedDose": "⚠ جرعة فائتة"
+  "alertMissedDose": "⚠ جرعة فائتة",
+  "sessionExpired": "انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى."
 }

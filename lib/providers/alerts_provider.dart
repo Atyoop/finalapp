@@ -219,4 +219,10 @@ class AlertsProvider extends ChangeNotifier {
   Future<void> refreshUnreadCount(String token) async {
     await fetchUnreadCount(token);
   }
+
+  void clear() {
+    _alerts.clear();
+    _unreadCount = 0;
+    _safeNotifyListeners();
+  }
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:final88/screens/auth_screens.dart';
+import 'screens/home.dart';
 import 'services/hive_service.dart';
 
 import 'package:flutter/material.dart';
@@ -15,6 +16,8 @@ import 'providers/premium_provider.dart';
 import 'services/language_service.dart';
 import 'providers/language_provider.dart';
 import 'l10n/app_localizations.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   // Initialize Flutter binding
@@ -90,6 +93,7 @@ class DrugSafeApp extends StatelessWidget {
     return Consumer<LanguageProvider>(
       builder: (context, languageProvider, child) {
         return MaterialApp(
+          navigatorKey: navigatorKey,
           onGenerateTitle: (context) => context.l10n.t('appName'),
           debugShowCheckedModeBanner: false,
           locale: Locale(languageProvider.currentLanguage),
@@ -129,10 +133,19 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     Timer(const Duration(seconds: 3), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-      );
+      if (!mounted) return;
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      if (userProvider.isLoggedIn) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MainNavScreen()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+        );
+      }
     });
   }
 
@@ -359,6 +372,45 @@ class WelcomeScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+void triggerGlobalLogout() {
+  final context = navigatorKey.currentContext;
+  if (context != null) {
+    try {
+      Provider.of<UserProvider>(context, listen: false).logout();
+    } catch (_) {}
+    try {
+      Provider.of<MedicineProvider>(context, listen: false).clearLocalData();
+    } catch (_) {}
+    try {
+      Provider.of<SavedMedicinesProvider>(context, listen: false).clear();
+    } catch (_) {}
+    try {
+      Provider.of<AlertsProvider>(context, listen: false).clear();
+    } catch (_) {}
+    try {
+      Provider.of<NotificationsProvider>(context, listen: false).clearAll();
+    } catch (_) {}
+    try {
+      Provider.of<PremiumProvider>(context, listen: false).clear();
+    } catch (_) {}
+    try {
+      Provider.of<SupportProvider>(context, listen: false).clear();
+    } catch (_) {}
+
+    navigatorKey.currentState?.pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+      (route) => false,
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(context.l10n.t('sessionExpired')),
+        backgroundColor: Colors.red,
       ),
     );
   }

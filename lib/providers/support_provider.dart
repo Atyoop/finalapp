@@ -105,4 +105,11 @@ class SupportProvider extends ChangeNotifier {
     _error = null;
     _safeNotifyListeners();
   }
+
+  void clear() {
+    _tickets.clear();
+    _error = null;
+    _successMessage = null;
+    _safeNotifyListeners();
+  }
 }

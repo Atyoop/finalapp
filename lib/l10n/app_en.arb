@@ -404,5 +404,6 @@
   "alertSnoozeReminder": "⏰ Snooze Reminder",
   "alertAdvanceReminder": "🔔 Advance Reminder",
   "alertDoseReminder": "🔔 Dose Reminder",
-  "alertMissedDose": "⚠ Missed Dose"
+  "alertMissedDose": "⚠ Missed Dose",
+  "sessionExpired": "Your session has expired. Please sign in again."
 }

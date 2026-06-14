@@ -218,4 +218,10 @@ class MedicineProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  void clearLocalData() {
+    _medicines.clear();
+    MedicineStorageService.clearAllMedicines();
+    notifyListeners();
+  }
 }

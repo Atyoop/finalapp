@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/alert.dart';
 import 'language_service.dart';
+import '../main.dart';
 
 /// Service class for all Alerts API calls
 class AlertsService {
@@ -188,7 +189,11 @@ class ApiException implements Exception {
   final int statusCode;
   final String body;
 
-  ApiException(this.message, this.statusCode, this.body);
+  ApiException(this.message, this.statusCode, this.body) {
+    if (statusCode == 401) {
+      triggerGlobalLogout();
+    }
+  }
 
   @override
   String toString() => 'ApiException: $message (Status: $statusCode)';

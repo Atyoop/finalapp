@@ -173,6 +173,16 @@ class MedicineStorageService {
     }
   }
 
+  static Future<bool> removeSetting(String key) async {
+    try {
+      await HiveService.settingsBox.delete(key);
+      return true;
+    } catch (e) {
+      debugPrint('[MedicineStorage] ❌ Error removing setting $key: $e');
+      return false;
+    }
+  }
+
   // ───── Stock helpers ─────
 
   static Future<bool> updateStock(String id, int newCount) async {

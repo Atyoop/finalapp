@@ -8,7 +8,7 @@ class HiveService {
 
   static Box<Map>? _medicinesBox;
   static Box<Map>? _remindersBox;
-  static Box<Map>? _settingsBox;
+  static Box? _settingsBox;
 
   static Box<Map> get medicinesBox {
     if (_medicinesBox == null || !_medicinesBox!.isOpen) {
@@ -28,7 +28,7 @@ class HiveService {
     return _remindersBox!;
   }
 
-  static Box<Map> get settingsBox {
+  static Box get settingsBox {
     if (_settingsBox == null || !_settingsBox!.isOpen) {
       throw StateError(
         'Settings box not initialized. Call HiveService.init() first.',
@@ -42,7 +42,7 @@ class HiveService {
       await Hive.initFlutter();
       _medicinesBox = await Hive.openBox<Map>(_medicinesBoxName);
       _remindersBox = await Hive.openBox<Map>(_remindersBoxName);
-      _settingsBox = await Hive.openBox<Map>(_settingsBoxName);
+      _settingsBox = await Hive.openBox(_settingsBoxName);
       debugPrint(
         '[HiveService] ✅ Initialized (medicines: ${_medicinesBox!.length}, reminders: ${_remindersBox!.length})',
       );

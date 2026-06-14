@@ -113,4 +113,11 @@ class PremiumProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
   }
+
+  void clear() {
+    _status = null;
+    _error = null;
+    _successMessage = null;
+    notifyListeners();
+  }
 }

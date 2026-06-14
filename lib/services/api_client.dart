@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../main.dart';
 
 /// Centralized Dio client for the app.
 /// Use `ApiClient.setToken(token)` to set Authorization header.
@@ -17,6 +18,16 @@ class ApiClient {
             responseHeader: true,
             responseBody: true,
             error: true,
+          ),
+        )
+        ..interceptors.add(
+          InterceptorsWrapper(
+            onError: (DioException e, handler) {
+              if (e.response?.statusCode == 401) {
+                triggerGlobalLogout();
+              }
+              return handler.next(e);
+            },
           ),
         );
 
