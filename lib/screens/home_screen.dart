@@ -840,18 +840,49 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ),
                   const SizedBox(height: 32),
 
-                  // ── Weekly Calendar label ──
-                  Text(
-                    _isSelectedDateToday
-                        ? context.l10n.t('todayDate', {
-                            'date': _formatDisplayDate(_selectedDate),
-                          })
-                        : _formatDisplayDate(_selectedDate, includeYear: true),
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textDark,
-                    ),
+                   // ── Weekly Calendar label & Back to Today ──
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _isSelectedDateToday
+                            ? context.l10n.t('todayDate', {
+                                'date': _formatDisplayDate(_selectedDate),
+                              })
+                            : _formatDisplayDate(_selectedDate, includeYear: true),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                      if (!_isSelectedDateToday)
+                        TextButton.icon(
+                          onPressed: _resetToToday,
+                          icon: Icon(
+                            Icons.today_rounded,
+                            size: 16,
+                            color: AppColors.primaryTeal,
+                          ),
+                          label: Text(
+                            context.l10n.t('today'),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.primaryTeal,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          style: TextButton.styleFrom(
+                            backgroundColor: AppColors.primaryTeal.withValues(alpha: 0.1),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -1163,45 +1194,99 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  void _resetToToday() {
+    final now = DateTime.now();
+    setState(() {
+      _selectedDate = now;
+      _startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+      _weeklyDates = List.generate(
+        7,
+        (index) => _startOfWeek.add(Duration(days: index)),
+      );
+    });
+    _fetchSchedulesForDate(now);
+  }
+
   Widget _buildDayItem(DateTime date) {
-    final isSelected =
-        date.day == _selectedDate.day && date.month == _selectedDate.month;
-    final weekdays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-    return GestureDetector(
-      onTap: () {
-        setState(() => _selectedDate = date);
-        _fetchSchedulesForDate(date);
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: isSelected
-            ? BoxDecoration(
-                border: Border.all(
-                  color: AppColors.primaryTeal.withValues(alpha: 0.3),
+    final isSelected = date.day == _selectedDate.day &&
+        date.month == _selectedDate.month &&
+        date.year == _selectedDate.year;
+    final isToday = _isToday(date);
+    
+    final weekdaysEn = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    final weekdaysAr = ['ن', 'ث', 'ر', 'خ', 'ج', 'س', 'ح'];
+    final weekdayLabel = _currentLanguage == 'ar'
+        ? weekdaysAr[date.weekday - 1]
+        : weekdaysEn[date.weekday - 1];
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          setState(() => _selectedDate = date);
+          _fetchSchedulesForDate(date);
+        },
+        borderRadius: BorderRadius.circular(12),
+        splashColor: AppColors.primaryTeal.withValues(alpha: 0.15),
+        highlightColor: AppColors.primaryTeal.withValues(alpha: 0.08),
+        child: Ink(
+          width: 42,
+          height: 60,
+          decoration: isSelected
+              ? BoxDecoration(
+                  color: AppColors.primaryTeal,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primaryTeal.withValues(alpha: 0.25),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                )
+              : isToday
+                  ? BoxDecoration(
+                      color: Colors.transparent,
+                      border: Border.all(
+                        color: AppColors.primaryTeal.withValues(alpha: 0.5),
+                        width: 1.5,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    )
+                  : BoxDecoration(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                weekdayLabel,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isSelected
+                      ? Colors.white
+                      : isToday
+                          ? AppColors.primaryTeal
+                          : AppColors.textGrey,
+                  fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.normal,
                 ),
-                borderRadius: BorderRadius.circular(12),
-              )
-            : null,
-        child: Column(
-          children: [
-            Text(
-              weekdays[date.weekday - 1],
-              style: TextStyle(
-                fontSize: 12,
-                color: isSelected ? AppColors.textDark : AppColors.textGrey,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              "${date.day}",
-              style: TextStyle(
-                fontSize: 14,
-                color: isSelected ? AppColors.textDark : AppColors.textGrey,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              const SizedBox(height: 4),
+              Text(
+                "${date.day}",
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isSelected
+                      ? Colors.white
+                      : isToday
+                          ? AppColors.primaryTeal
+                          : AppColors.textDark,
+                  fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.w600,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
