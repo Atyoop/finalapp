@@ -1,7 +1,8 @@
-import 'dart:async';
 import 'package:final88/screens/auth_screens.dart';
 import 'screens/home.dart';
 import 'services/hive_service.dart';
+import 'services/medicine_storage_service.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -40,11 +41,28 @@ void main() async {
   // Reschedule any local reminders after app start / boot
   await notificationsProvider.rescheduleAllAfterBoot();
 
+  // Automatically fetch notification schedules if a valid stored session exists.
+  // Awaited so that timezone is guaranteed initialized before zonedSchedule runs.
+  final String? token = MedicineStorageService.getSetting<String>('auth_token');
+  if (token != null && token.isNotEmpty) {
+    try {
+      if (!JwtDecoder.isExpired(token)) {
+        debugPrint('[Startup] 🔑 Stored token valid — fetching notification schedules...');
+        await notificationsProvider.fetchAndScheduleNotifications(token);
+        debugPrint('[Startup] ✅ Startup notification schedule complete');
+      } else {
+        debugPrint('[Startup] ⏳ Stored token is expired, skipping notifications fetch.');
+      }
+    } catch (e) {
+      debugPrint('[Startup] ❌ Error fetching notifications on startup: $e');
+    }
+  }
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => LanguageProvider()),
-        ChangeNotifierProvider(create: (_) => MedicineProvider()),
+        ChangeNotifierProvider(create: (_) => MedicineProvider()..onMedicationChanged = (token) => notificationsProvider.refreshNotifications(token)),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => SavedMedicinesProvider()),
         ChangeNotifierProvider(create: (_) => AlertsProvider()),
@@ -132,7 +150,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(seconds: 3), () {
+    Future.delayed(const Duration(seconds: 3), () {
       if (!mounted) return;
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       if (userProvider.isLoggedIn) {

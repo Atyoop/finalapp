@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../main.dart'; // Ù„Ø§Ø³ØªÙŠØ±Ø§Ø¯ Ø§Ù„Ø£Ù„ÙˆØ§Ù† ÙˆØ§Ù„ÙˆØ¯Ø¬Øª
 import '../providers/user_provider.dart';
+import '../providers/notifications_provider.dart';
 import 'home.dart'; // MainNavScreen
 
 // -----------------------------------------------------------------------------
@@ -580,6 +581,7 @@ class _LoginScreenState extends State<LoginScreen> {
             if (userId != null && userId.isNotEmpty) {
               context.read<UserProvider>().setUserId(userId);
             }
+            unawaited(context.read<NotificationsProvider>().fetchAndScheduleNotifications(token));
           } catch (_) {}
         }
 

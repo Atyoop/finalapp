@@ -8,6 +8,7 @@ class MedicineProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   bool _loadedFromLocal = false;
+  void Function(String token)? onMedicationChanged;
 
   List<Medicine> get medicines => _medicines;
   bool get isLoading => _isLoading;
@@ -128,6 +129,7 @@ class MedicineProvider extends ChangeNotifier {
       _medicines.add(medicine);
       MedicineStorageService.saveMedicine(medicine);
       _error = null;
+      onMedicationChanged?.call(token);
       return response;
     } catch (e) {
       _error = e.toString();
@@ -152,6 +154,7 @@ class MedicineProvider extends ChangeNotifier {
       }
       MedicineStorageService.saveMedicine(updated);
       _error = null;
+      onMedicationChanged?.call(token);
       return true;
     } catch (e) {
       _error = e.toString();
@@ -189,6 +192,7 @@ class MedicineProvider extends ChangeNotifier {
       _medicines.removeWhere((m) => m.id == id);
       MedicineStorageService.deleteMedicine(id);
       _error = null;
+      onMedicationChanged?.call(token);
       return true;
     } catch (e) {
       _error = e.toString();
@@ -209,6 +213,7 @@ class MedicineProvider extends ChangeNotifier {
       _medicines.clear();
       MedicineStorageService.clearAllMedicines();
       _error = null;
+      onMedicationChanged?.call(token);
       return true;
     } catch (e) {
       _error = e.toString();

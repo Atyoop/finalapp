@@ -491,19 +491,22 @@ class ProfileScreen extends StatelessWidget {
               const Divider(height: 1, indent: 56, color: Color(0xFFEEEEEE)),
               _buildTile(
                 icon: Icons.schedule_outlined,
-                title: context.l10n.t('testDelayedNotification'),
-                subtitle: context.l10n.t('sendDelayedNotification'),
-                onTap: () {
-                  context
+                title: '${context.l10n.t('testDelayedNotification')} (30s)',
+                subtitle: '${context.l10n.t('sendDelayedNotification')} (30s delay)',
+                onTap: () async {
+                  await context
                       .read<NotificationsProvider>()
                       .testNotificationAfterDelay();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        context.l10n.t('delayedNotificationScheduled'),
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Test notification scheduled for 30s from now. Please close/swipe away the app completely now!',
+                        ),
+                        duration: Duration(seconds: 5),
                       ),
-                    ),
-                  );
+                    );
+                  }
                 },
               ),
               const Divider(height: 1, indent: 56, color: Color(0xFFEEEEEE)),

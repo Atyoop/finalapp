@@ -64,23 +64,45 @@ class TodaySchedule {
       };
     }).toList();
 
+    DateTime parseUtc(String str) {
+      if (str.isEmpty) return DateTime.now();
+      String normalized = str;
+      if (!str.endsWith('Z')) {
+        final tIndex = str.indexOf('T');
+        final timePart = tIndex != -1 ? str.substring(tIndex) : str;
+        if (!timePart.contains('+') && !timePart.contains('-')) {
+          normalized = '${str}Z';
+        }
+      }
+      return DateTime.tryParse(normalized) ?? DateTime.now();
+    }
+
+    DateTime? parseUtcNullable(String str) {
+      if (str.isEmpty) return null;
+      String normalized = str;
+      if (!str.endsWith('Z')) {
+        final tIndex = str.indexOf('T');
+        final timePart = tIndex != -1 ? str.substring(tIndex) : str;
+        if (!timePart.contains('+') && !timePart.contains('-')) {
+          normalized = '${str}Z';
+        }
+      }
+      return DateTime.tryParse(normalized);
+    }
+
     return TodaySchedule(
       id: j['id'] as int? ?? 0,
       userMedId: j['userMedId'] as int? ?? 0,
       medId: j['medId'] as int? ?? 0,
       medName: (j['medName'] ?? '').toString(),
-      scheduledAt:
-          DateTime.tryParse(j['scheduledAt']?.toString() ?? '') ??
-          DateTime.now(),
-      notificationTime:
-          DateTime.tryParse(j['notificationTime']?.toString() ?? '') ??
-          DateTime.now(),
+      scheduledAt: parseUtc(j['scheduledAt']?.toString() ?? ''),
+      notificationTime: parseUtc(j['notificationTime']?.toString() ?? ''),
       status: (j['status'] ?? 'Pending').toString(),
       reminderSent: j['reminderSent'] as bool? ?? false,
       snoozeCount: j['snoozeCount'] as int? ?? 0,
       hasInteractions: j['hasInteractions'] as bool? ?? false,
       interactions: interactions,
-      snoozedUntil: DateTime.tryParse(j['snoozedUntil']?.toString() ?? ''),
+      snoozedUntil: parseUtcNullable(j['snoozedUntil']?.toString() ?? ''),
     );
   }
 

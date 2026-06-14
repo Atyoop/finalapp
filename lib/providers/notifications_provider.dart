@@ -42,9 +42,10 @@ class NotificationsProvider extends ChangeNotifier {
       // Cancel all old notifications first
       await _notificationService.cancelAllNotifications();
 
-      // Schedule new notifications for each pending schedule
+      // Schedule new notifications for each pending or snoozed schedule
       for (final schedule in _schedules) {
-        if (schedule.status == 'Pending') {
+        final statusLower = schedule.status.toLowerCase();
+        if (statusLower == 'pending' || statusLower == 'snoozed') {
           await _notificationService.scheduleNotifications(schedule);
         }
       }
@@ -95,7 +96,7 @@ class NotificationsProvider extends ChangeNotifier {
   Future<void> testNotificationAfterDelay() async {
     try {
       await _notificationService.testNotificationAfterDelay(
-        const Duration(seconds: 10),
+        const Duration(seconds: 30),
       );
     } catch (e) {
       _error = e.toString();

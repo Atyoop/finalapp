@@ -54,14 +54,30 @@
             android:name="flutterEmbedding"
             android:value="2" />
         
-        <!-- Broadcast receiver to reschedule notifications after device boot -->
+        <!-- Broadcast receiver to reschedule notifications after device boot.
+             NOTE: No android:permission attribute here — that would block the
+             Android system from delivering BOOT_COMPLETED (the system does not
+             hold RECEIVE_BOOT_COMPLETED). The uses-permission tag above grants
+             the app permission to receive the broadcast. -->
         <receiver
             android:name="com.example.final88.NotificationBootReceiver"
-            android:exported="true"
-            android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
-            <intent-filter>
+            android:exported="true">
+            <intent-filter android:priority="999">
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
                 <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+        </receiver>
+
+        <!-- Receivers for scheduled notifications (required by flutter_local_notifications) -->
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
             </intent-filter>
         </receiver>
     </application>
