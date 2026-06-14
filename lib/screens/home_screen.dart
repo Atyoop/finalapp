@@ -962,32 +962,29 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   const SizedBox(height: 16),
 
                   // ── Filter Chips ──
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _filterChip(
-                          context.l10n.t('all'),
-                          _schedules.length,
-                          null,
-                        ),
-                        _filterChip(
-                          context.l10n.t('taken'),
-                          _countByStatus('taken'),
-                          'taken',
-                        ),
-                        _filterChip(
-                          context.l10n.t('missed'),
-                          _countByStatus('missed'),
-                          'missed',
-                        ),
-                        _filterChip(
-                          context.l10n.t('pending'),
-                          _countByStatus('pending'),
-                          'pending',
-                        ),
-                      ],
-                    ),
+                  Row(
+                    children: [
+                      _filterChip(
+                        context.l10n.t('all'),
+                        _schedules.length,
+                        null,
+                      ),
+                      _filterChip(
+                        context.l10n.t('taken'),
+                        _countByStatus('taken'),
+                        'taken',
+                      ),
+                      _filterChip(
+                        context.l10n.t('missed'),
+                        _countByStatus('missed'),
+                        'missed',
+                      ),
+                      _filterChip(
+                        context.l10n.t('pending'),
+                        _countByStatus('pending'),
+                        'pending',
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 24),
 
@@ -1081,46 +1078,61 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Widget _filterChip(String label, int count, String? status) {
     final isSelected = _filterStatus == status;
-    return GestureDetector(
-      onTap: () => setState(() => _filterStatus = status),
-      child: Container(
-        margin: const EdgeInsets.only(right: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryTeal : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? AppColors.primaryTeal : Colors.grey[300]!,
-          ),
-        ),
-        child: Row(
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? Colors.white : AppColors.textGrey,
-                fontWeight: FontWeight.bold,
-              ),
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _filterStatus = status),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primaryTeal : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isSelected ? AppColors.primaryTeal : Colors.grey[200]!,
             ),
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? Colors.white.withValues(alpha: 0.2)
-                    : AppColors.primaryTeal.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
               ),
-              child: Text(
-                "$count",
-                style: TextStyle(
-                  fontSize: 10,
-                  color: isSelected ? Colors.white : AppColors.primaryTeal,
-                  fontWeight: FontWeight.bold,
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : AppColors.textDark,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 10,
+                  ),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(width: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? Colors.white.withValues(alpha: 0.25)
+                      : AppColors.primaryTeal.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  "$count",
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: isSelected ? Colors.white : AppColors.primaryTeal,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
