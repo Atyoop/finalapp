@@ -123,6 +123,7 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isAr = Localizations.localeOf(context).languageCode == 'ar';
     return Scaffold(
       backgroundColor: AppColors.backgroundCream,
       body: SafeArea(
@@ -207,8 +208,11 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
                         height: double.infinity,
                         decoration: BoxDecoration(
                           color: AppColors.primaryTeal,
-                          borderRadius: BorderRadius.horizontal(
-                            right: Radius.circular(28),
+                          borderRadius: BorderRadius.only(
+                            topLeft: isAr ? const Radius.circular(28) : Radius.zero,
+                            bottomLeft: isAr ? const Radius.circular(28) : Radius.zero,
+                            topRight: isAr ? Radius.zero : const Radius.circular(28),
+                            bottomRight: isAr ? Radius.zero : const Radius.circular(28),
                           ),
                         ),
                         child: const Icon(

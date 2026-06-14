@@ -213,13 +213,18 @@ class NotificationService {
 
       _debugPrint('📋 Scheduling ${schedule.medName} (status: ${schedule.status})...');
 
+      final isAr = LanguageService.isArabic;
       if (statusLower == 'snoozed') {
         // For snoozed doses, only schedule the snooze alarm at notificationTime (SnoozedUntil) if in the future
         if (localNotificationTime.isAfter(now)) {
           await _scheduleAlarm(
             id: doseId,
-            title: schedule.title.isNotEmpty ? schedule.title : '⏰ Snooze Reminder',
-            body: schedule.message.isNotEmpty ? schedule.message : 'Time to take ${schedule.medName}',
+            title: schedule.title.isNotEmpty
+                ? schedule.title
+                : (isAr ? '⏰ تذكير الغفوة' : '⏰ Snooze Reminder'),
+            body: schedule.message.isNotEmpty
+                ? schedule.message
+                : (isAr ? 'حان وقت تناول ${schedule.medName}' : 'Time to take ${schedule.medName}'),
             scheduledDate: localNotificationTime,
             payload: 'dose_${schedule.scheduleId}',
           );
@@ -239,8 +244,12 @@ class NotificationService {
           if (localNotificationTime.isAfter(now)) {
             await _scheduleAlarm(
               id: reminderId,
-              title: schedule.title.isNotEmpty ? schedule.title : '🔔 Advance Reminder',
-              body: schedule.message.isNotEmpty ? schedule.message : 'Reminder for ${schedule.medName}',
+              title: schedule.title.isNotEmpty
+                  ? schedule.title
+                  : (isAr ? '🔔 تذكير مسبق' : '🔔 Advance Reminder'),
+              body: schedule.message.isNotEmpty
+                  ? schedule.message
+                  : (isAr ? 'تذكير بدواء ${schedule.medName}' : 'Reminder for ${schedule.medName}'),
               scheduledDate: localNotificationTime,
               payload: 'reminder_${schedule.scheduleId}',
             );
@@ -250,7 +259,6 @@ class NotificationService {
           }
 
           // Since there is an advance reminder, the dose time alarm uses a default due title/body
-          final isAr = LanguageService.isArabic;
           final dueTitle = isAr ? '🔔 تذكير الجرعة' : '🔔 Dose Reminder';
           final dueBody = isAr 
               ? 'حان وقت تناول جرعتك من "${schedule.medName}"'
@@ -268,8 +276,14 @@ class NotificationService {
           // If no advance reminder (notificationTime == scheduledAt), schedule the single dose alarm with API text
           await _scheduleAlarm(
             id: doseId,
-            title: schedule.title.isNotEmpty ? schedule.title : '⏰ Dose Reminder Due Now',
-            body: schedule.message.isNotEmpty ? schedule.message : 'It\'s time to take your dose of ${schedule.medName}',
+            title: schedule.title.isNotEmpty
+                ? schedule.title
+                : (isAr ? '⏰ حان وقت تناول الدواء' : '⏰ Dose Reminder Due Now'),
+            body: schedule.message.isNotEmpty
+                ? schedule.message
+                : (isAr
+                    ? 'حان وقت تناول جرعتك من ${schedule.medName}'
+                    : 'It\'s time to take your dose of ${schedule.medName}'),
             scheduledDate: localScheduledAt,
             payload: 'dose_${schedule.scheduleId}',
           );

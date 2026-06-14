@@ -475,6 +475,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isAr = Localizations.localeOf(context).languageCode == 'ar';
     return Scaffold(
       backgroundColor: AppColors.backgroundCream,
       appBar: AppBar(
@@ -558,8 +559,11 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                           height: double.infinity,
                           decoration: BoxDecoration(
                             color: AppColors.primaryTeal,
-                            borderRadius: const BorderRadius.horizontal(
-                              right: Radius.circular(28),
+                            borderRadius: BorderRadius.only(
+                              topLeft: isAr ? const Radius.circular(28) : Radius.zero,
+                              bottomLeft: isAr ? const Radius.circular(28) : Radius.zero,
+                              topRight: isAr ? Radius.zero : const Radius.circular(28),
+                              bottomRight: isAr ? Radius.zero : const Radius.circular(28),
                             ),
                           ),
                           child: const Icon(

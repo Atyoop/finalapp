@@ -891,32 +891,26 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       IconButton(
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
-                        icon: Icon(
-                          Directionality.of(context) == TextDirection.rtl
-                              ? Icons.chevron_right
-                              : Icons.chevron_left,
+                        icon: const Icon(
+                          Icons.chevron_left,
                           color: AppColors.textGrey,
                           size: 24,
                         ),
                         onPressed: () {
-                          final isRtl = Directionality.of(context) == TextDirection.rtl;
-                          _navigateWeek(isRtl ? 1 : -1);
+                          _navigateWeek(-1);
                         },
                       ),
                       ..._weeklyDates.map((date) => _buildDayItem(date)),
                       IconButton(
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
-                        icon: Icon(
-                          Directionality.of(context) == TextDirection.rtl
-                              ? Icons.chevron_left
-                              : Icons.chevron_right,
+                        icon: const Icon(
+                          Icons.chevron_right,
                           color: AppColors.textGrey,
                           size: 24,
                         ),
                         onPressed: () {
-                          final isRtl = Directionality.of(context) == TextDirection.rtl;
-                          _navigateWeek(isRtl ? -1 : 1);
+                          _navigateWeek(1);
                         },
                       ),
                     ],
@@ -1360,28 +1354,35 @@ class _ScheduleCard extends StatelessWidget {
     return '$hour:$minute $period';
   }
 
-  String _getCountdown() {
+  String _getCountdown(bool isAr) {
     final now = DateTime.now();
     final scheduled = schedule.scheduledAt.toLocal();
 
     if (scheduled.isBefore(now)) {
       final diff = now.difference(scheduled);
-      if (diff.inHours > 0) return '${diff.inHours}h ago';
-      return '${diff.inMinutes}m ago';
+      if (diff.inHours > 0) {
+        return isAr ? 'منذ ${diff.inHours} ساعة' : '${diff.inHours}h ago';
+      }
+      return isAr ? 'منذ ${diff.inMinutes} دقيقة' : '${diff.inMinutes}m ago';
     }
 
     final diff = scheduled.difference(now);
     if (diff.inHours >= 24) {
-      return '${diff.inDays}d ${diff.inHours.remainder(24)}h';
+      return isAr
+          ? '${diff.inDays} يوم و ${diff.inHours.remainder(24)} ساعة'
+          : '${diff.inDays}d ${diff.inHours.remainder(24)}h';
     }
     if (diff.inHours > 0) {
-      return '${diff.inHours}h ${diff.inMinutes.remainder(60)}m';
+      return isAr
+          ? '${diff.inHours} ساعة و ${diff.inMinutes.remainder(60)} دقيقة'
+          : '${diff.inHours}h ${diff.inMinutes.remainder(60)}m';
     }
-    return '${diff.inMinutes}m';
+    return isAr ? '${diff.inMinutes} دقيقة' : '${diff.inMinutes}m';
   }
 
   @override
   Widget build(BuildContext context) {
+    final isAr = Provider.of<LanguageProvider>(context, listen: false).currentLanguage == 'ar';
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -1428,7 +1429,10 @@ class _ScheduleCard extends StatelessWidget {
                           children: [
                             // Name
                             Padding(
-                              padding: const EdgeInsets.only(right: 80),
+                              padding: EdgeInsets.only(
+                                right: isAr ? 0 : 80,
+                                left: isAr ? 80 : 0,
+                              ),
                               child: Text(
                                 schedule.medName,
                                 style: TextStyle(
@@ -1494,7 +1498,9 @@ class _ScheduleCard extends StatelessWidget {
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    'Snoozed ${schedule.snoozeCount}x',
+                                    isAr
+                                        ? 'غفوة ${schedule.snoozeCount}x'
+                                        : 'Snoozed ${schedule.snoozeCount}x',
                                     style: const TextStyle(
                                       fontSize: 12,
                                       color: Colors.orange,
@@ -1514,7 +1520,15 @@ class _ScheduleCard extends StatelessWidget {
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    schedule.status.toUpperCase(),
+                                    isAr
+                                        ? (schedule.status.toLowerCase() == 'taken'
+                                            ? 'تم التناول'
+                                            : (schedule.status.toLowerCase() == 'missed'
+                                                ? 'فائت'
+                                                : (schedule.status.toLowerCase() == 'skipped'
+                                                    ? 'تم التخطي'
+                                                    : schedule.status)))
+                                        : schedule.status.toUpperCase(),
                                     style: TextStyle(
                                       color: _statusColor,
                                       fontWeight: FontWeight.bold,
@@ -1583,7 +1597,8 @@ class _ScheduleCard extends StatelessWidget {
                   // ── Badges (top right) ──
                   Positioned(
                     top: 0,
-                    right: 0,
+                    left: isAr ? 0 : null,
+                    right: isAr ? null : 0,
                     child: Row(
                       children: [
                         // Interaction warning badge
@@ -1623,7 +1638,7 @@ class _ScheduleCard extends StatelessWidget {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                _getCountdown(),
+                                _getCountdown(isAr),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 11,
@@ -1665,7 +1680,9 @@ class _ScheduleCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Tap the warning badge to view interactions',
+                        isAr
+                            ? 'اضغط على شارة التحذير لعرض التداخلات'
+                            : 'Tap the warning badge to view interactions',
                         style: TextStyle(
                           fontSize: 11,
                           color: const Color(0xFFE65100),
@@ -1985,11 +2002,17 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              s.isSnoozed
-                                  ? (locale == 'ar' ? 'مؤجل' : 'SNOOZED')
-                                  : (s.isMissed || s.status.toLowerCase() == 'skipped')
-                                      ? (locale == 'ar' ? 'فائتة' : 'MISSED')
-                                      : s.status.toUpperCase(),
+                              locale == 'ar'
+                                  ? (s.isSnoozed
+                                      ? 'مؤجل'
+                                      : (s.status.toLowerCase() == 'skipped'
+                                          ? 'تم التخطي'
+                                          : (s.isMissed ? 'فائت' : 'تم التناول')))
+                                  : (s.isSnoozed
+                                      ? 'SNOOZED'
+                                      : (s.isMissed || s.status.toLowerCase() == 'skipped'
+                                          ? 'MISSED'
+                                          : s.status.toUpperCase())),
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
@@ -2373,9 +2396,13 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
                   ),
                   child: Text(
                     alreadyHandled
-                        ? ((s.isMissed || s.status.toLowerCase() == 'skipped')
-                            ? (locale == 'ar' ? 'فائتة' : 'MISSED')
-                            : s.status.toUpperCase())
+                        ? (locale == 'ar'
+                            ? (s.status.toLowerCase() == 'skipped'
+                                ? 'تم التخطي'
+                                : (s.isMissed ? 'فائت' : 'تم التناول'))
+                            : ((s.isMissed || s.status.toLowerCase() == 'skipped')
+                                ? 'MISSED'
+                                : s.status.toUpperCase()))
                         : !canTake
                         ? (locale == 'ar' ? 'حدث المخزون أولاً' : 'Update stock first')
                         : (locale == 'ar' ? 'تناول الجرعة' : 'Take Dose'),

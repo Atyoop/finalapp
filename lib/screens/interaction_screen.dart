@@ -29,12 +29,25 @@ class InteractionResultScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isAr = Localizations.localeOf(context).languageCode == 'ar';
     final bool hasInteraction =
         results.isNotEmpty &&
         results.any((r) {
           final interactions = r['interactions'] as List<dynamic>? ?? [];
           return interactions.isNotEmpty;
         });
+
+    String getLocalizedMessage(String msg) {
+      if (!isAr) return msg;
+      final lower = msg.trim().toLowerCase();
+      if (lower.contains('no interaction') || lower.contains('no interactions')) {
+        return 'لا توجد تداخلات دوائية بين الأدوية المحددة.';
+      }
+      if (lower.contains('interaction found') || lower.contains('interactions found')) {
+        return 'تم العثور على تداخلات دوائية!';
+      }
+      return msg;
+    }
 
     return Scaffold(
       backgroundColor: AppColors.backgroundCream,
@@ -50,7 +63,7 @@ class InteractionResultScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Interaction Result',
+          isAr ? 'نتائج التداخلات' : 'Interaction Result',
           style: TextStyle(
             color: AppColors.textDark,
             fontWeight: FontWeight.bold,
@@ -66,7 +79,7 @@ class InteractionResultScreen extends StatelessWidget {
           children: [
             // ── Selected Medications Chips ──
             Text(
-              'Checked Medications',
+              isAr ? 'الأدوية التي تم فحصها' : 'Checked Medications',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -166,8 +179,8 @@ class InteractionResultScreen extends StatelessWidget {
                       children: [
                         Text(
                           hasInteraction
-                              ? 'Interactions Found'
-                              : 'No Interactions',
+                              ? (isAr ? 'تم العثور على تداخلات' : 'Interactions Found')
+                              : (isAr ? 'لا توجد تداخلات' : 'No Interactions'),
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -178,7 +191,7 @@ class InteractionResultScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          message,
+                          getLocalizedMessage(message),
                           style: TextStyle(
                             fontSize: 13,
                             color: hasInteraction
@@ -197,7 +210,7 @@ class InteractionResultScreen extends StatelessWidget {
             // ── Interaction Pair Results ──
             if (hasInteraction) ...[
               Text(
-                'Interaction Details',
+                isAr ? 'تفاصيل التداخلات' : 'Interaction Details',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -295,7 +308,7 @@ class InteractionResultScreen extends StatelessWidget {
                                     size: 22,
                                   ),
                                   Text(
-                                    'interacts',
+                                    isAr ? 'يتفاعل مع' : 'interacts',
                                     style: TextStyle(
                                       fontSize: 9,
                                       color: AppColors.textGrey,
@@ -352,7 +365,9 @@ class InteractionResultScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${interactions.length} interaction${interactions.length > 1 ? 's' : ''} found',
+                              isAr
+                                  ? 'تم العثور على تداخلات (${interactions.length})'
+                                  : '${interactions.length} interaction${interactions.length > 1 ? 's' : ''} found',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: AppColors.textGrey,
@@ -717,6 +732,7 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isAr = Localizations.localeOf(context).languageCode == 'ar';
     return Scaffold(
       backgroundColor: AppColors.backgroundCream,
       body: SafeArea(
@@ -802,8 +818,11 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
                         height: double.infinity,
                         decoration: BoxDecoration(
                           color: AppColors.primaryTeal,
-                          borderRadius: const BorderRadius.horizontal(
-                            right: Radius.circular(28),
+                          borderRadius: BorderRadius.only(
+                            topLeft: isAr ? const Radius.circular(28) : Radius.zero,
+                            bottomLeft: isAr ? const Radius.circular(28) : Radius.zero,
+                            topRight: isAr ? Radius.zero : const Radius.circular(28),
+                            bottomRight: isAr ? Radius.zero : const Radius.circular(28),
                           ),
                         ),
                         child: const Icon(

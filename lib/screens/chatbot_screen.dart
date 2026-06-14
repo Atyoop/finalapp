@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../main.dart';
+import '../providers/language_provider.dart';
 
 class ChatbotScreen extends StatefulWidget {
   const ChatbotScreen({super.key});
@@ -13,12 +15,13 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isAr = Provider.of<LanguageProvider>(context, listen: false).currentLanguage == 'ar';
     return _showChat
         ? _ChatConversation(onBack: () => setState(() => _showChat = false))
-        : _buildIntro();
+        : _buildIntro(isAr);
   }
 
-  Widget _buildIntro() {
+  Widget _buildIntro(bool isAr) {
     return Scaffold(
       backgroundColor: AppColors.backgroundCream,
       appBar: AppBar(
@@ -59,7 +62,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               ),
               const SizedBox(height: 28),
               Text(
-                "Hello, I'm Mighty!",
+                isAr ? "مرحباً، أنا مايتي!" : "Hello, I'm Mighty!",
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
@@ -68,7 +71,9 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                "Your AI drug safety assistant.\nAsk me anything about medications!",
+                isAr
+                    ? "مساعدك الذكي لسلامة الأدوية.\nاسألني أي شيء عن الأدوية!"
+                    : "Your AI drug safety assistant.\nAsk me anything about medications!",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -81,24 +86,26 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               // Quick action cards
               _QuickActionCard(
                 icon: Icons.warning_amber_rounded,
-                title: "Drug Interactions",
-                subtitle: "Check if your drugs are safe together",
+                title: isAr ? "التداخلات الدوائية" : "Drug Interactions",
+                subtitle: isAr
+                    ? "تحقق مما إذا كانت أدويتك آمنة معاً"
+                    : "Check if your drugs are safe together",
                 color: const Color(0xFFFFF3E0),
                 iconColor: const Color(0xFFFF9800),
               ),
               const SizedBox(height: 12),
               _QuickActionCard(
                 icon: Icons.medication_rounded,
-                title: "Drug Information",
-                subtitle: "Ask about a specific medication",
+                title: isAr ? "معلومات الدواء" : "Drug Information",
+                subtitle: isAr ? "اسأل عن دواء معين" : "Ask about a specific medication",
                 color: const Color(0xFFE3F2FD),
                 iconColor: const Color(0xFF2196F3),
               ),
               const SizedBox(height: 12),
               _QuickActionCard(
                 icon: Icons.health_and_safety_rounded,
-                title: "Side Effects",
-                subtitle: "Learn about possible side effects",
+                title: isAr ? "الآثار الجانبية" : "Side Effects",
+                subtitle: isAr ? "تعرف على الآثار الجانبية المحتملة" : "Learn about possible side effects",
                 color: const Color(0xFFE8F5E9),
                 iconColor: const Color(0xFF4CAF50),
               ),
@@ -119,9 +126,9 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                     elevation: 4,
                     shadowColor: AppColors.primaryTeal.withValues(alpha: 0.3),
                   ),
-                  child: const Text(
-                    "Start Chat",
-                    style: TextStyle(
+                  child: Text(
+                    isAr ? "بدء المحادثة" : "Start Chat",
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -156,6 +163,7 @@ class _QuickActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isAr = Provider.of<LanguageProvider>(context, listen: false).currentLanguage == 'ar';
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -202,7 +210,7 @@ class _QuickActionCard extends StatelessWidget {
             ),
           ),
           Icon(
-            Icons.chevron_right_rounded,
+            isAr ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
             color: AppColors.textGrey.withValues(alpha: 0.4),
           ),
         ],
@@ -223,17 +231,27 @@ class _ChatConversation extends StatefulWidget {
 class _ChatConversationState extends State<_ChatConversation> {
   final TextEditingController _msgController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final List<Map<String, dynamic>> _messages = [
-    {
-      'text':
-          "Hello! 👋 I'm Mighty, your drug safety assistant. How can I help you today?",
-      'isBot': true,
-    },
-  ];
+  late final List<Map<String, dynamic>> _messages;
+
+  @override
+  void initState() {
+    super.initState();
+    final isAr = Provider.of<LanguageProvider>(context, listen: false).currentLanguage == 'ar';
+    _messages = [
+      {
+        'text': isAr
+            ? "مرحباً! 👋 أنا مايتي، مساعدك الذكي لسلامة الأدوية. كيف يمكنني مساعدتك اليوم؟"
+            : "Hello! 👋 I'm Mighty, your drug safety assistant. How can I help you today?",
+        'isBot': true,
+      },
+    ];
+  }
 
   void _sendMessage() {
     final text = _msgController.text.trim();
     if (text.isEmpty) return;
+
+    final isAr = Provider.of<LanguageProvider>(context, listen: false).currentLanguage == 'ar';
 
     setState(() {
       _messages.add({'text': text, 'isBot': false});
@@ -253,7 +271,7 @@ class _ChatConversationState extends State<_ChatConversation> {
     Future.delayed(const Duration(seconds: 1), () {
       if (!mounted) return;
       setState(() {
-        _messages.add({'text': _getBotReply(text), 'isBot': true});
+        _messages.add({'text': _getBotReply(text, isAr), 'isBot': true});
       });
       Future.delayed(const Duration(milliseconds: 100), () {
         _scrollController.animateTo(
@@ -265,18 +283,37 @@ class _ChatConversationState extends State<_ChatConversation> {
     });
   }
 
-  String _getBotReply(String userMsg) {
+  String _getBotReply(String userMsg, bool isAr) {
     final msg = userMsg.toLowerCase();
-    if (msg.contains('interaction') || msg.contains('mix')) {
-      return "⚠️ Drug interactions can be dangerous. Please tell me the two medications you'd like to check, and I'll look up any known interactions.";
-    } else if (msg.contains('side effect')) {
-      return "Side effects vary by medication. Which drug would you like to know about? I can provide common and rare side effects.";
-    } else if (msg.contains('dosage') || msg.contains('dose')) {
-      return "💊 Dosage depends on many factors including age, weight, and condition. Please consult your doctor for personalized dosage. Which drug are you asking about?";
-    } else if (msg.contains('hello') || msg.contains('hi')) {
-      return "Hi there! How can I assist you with your medications today?";
+    final isInteraction = msg.contains('interaction') || msg.contains('mix') || 
+                          msg.contains('تفاعل') || msg.contains('خلط') || msg.contains('مع بعض');
+    final isSideEffect = msg.contains('side effect') || msg.contains('sideeffect') || 
+                         msg.contains('جانبي') || msg.contains('عرض') || msg.contains('أعراض');
+    final isDosage = msg.contains('dosage') || msg.contains('dose') || 
+                     msg.contains('جرعة') || msg.contains('كمية') || msg.contains('طريقة');
+    final isGreeting = msg.contains('hello') || msg.contains('hi') || 
+                      msg.contains('مرحبا') || msg.contains('أهلا') || msg.contains('سلام');
+
+    if (isInteraction) {
+      return isAr
+          ? "⚠️ التداخلات الدوائية قد تكون خطيرة. يرجى إخباري بالدواءين اللذين ترغب في فحصهما، وسأبحث عن أي تداخلات معروفة بينهما."
+          : "⚠️ Drug interactions can be dangerous. Please tell me the two medications you'd like to check, and I'll look up any known interactions.";
+    } else if (isSideEffect) {
+      return isAr
+          ? "تختلف الآثار الجانبية حسب كل دواء. ما هو الدواء الذي ترغب في معرفة آثاره الجانبية؟ يمكنني تزويدك بالآثار الجانبية الشائعة والنادرة."
+          : "Side effects vary by medication. Which drug would you like to know about? I can provide common and rare side effects.";
+    } else if (isDosage) {
+      return isAr
+          ? "💊 تعتمد الجرعة على عوامل كثيرة بما في ذلك العمر والوزن والحالة الصحية. يرجى استشارة طبيبك للحصول على جرعة مخصصة لك. عن أي دواء تسأل؟"
+          : "💊 Dosage depends on many factors including age, weight, and condition. Please consult your doctor for personalized dosage. Which drug are you asking about?";
+    } else if (isGreeting) {
+      return isAr
+          ? "أهلاً بك! كيف يمكنني مساعدتك في شؤون أدويتك اليوم؟"
+          : "Hi there! How can I assist you with your medications today?";
     } else {
-      return "Thanks for your question! I can help with drug interactions, side effects, and general medication info. Could you be more specific about what you'd like to know?";
+      return isAr
+          ? "شكراً لسؤالك! يمكنني مساعدتك في فحص التداخلات الدوائية، والآثار الجانبية، ومعلومات الأدوية العامة. هل يمكنك تحديد ما تود معرفته بدقة؟"
+          : "Thanks for your question! I can help with drug interactions, side effects, and general medication info. Could you be more specific about what you'd like to know?";
     }
   }
 
@@ -289,6 +326,7 @@ class _ChatConversationState extends State<_ChatConversation> {
 
   @override
   Widget build(BuildContext context) {
+    final isAr = Provider.of<LanguageProvider>(context, listen: false).currentLanguage == 'ar';
     return Scaffold(
       backgroundColor: AppColors.backgroundCream,
       appBar: AppBar(
@@ -314,20 +352,20 @@ class _ChatConversationState extends State<_ChatConversation> {
               ),
             ),
             const SizedBox(width: 10),
-            const Column(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Mighty",
-                  style: TextStyle(
+                  isAr ? "مايتي" : "Mighty",
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(
-                  "Online",
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                  isAr ? "نشط الآن" : "Online",
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ],
             ),
@@ -377,7 +415,7 @@ class _ChatConversationState extends State<_ChatConversation> {
                         controller: _msgController,
                         onSubmitted: (_) => _sendMessage(),
                         decoration: InputDecoration(
-                          hintText: "Type a message...",
+                          hintText: isAr ? "اكتب رسالة..." : "Type a message...",
                           hintStyle: TextStyle(color: AppColors.textGrey),
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.symmetric(
@@ -398,10 +436,13 @@ class _ChatConversationState extends State<_ChatConversation> {
                         color: AppColors.primaryTeal,
                         borderRadius: BorderRadius.circular(24),
                       ),
-                      child: const Icon(
-                        Icons.send_rounded,
-                        color: Colors.white,
-                        size: 22,
+                      child: Transform.scale(
+                        scaleX: isAr ? -1 : 1,
+                        child: const Icon(
+                          Icons.send_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
                       ),
                     ),
                   ),

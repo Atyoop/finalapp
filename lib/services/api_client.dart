@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../main.dart';
+import 'language_service.dart';
 
 /// Centralized Dio client for the app.
 /// Use `ApiClient.setToken(token)` to set Authorization header.
@@ -9,6 +10,17 @@ class ApiClient {
           BaseOptions(
             baseUrl: 'https://drugsafe.runasp.net/api',
             headers: {'Content-Type': 'application/json', 'Accept': '*/*'},
+          ),
+        )
+        ..interceptors.add(
+          InterceptorsWrapper(
+            onRequest: (options, handler) {
+              try {
+                options.headers['Accept-Language'] = LanguageService.currentLanguage;
+                options.queryParameters['lang'] = LanguageService.currentLanguage;
+              } catch (_) {}
+              return handler.next(options);
+            },
           ),
         )
         ..interceptors.add(

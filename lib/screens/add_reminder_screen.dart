@@ -489,7 +489,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
   Widget _buildAfterOpeningSection() {
     final dateLabel = _openedDate != null
-        ? DateFormat('MMM d, yyyy').format(_openedDate!)
+        ? DateFormat('MMM d, yyyy', _locale).format(_openedDate!)
         : context.l10n.t('selectDate');
 
     return Container(
@@ -830,12 +830,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
           const SizedBox(height: 10),
           row(
             context.l10n.t('packageExpiry'),
-            DateFormat('MMM d, yyyy').format(med.expiryDate),
+            DateFormat('MMM d, yyyy', _locale).format(med.expiryDate),
           ),
           if (med.isOpened && med.openedDate != null)
             row(
               context.l10n.t('openedDate'),
-              DateFormat('MMM d, yyyy').format(med.openedDate!),
+              DateFormat('MMM d, yyyy', _locale).format(med.openedDate!),
               icon: Icons.lock_open_rounded,
             ),
           if (med.afterOpeningDurationValue != null)
@@ -847,12 +847,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
           if (med.afterOpeningExpiryDate != null)
             row(
               context.l10n.t('afterOpeningExpiry'),
-              DateFormat('MMM d, yyyy').format(med.afterOpeningExpiryDate!),
+              DateFormat('MMM d, yyyy', _locale).format(med.afterOpeningExpiryDate!),
               icon: Icons.event_busy_outlined,
             ),
           row(
             context.l10n.t('actualExpiry'),
-            DateFormat('MMM d, yyyy').format(med.actualExpiryDate),
+            DateFormat('MMM d, yyyy', _locale).format(med.actualExpiryDate),
             icon: Icons.verified_outlined,
           ),
           if (reasonMessage.isNotEmpty)
@@ -1239,8 +1239,11 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Start: ${DateFormat('MMM d, yyyy').format(_schedule.startDate)}'
-                              '${_schedule.endDate != null ? ' • End: ${DateFormat('MMM d, yyyy').format(_schedule.endDate!)}' : ''}',
+                              _locale == 'ar'
+                                  ? 'تاريخ البدء: ${DateFormat('MMM d, yyyy', _locale).format(_schedule.startDate)}'
+                                    '${_schedule.endDate != null ? ' • تاريخ الانتهاء: ${DateFormat('MMM d, yyyy', _locale).format(_schedule.endDate!)}' : ''}'
+                                  : 'Start: ${DateFormat('MMM d, yyyy', _locale).format(_schedule.startDate)}'
+                                    '${_schedule.endDate != null ? ' • End: ${DateFormat('MMM d, yyyy', _locale).format(_schedule.endDate!)}' : ''}',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: AppColors.textGrey,
@@ -1444,6 +1447,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                                 _expiryDate != null
                                     ? DateFormat(
                                         'MMM d, yyyy',
+                                        _locale,
                                       ).format(_expiryDate!)
                                     : context.l10n.t('notSet'),
                                 style: TextStyle(
@@ -2118,6 +2122,8 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
   late DateTime? _endDate;
   late TimeOfDay _firstDoseTime;
 
+  String get _locale => context.read<LanguageProvider>().currentLanguage;
+
   @override
   void initState() {
     super.initState();
@@ -2204,7 +2210,7 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
-                          'Every X Hours',
+                          _locale == 'ar' ? 'كل X ساعات' : 'Every X Hours',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 13,
@@ -2234,7 +2240,7 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
-                          'X Times Per Day',
+                          _locale == 'ar' ? 'X مرات يومياً' : 'X Times Per Day',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 13,
@@ -2252,9 +2258,9 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
             ),
             const SizedBox(height: 20),
             if (_selectedType == ScheduleType.everyXHours) ...[
-              const Text(
-                'Interval (hours)',
-                style: TextStyle(
+              Text(
+                _locale == 'ar' ? 'الفترة الزمنية (ساعات)' : 'Interval (hours)',
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textGrey,
@@ -2285,7 +2291,13 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
                       ),
                     ),
                     Text(
-                      '$_intervalHours hours',
+                      _locale == 'ar'
+                          ? (_intervalHours == 1
+                              ? 'ساعة واحدة'
+                              : _intervalHours == 2
+                                  ? 'ساعتين'
+                                  : '$_intervalHours ساعات')
+                          : '$_intervalHours hours',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -2302,9 +2314,9 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'First Dose Time',
-                style: TextStyle(
+              Text(
+                _locale == 'ar' ? 'وقت الجرعة الأولى' : 'First Dose Time',
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textGrey,
@@ -2354,9 +2366,9 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
                 ),
               ),
             ] else ...[
-              const Text(
-                'Dose Times',
-                style: TextStyle(
+              Text(
+                _locale == 'ar' ? 'أوقات الجرعات' : 'Dose Times',
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textGrey,
@@ -2488,19 +2500,21 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
                 label: Text(context.l10n.t('addDoseTime')),
               ),
               if (_doseTimes.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(top: 8.0),
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
                   child: Text(
-                    'Please add at least one dose time.',
-                    style: TextStyle(color: Colors.redAccent, fontSize: 13),
+                    _locale == 'ar'
+                        ? 'يرجى إضافة وقت جرعة واحد على الأقل.'
+                        : 'Please add at least one dose time.',
+                    style: const TextStyle(color: Colors.redAccent, fontSize: 13),
                   ),
                 ),
               const SizedBox(height: 20),
             ],
-            const Text(
-              'Start Date',
+            Text(
+              _locale == 'ar' ? 'تاريخ البدء' : 'Start Date',
 
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textGrey,
@@ -2544,7 +2558,7 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      DateFormat('MMM d, yyyy').format(_startDate),
+                      DateFormat('MMM d, yyyy', _locale).format(_startDate),
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -2559,9 +2573,9 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'End Date (Optional)',
-              style: TextStyle(
+            Text(
+              _locale == 'ar' ? 'تاريخ الانتهاء (اختياري)' : 'End Date (Optional)',
+              style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textGrey,
@@ -2607,7 +2621,7 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
                   children: [
                     Text(
                       _endDate != null
-                          ? DateFormat('MMM d, yyyy').format(_endDate!)
+                          ? DateFormat('MMM d, yyyy', _locale).format(_endDate!)
                           : context.l10n.t('notSet'),
                       style: TextStyle(
                         fontSize: 16,

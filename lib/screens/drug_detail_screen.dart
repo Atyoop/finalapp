@@ -450,6 +450,7 @@ class _InteractionCheckerScreenState extends State<_InteractionCheckerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isAr = Localizations.localeOf(context).languageCode == 'ar';
     return Scaffold(
       backgroundColor: AppColors.backgroundCream,
       appBar: AppBar(
@@ -457,7 +458,7 @@ class _InteractionCheckerScreenState extends State<_InteractionCheckerScreen> {
         elevation: 0,
         iconTheme: IconThemeData(color: AppColors.textDark),
         title: Text(
-          "Drug Interaction Checker",
+          isAr ? "فاحص التداخلات الدوائية" : "Drug Interaction Checker",
           style: TextStyle(
             color: AppColors.textDark,
             fontWeight: FontWeight.bold,
@@ -486,7 +487,7 @@ class _InteractionCheckerScreenState extends State<_InteractionCheckerScreen> {
             ),
             const SizedBox(height: 20),
             Text(
-              "Check Drug Interactions",
+              isAr ? "فحص التداخلات الدوائية" : "Check Drug Interactions",
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -495,7 +496,7 @@ class _InteractionCheckerScreenState extends State<_InteractionCheckerScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              "Enter another drug to check for interactions",
+              isAr ? "أدخل دواءً آخر لفحص التداخلات معه" : "Enter another drug to check for interactions",
               style: TextStyle(fontSize: 13, color: AppColors.textGrey),
             ),
             const SizedBox(height: 28),
@@ -546,7 +547,7 @@ class _InteractionCheckerScreenState extends State<_InteractionCheckerScreen> {
               child: TextField(
                 controller: _drugController,
                 decoration: InputDecoration(
-                  hintText: "Enter drug name",
+                  hintText: isAr ? "أدخل اسم الدواء" : "Enter drug name",
                   hintStyle: TextStyle(color: AppColors.textGrey),
                   prefixIcon: Icon(Icons.search, color: AppColors.textGrey),
                   border: InputBorder.none,
@@ -575,9 +576,9 @@ class _InteractionCheckerScreenState extends State<_InteractionCheckerScreen> {
                     borderRadius: BorderRadius.circular(28),
                   ),
                 ),
-                child: const Text(
-                  "Check Interaction",
-                  style: TextStyle(
+                child: Text(
+                  isAr ? "فحص التداخل" : "Check Interaction",
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -612,7 +613,7 @@ class _InteractionCheckerScreenState extends State<_InteractionCheckerScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      "Moderate Interaction Found",
+                      isAr ? "تم العثور على تداخل متوسط" : "Moderate Interaction Found",
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -621,7 +622,9 @@ class _InteractionCheckerScreenState extends State<_InteractionCheckerScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      "Taking ${widget.drugName} with ${_drugController.text.trim()} may increase the risk of side effects. Consult your healthcare provider.",
+                      isAr
+                          ? "قد يؤدي تناول ${widget.drugName} مع ${_drugController.text.trim()} إلى زيادة خطر حدوث آثار جانبية. استشر مقدم الرعاية الصحية الخاص بك."
+                          : "Taking ${widget.drugName} with ${_drugController.text.trim()} may increase the risk of side effects. Consult your healthcare provider.",
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 13,
@@ -634,7 +637,7 @@ class _InteractionCheckerScreenState extends State<_InteractionCheckerScreen> {
                     // Severity bar
                     Row(
                       children: [
-                        const Text("Severity:", style: TextStyle(fontSize: 13)),
+                        Text(isAr ? "الشدة:" : "Severity:", style: const TextStyle(fontSize: 13)),
                         const SizedBox(width: 12),
                         Expanded(
                           child: ClipRRect(
