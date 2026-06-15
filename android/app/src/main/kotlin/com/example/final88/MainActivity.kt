@@ -36,9 +36,19 @@ class MainActivity : FlutterActivity() {
                     requestBatteryOptimizationExemption()
                     result.success(null)
                 }
+                "isIgnoringBatteryOptimizations" -> {
+                    result.success(isIgnoringBatteryOptimizations())
+                }
                 else -> result.notImplemented()
             }
         }
+    }
+
+    private fun isIgnoringBatteryOptimizations(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true
+
+        val powerManager = getSystemService(POWER_SERVICE) as PowerManager
+        return powerManager.isIgnoringBatteryOptimizations(packageName)
     }
 
     /**

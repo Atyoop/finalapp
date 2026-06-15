@@ -252,19 +252,11 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
     ),
     _ManualDosageFormOption(
       value: 'Injection',
-      unit: 'unit',
+      unit: 'ampoule',
       icon: Icons.vaccines,
     ),
-    _ManualDosageFormOption(
-      value: 'Ointment',
-      unit: 'g',
-      icon: Icons.spa,
-    ),
-    _ManualDosageFormOption(
-      value: 'Inhaler',
-      unit: 'puffs',
-      icon: Icons.air,
-    ),
+    _ManualDosageFormOption(value: 'Ointment', unit: 'g', icon: Icons.spa),
+    _ManualDosageFormOption(value: 'Inhaler', unit: 'puffs', icon: Icons.air),
     _ManualDosageFormOption(
       value: 'Other',
       unit: 'unit',
@@ -560,10 +552,18 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                           decoration: BoxDecoration(
                             color: AppColors.primaryTeal,
                             borderRadius: BorderRadius.only(
-                              topLeft: isAr ? const Radius.circular(28) : Radius.zero,
-                              bottomLeft: isAr ? const Radius.circular(28) : Radius.zero,
-                              topRight: isAr ? Radius.zero : const Radius.circular(28),
-                              bottomRight: isAr ? Radius.zero : const Radius.circular(28),
+                              topLeft: isAr
+                                  ? const Radius.circular(28)
+                                  : Radius.zero,
+                              bottomLeft: isAr
+                                  ? const Radius.circular(28)
+                                  : Radius.zero,
+                              topRight: isAr
+                                  ? Radius.zero
+                                  : const Radius.circular(28),
+                              bottomRight: isAr
+                                  ? Radius.zero
+                                  : const Radius.circular(28),
                             ),
                           ),
                           child: const Icon(

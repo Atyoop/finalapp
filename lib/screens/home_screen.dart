@@ -197,8 +197,8 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _startRefreshTimer();
       _silentRefresh();
     } else if (state == AppLifecycleState.paused ||
-               state == AppLifecycleState.inactive ||
-               state == AppLifecycleState.detached) {
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
       _stopRefreshTimer();
     }
   }
@@ -333,13 +333,18 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final hour = local.hour % 12 == 0 ? 12 : local.hour % 12;
     final minute = local.minute.toString().padLeft(2, '0');
     final lang = context.read<LanguageProvider>().currentLanguage;
-    final period = local.hour < 12 
-        ? (lang == 'ar' ? 'ص' : 'AM') 
+    final period = local.hour < 12
+        ? (lang == 'ar' ? 'ص' : 'AM')
         : (lang == 'ar' ? 'م' : 'PM');
     return '$hour:$minute $period';
   }
 
-  void _rollbackSchedule(int scheduleId, String previousStatus, DateTime? previousSnoozedUntil, bool previousIsTaken) {
+  void _rollbackSchedule(
+    int scheduleId,
+    String previousStatus,
+    DateTime? previousSnoozedUntil,
+    bool previousIsTaken,
+  ) {
     final index = _schedules.indexWhere((s) => s.id == scheduleId);
     if (index != -1) {
       final s = _schedules[index];
@@ -390,7 +395,9 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        final fetched = data.map((json) => TodaySchedule.fromJson(json)).toList();
+        final fetched = data
+            .map((json) => TodaySchedule.fromJson(json))
+            .toList();
         if (mounted) {
           setState(() {
             _schedules = fetched;
@@ -444,8 +451,10 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     int? optimisticRemaining;
     String? unit;
     if (matchedMedicine != null) {
-      final currentStock = matchedMedicine.currentQuantity ?? matchedMedicine.currentPillCount;
-      final needed = matchedMedicine.doseQuantity ?? matchedMedicine.pillsPerDose ?? 1;
+      final currentStock =
+          matchedMedicine.currentQuantity ?? matchedMedicine.currentPillCount;
+      final needed =
+          matchedMedicine.doseQuantity ?? matchedMedicine.pillsPerDose ?? 1;
       if (currentStock != null) {
         optimisticRemaining = (currentStock - needed).clamp(0, 999999);
         unit = matchedMedicine.quantityUnit;
@@ -459,7 +468,10 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final connectionErrorMsg = context.l10n.t('connectionErrorTryAgain');
 
     if (matchedMedicine != null && optimisticRemaining != null) {
-      await medicineProvider.updateStockLocally(matchedMedicine.id, optimisticRemaining);
+      await medicineProvider.updateStockLocally(
+        matchedMedicine.id,
+        optimisticRemaining,
+      );
     }
 
     // 2. SHOW INSTANT TOP OVERLAY FEEDBACK
@@ -496,11 +508,21 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         } else {
           // Rollback on failure
           if (mounted) {
-            _rollbackSchedule(scheduleId, previousStatus, previousSnoozedUntil, previousIsTaken);
+            _rollbackSchedule(
+              scheduleId,
+              previousStatus,
+              previousSnoozedUntil,
+              previousIsTaken,
+            );
             if (matchedMedicine != null) {
-              final currentStock = matchedMedicine.currentQuantity ?? matchedMedicine.currentPillCount;
+              final currentStock =
+                  matchedMedicine.currentQuantity ??
+                  matchedMedicine.currentPillCount;
               if (currentStock != null) {
-                await medicineProvider.updateStockLocally(matchedMedicine.id, currentStock);
+                await medicineProvider.updateStockLocally(
+                  matchedMedicine.id,
+                  currentStock,
+                );
               }
             }
             if (mounted) {
@@ -515,11 +537,21 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       } catch (e) {
         // Rollback on error
         if (mounted) {
-          _rollbackSchedule(scheduleId, previousStatus, previousSnoozedUntil, previousIsTaken);
+          _rollbackSchedule(
+            scheduleId,
+            previousStatus,
+            previousSnoozedUntil,
+            previousIsTaken,
+          );
           if (matchedMedicine != null) {
-            final currentStock = matchedMedicine.currentQuantity ?? matchedMedicine.currentPillCount;
+            final currentStock =
+                matchedMedicine.currentQuantity ??
+                matchedMedicine.currentPillCount;
             if (currentStock != null) {
-              await medicineProvider.updateStockLocally(matchedMedicine.id, currentStock);
+              await medicineProvider.updateStockLocally(
+                matchedMedicine.id,
+                currentStock,
+              );
             }
           }
           if (mounted) {
@@ -584,7 +616,11 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // 3. EXECUTE API SILENTLY IN BACKGROUND
     () async {
       try {
-        final result = await SchedulesService.snoozeDose(token, scheduleId, minutes);
+        final result = await SchedulesService.snoozeDose(
+          token,
+          scheduleId,
+          minutes,
+        );
         if (result.succeeded) {
           if (mounted) {
             await _fetchSchedulesForDateSilently(_selectedDate);
@@ -594,23 +630,40 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         } else {
           // Rollback on failure
           if (mounted) {
-            _rollbackSchedule(scheduleId, previousStatus, previousSnoozedUntil, previousIsTaken);
+            _rollbackSchedule(
+              scheduleId,
+              previousStatus,
+              previousSnoozedUntil,
+              previousIsTaken,
+            );
             final msg = result.error ?? 'Snooze failed';
-            final isWarning = msg.toLowerCase().contains('snooze') || msg.toLowerCase().contains('limit') || msg.toLowerCase().contains('already');
+            final isWarning =
+                msg.toLowerCase().contains('snooze') ||
+                msg.toLowerCase().contains('limit') ||
+                msg.toLowerCase().contains('already');
             TopOverlayNotification.show(
               context,
               message: msg,
-              type: isWarning ? NotificationType.warning : NotificationType.error,
+              type: isWarning
+                  ? NotificationType.warning
+                  : NotificationType.error,
             );
           }
         }
       } catch (e) {
         // Rollback on error
         if (mounted) {
-          _rollbackSchedule(scheduleId, previousStatus, previousSnoozedUntil, previousIsTaken);
+          _rollbackSchedule(
+            scheduleId,
+            previousStatus,
+            previousSnoozedUntil,
+            previousIsTaken,
+          );
           TopOverlayNotification.show(
             context,
-            message: e is ApiException ? e.message : context.l10n.t('connectionErrorTryAgain'),
+            message: e is ApiException
+                ? e.message
+                : context.l10n.t('connectionErrorTryAgain'),
             type: NotificationType.error,
           );
         }
@@ -670,10 +723,17 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       } catch (e) {
         // Rollback on error
         if (mounted) {
-          _rollbackSchedule(scheduleId, previousStatus, previousSnoozedUntil, previousIsTaken);
+          _rollbackSchedule(
+            scheduleId,
+            previousStatus,
+            previousSnoozedUntil,
+            previousIsTaken,
+          );
           TopOverlayNotification.show(
             context,
-            message: e is ApiException ? e.message : context.l10n.t('connectionErrorTryAgain'),
+            message: e is ApiException
+                ? e.message
+                : context.l10n.t('connectionErrorTryAgain'),
             type: NotificationType.error,
           );
         }
@@ -685,7 +745,11 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (_filterStatus == null) return _schedules;
     if (_filterStatus!.toLowerCase() == 'missed') {
       return _schedules
-          .where((s) => s.status.toLowerCase() == 'missed' || s.status.toLowerCase() == 'skipped')
+          .where(
+            (s) =>
+                s.status.toLowerCase() == 'missed' ||
+                s.status.toLowerCase() == 'skipped',
+          )
           .toList();
     }
     return _schedules
@@ -696,7 +760,11 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   int _countByStatus(String status) {
     if (status.toLowerCase() == 'missed') {
       return _schedules
-          .where((s) => s.status.toLowerCase() == 'missed' || s.status.toLowerCase() == 'skipped')
+          .where(
+            (s) =>
+                s.status.toLowerCase() == 'missed' ||
+                s.status.toLowerCase() == 'skipped',
+          )
           .length;
     }
     return _schedules
@@ -763,9 +831,11 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  context.l10n.t('helloName', {
-                                    'name': userProvider.name,
-                                  }),
+                                  userProvider.name.trim().isEmpty
+                                      ? context.l10n.t('hello')
+                                      : context.l10n.t('helloName', {
+                                          'name': userProvider.name,
+                                        }),
                                   style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
@@ -840,7 +910,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ),
                   const SizedBox(height: 32),
 
-                   // ── Weekly Calendar label & Back to Today ──
+                  // ── Weekly Calendar label & Back to Today ──
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -849,7 +919,10 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             ? context.l10n.t('todayDate', {
                                 'date': _formatDisplayDate(_selectedDate),
                               })
-                            : _formatDisplayDate(_selectedDate, includeYear: true),
+                            : _formatDisplayDate(
+                                _selectedDate,
+                                includeYear: true,
+                              ),
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -873,8 +946,13 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             ),
                           ),
                           style: TextButton.styleFrom(
-                            backgroundColor: AppColors.primaryTeal.withValues(alpha: 0.1),
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            backgroundColor: AppColors.primaryTeal.withValues(
+                              alpha: 0.1,
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             shape: RoundedRectangleBorder(
@@ -1218,11 +1296,12 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildDayItem(DateTime date) {
-    final isSelected = date.day == _selectedDate.day &&
+    final isSelected =
+        date.day == _selectedDate.day &&
         date.month == _selectedDate.month &&
         date.year == _selectedDate.year;
     final isToday = _isToday(date);
-    
+
     final weekdaysEn = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
     final weekdaysAr = ['ن', 'ث', 'ر', 'خ', 'ج', 'س', 'ح'];
     final weekdayLabel = _currentLanguage == 'ar'
@@ -1257,18 +1336,18 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       ],
                     )
                   : isToday
-                      ? BoxDecoration(
-                          color: Colors.transparent,
-                          border: Border.all(
-                            color: AppColors.primaryTeal.withValues(alpha: 0.5),
-                            width: 1.5,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        )
-                      : BoxDecoration(
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                  ? BoxDecoration(
+                      color: Colors.transparent,
+                      border: Border.all(
+                        color: AppColors.primaryTeal.withValues(alpha: 0.5),
+                        width: 1.5,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    )
+                  : BoxDecoration(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -1279,9 +1358,11 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       color: isSelected
                           ? Colors.white
                           : isToday
-                              ? AppColors.primaryTeal
-                              : AppColors.textGrey,
-                      fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.normal,
+                          ? AppColors.primaryTeal
+                          : AppColors.textGrey,
+                      fontWeight: isSelected || isToday
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -1292,9 +1373,11 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       color: isSelected
                           ? Colors.white
                           : isToday
-                              ? AppColors.primaryTeal
-                              : AppColors.textDark,
-                      fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.w600,
+                          ? AppColors.primaryTeal
+                          : AppColors.textDark,
+                      fontWeight: isSelected || isToday
+                          ? FontWeight.bold
+                          : FontWeight.w600,
                     ),
                   ),
                 ],
@@ -1347,9 +1430,12 @@ class _ScheduleCard extends StatelessWidget {
     final local = dt.toLocal();
     final hour = local.hour % 12 == 0 ? 12 : local.hour % 12;
     final minute = local.minute.toString().padLeft(2, '0');
-    final lang = Provider.of<LanguageProvider>(context, listen: false).currentLanguage;
-    final period = local.hour < 12 
-        ? (lang == 'ar' ? 'ص' : 'AM') 
+    final lang = Provider.of<LanguageProvider>(
+      context,
+      listen: false,
+    ).currentLanguage;
+    final period = local.hour < 12
+        ? (lang == 'ar' ? 'ص' : 'AM')
         : (lang == 'ar' ? 'م' : 'PM');
     return '$hour:$minute $period';
   }
@@ -1382,7 +1468,9 @@ class _ScheduleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isAr = Provider.of<LanguageProvider>(context, listen: false).currentLanguage == 'ar';
+    final isAr =
+        Provider.of<LanguageProvider>(context, listen: false).currentLanguage ==
+        'ar';
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -1403,7 +1491,8 @@ class _ScheduleCard extends StatelessWidget {
             // ── Main Card Content ──
             Padding(
               padding: const EdgeInsets.all(16),
-              child: Stack(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1428,18 +1517,12 @@ class _ScheduleCard extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // Name
-                            Padding(
-                              padding: EdgeInsets.only(
-                                right: isAr ? 0 : 80,
-                                left: isAr ? 80 : 0,
-                              ),
-                              child: Text(
-                                schedule.medName,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textDark,
-                                ),
+                            Text(
+                              schedule.medName,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textDark,
                               ),
                             ),
                             const SizedBox(height: 6),
@@ -1462,7 +1545,11 @@ class _ScheduleCard extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            if (schedule.isSnoozed && schedule.snoozedUntil != null && schedule.snoozedUntil!.isAfter(DateTime.now())) ...[
+                            if (schedule.isSnoozed &&
+                                schedule.snoozedUntil != null &&
+                                schedule.snoozedUntil!.isAfter(
+                                  DateTime.now(),
+                                )) ...[
                               const SizedBox(height: 4),
                               Row(
                                 children: [
@@ -1473,7 +1560,10 @@ class _ScheduleCard extends StatelessWidget {
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    context.read<LanguageProvider>().currentLanguage == 'ar'
+                                    context
+                                                .read<LanguageProvider>()
+                                                .currentLanguage ==
+                                            'ar'
                                         ? 'تم التأجيل حتى ${_formatTime(context, schedule.snoozedUntil!)}'
                                         : 'Snoozed until ${_formatTime(context, schedule.snoozedUntil!)}',
                                     style: const TextStyle(
@@ -1488,7 +1578,13 @@ class _ScheduleCard extends StatelessWidget {
                             const SizedBox(height: 4),
 
                             // Snooze info
-                            if (schedule.isPending && schedule.snoozeCount > 0 && !(schedule.isSnoozed && schedule.snoozedUntil != null && schedule.snoozedUntil!.isAfter(DateTime.now())))
+                            if (schedule.isPending &&
+                                schedule.snoozeCount > 0 &&
+                                !(schedule.isSnoozed &&
+                                    schedule.snoozedUntil != null &&
+                                    schedule.snoozedUntil!.isAfter(
+                                      DateTime.now(),
+                                    )))
                               Row(
                                 children: [
                                   const Icon(
@@ -1521,13 +1617,18 @@ class _ScheduleCard extends StatelessWidget {
                                   const SizedBox(width: 4),
                                   Text(
                                     isAr
-                                        ? (schedule.status.toLowerCase() == 'taken'
-                                            ? 'تم التناول'
-                                            : (schedule.status.toLowerCase() == 'missed'
-                                                ? 'فائت'
-                                                : (schedule.status.toLowerCase() == 'skipped'
-                                                    ? 'تم التخطي'
-                                                    : schedule.status)))
+                                        ? (schedule.status.toLowerCase() ==
+                                                  'taken'
+                                              ? 'تم التناول'
+                                              : (schedule.status
+                                                            .toLowerCase() ==
+                                                        'missed'
+                                                    ? 'فائت'
+                                                    : (schedule.status
+                                                                  .toLowerCase() ==
+                                                              'skipped'
+                                                          ? 'تم التخطي'
+                                                          : schedule.status)))
                                         : schedule.status.toUpperCase(),
                                     style: TextStyle(
                                       color: _statusColor,
@@ -1595,11 +1696,13 @@ class _ScheduleCard extends StatelessWidget {
                   ),
 
                   // ── Badges (top right) ──
-                  Positioned(
-                    top: 0,
-                    left: isAr ? 0 : null,
-                    right: isAr ? null : 0,
-                    child: Row(
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         // Interaction warning badge
                         if (schedule.hasInteractions)
@@ -1617,7 +1720,6 @@ class _ScheduleCard extends StatelessWidget {
                               );
                             },
                           ),
-                        const SizedBox(width: 8),
                         // Countdown badge
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -1772,7 +1874,13 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
       );
       if (selectedTime == null) return; // user cancelled
 
-      final nowZeroSec = DateTime(now.year, now.month, now.day, now.hour, now.minute);
+      final nowZeroSec = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        now.hour,
+        now.minute,
+      );
       DateTime selectedDateTime = DateTime(
         now.year,
         now.month,
@@ -1814,7 +1922,9 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
       decoration: BoxDecoration(
         color: AppColors.primaryTeal.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primaryTeal.withValues(alpha: 0.12)),
+        border: Border.all(
+          color: AppColors.primaryTeal.withValues(alpha: 0.12),
+        ),
       ),
       child: Row(
         children: [
@@ -1865,9 +1975,12 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
     final String? quantityUnit = med?.quantityUnit as String?;
     final locale = context.read<LanguageProvider>().currentLanguage;
 
-    final bool alreadyHandled = s.isTaken || s.isMissed || s.status.toLowerCase() == 'skipped';
+    final bool alreadyHandled =
+        s.isTaken || s.isMissed || s.status.toLowerCase() == 'skipped';
 
-    final viewAllText = locale == 'ar' ? 'عرض جميع التفاعلات' : 'View All Interactions';
+    final viewAllText = locale == 'ar'
+        ? 'عرض جميع التفاعلات'
+        : 'View All Interactions';
     final showLessText = locale == 'ar' ? 'عرض أقل' : 'Show Less';
 
     return Container(
@@ -1921,11 +2034,7 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
                     color: AppColors.backgroundCream,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    Icons.close,
-                    size: 18,
-                    color: AppColors.textGrey,
-                  ),
+                  child: Icon(Icons.close, size: 18, color: AppColors.textGrey),
                 ),
               ),
             ],
@@ -1951,7 +2060,9 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
                           width: 56,
                           height: 56,
                           decoration: BoxDecoration(
-                            color: AppColors.primaryTeal.withValues(alpha: 0.12),
+                            color: AppColors.primaryTeal.withValues(
+                              alpha: 0.12,
+                            ),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Icon(
@@ -1996,29 +2107,35 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
                             decoration: BoxDecoration(
                               color: s.isTaken
                                   ? Colors.green.withValues(alpha: 0.12)
-                                  : (s.isSnoozed 
-                                      ? Colors.orange.withValues(alpha: 0.12)
-                                      : Colors.red.withValues(alpha: 0.12)),
+                                  : (s.isSnoozed
+                                        ? Colors.orange.withValues(alpha: 0.12)
+                                        : Colors.red.withValues(alpha: 0.12)),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               locale == 'ar'
                                   ? (s.isSnoozed
-                                      ? 'مؤجل'
-                                      : (s.status.toLowerCase() == 'skipped'
-                                          ? 'تم التخطي'
-                                          : (s.isMissed ? 'فائت' : 'تم التناول')))
+                                        ? 'مؤجل'
+                                        : (s.status.toLowerCase() == 'skipped'
+                                              ? 'تم التخطي'
+                                              : (s.isMissed
+                                                    ? 'فائت'
+                                                    : 'تم التناول')))
                                   : (s.isSnoozed
-                                      ? 'SNOOZED'
-                                      : (s.isMissed || s.status.toLowerCase() == 'skipped'
-                                          ? 'MISSED'
-                                          : s.status.toUpperCase())),
+                                        ? 'SNOOZED'
+                                        : (s.isMissed ||
+                                                  s.status.toLowerCase() ==
+                                                      'skipped'
+                                              ? 'MISSED'
+                                              : s.status.toUpperCase())),
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                                 color: s.isTaken
                                     ? Colors.green[700]
-                                    : (s.isSnoozed ? Colors.orange[700] : Colors.red[700]),
+                                    : (s.isSnoozed
+                                          ? Colors.orange[700]
+                                          : Colors.red[700]),
                               ),
                             ),
                           ),
@@ -2042,7 +2159,9 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
                         Expanded(
                           child: _compactInfoCard(
                             Icons.inventory_2_outlined,
-                            locale == 'ar' ? 'الكمية المتبقية' : 'Remaining Qty',
+                            locale == 'ar'
+                                ? 'الكمية المتبقية'
+                                : 'Remaining Qty',
                             formatQuantityWithUnit(
                               currentQuantity,
                               quantityUnit,
@@ -2162,7 +2281,9 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                locale == 'ar' ? 'تم الكشف عن تفاعلات دوائية' : 'Drug Interactions Detected',
+                                locale == 'ar'
+                                    ? 'تم الكشف عن تفاعلات دوائية'
+                                    : 'Drug Interactions Detected',
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
@@ -2174,9 +2295,12 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
                           const SizedBox(height: 12),
                           ...(() {
                             final list = widget.schedule.interactions;
-                            final displayed = _interactionsExpanded ? list : list.take(2).toList();
+                            final displayed = _interactionsExpanded
+                                ? list
+                                : list.take(2).toList();
                             return displayed.map((interaction) {
-                              final withMed = interaction['withMedication'] ?? '';
+                              final withMed =
+                                  interaction['withMedication'] ?? '';
                               final reason = interaction['reason'] ?? '';
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 8),
@@ -2191,7 +2315,8 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             withMed,
@@ -2222,14 +2347,17 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
                             GestureDetector(
                               onTap: () {
                                 setState(() {
-                                  _interactionsExpanded = !_interactionsExpanded;
+                                  _interactionsExpanded =
+                                      !_interactionsExpanded;
                                 });
                               },
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    _interactionsExpanded ? showLessText : viewAllText,
+                                    _interactionsExpanded
+                                        ? showLessText
+                                        : viewAllText,
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
@@ -2315,7 +2443,9 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
                       ),
                       label: Text(
                         widget.schedule.isSnoozed
-                            ? (locale == 'ar' ? 'تأجيل مرة أخرى' : 'Snooze Again')
+                            ? (locale == 'ar'
+                                  ? 'تأجيل مرة أخرى'
+                                  : 'Snooze Again')
                             : context.l10n.t('snooze'),
                         style: const TextStyle(
                           fontSize: 14,
@@ -2377,9 +2507,7 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
                 final canTake = stock == null || stock >= needed;
 
                 return ElevatedButton(
-                  onPressed: alreadyHandled || !canTake
-                      ? null
-                      : _onTakeTapped,
+                  onPressed: alreadyHandled || !canTake ? null : _onTakeTapped,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: alreadyHandled
                         ? Colors.grey[300]
@@ -2397,19 +2525,20 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
                   child: Text(
                     alreadyHandled
                         ? (locale == 'ar'
-                            ? (s.status.toLowerCase() == 'skipped'
-                                ? 'تم التخطي'
-                                : (s.isMissed ? 'فائت' : 'تم التناول'))
-                            : ((s.isMissed || s.status.toLowerCase() == 'skipped')
-                                ? 'MISSED'
-                                : s.status.toUpperCase()))
+                              ? (s.status.toLowerCase() == 'skipped'
+                                    ? 'تم التخطي'
+                                    : (s.isMissed ? 'فائت' : 'تم التناول'))
+                              : ((s.isMissed ||
+                                        s.status.toLowerCase() == 'skipped')
+                                    ? 'MISSED'
+                                    : s.status.toUpperCase()))
                         : !canTake
-                        ? (locale == 'ar' ? 'حدث المخزون أولاً' : 'Update stock first')
+                        ? (locale == 'ar'
+                              ? 'حدث المخزون أولاً'
+                              : 'Update stock first')
                         : (locale == 'ar' ? 'تناول الجرعة' : 'Take Dose'),
                     style: TextStyle(
-                      color: alreadyHandled
-                          ? AppColors.textGrey
-                          : Colors.white,
+                      color: alreadyHandled ? AppColors.textGrey : Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
@@ -2485,7 +2614,11 @@ class _SnoozeDurationSelectorBottomSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildOption(BuildContext context, {required String label, required int minutes}) {
+  Widget _buildOption(
+    BuildContext context, {
+    required String label,
+    required int minutes,
+  }) {
     return InkWell(
       onTap: () => Navigator.pop(context, minutes),
       borderRadius: BorderRadius.circular(12),
@@ -2527,7 +2660,11 @@ class _SnoozeDurationSelectorBottomSheet extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.access_time_filled_rounded, color: AppColors.primaryTeal, size: 20),
+            const Icon(
+              Icons.access_time_filled_rounded,
+              color: AppColors.primaryTeal,
+              size: 20,
+            ),
             const SizedBox(width: 12),
             Text(
               context.l10n.t('chooseAnotherTime'),
@@ -2591,7 +2728,8 @@ class _TopNotificationWidget extends StatefulWidget {
   State<_TopNotificationWidget> createState() => _TopNotificationWidgetState();
 }
 
-class _TopNotificationWidgetState extends State<_TopNotificationWidget> with SingleTickerProviderStateMixin {
+class _TopNotificationWidgetState extends State<_TopNotificationWidget>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<Offset> _offsetAnimation;
 
@@ -2606,10 +2744,7 @@ class _TopNotificationWidgetState extends State<_TopNotificationWidget> with Sin
     _offsetAnimation = Tween<Offset>(
       begin: const Offset(0, -1.5),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOut,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     _controller.forward();
 
@@ -2648,9 +2783,12 @@ class _TopNotificationWidgetState extends State<_TopNotificationWidget> with Sin
     }
 
     String displayMessage = widget.message;
-    if (widget.type == NotificationType.success && !displayMessage.startsWith('✓')) {
+    if (widget.type == NotificationType.success &&
+        !displayMessage.startsWith('✓')) {
       displayMessage = '✓ $displayMessage';
-    } else if ((widget.type == NotificationType.warning || widget.type == NotificationType.error) && !displayMessage.startsWith('⚠')) {
+    } else if ((widget.type == NotificationType.warning ||
+            widget.type == NotificationType.error) &&
+        !displayMessage.startsWith('⚠')) {
       displayMessage = '⚠ $displayMessage';
     }
 
@@ -2664,7 +2802,10 @@ class _TopNotificationWidgetState extends State<_TopNotificationWidget> with Sin
             child: Material(
               color: Colors.transparent,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: backgroundColor,
                   borderRadius: BorderRadius.circular(12),
@@ -2679,11 +2820,7 @@ class _TopNotificationWidgetState extends State<_TopNotificationWidget> with Sin
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      icon,
-                      color: Colors.white,
-                      size: 20,
-                    ),
+                    Icon(icon, color: Colors.white, size: 20),
                     const SizedBox(width: 10),
                     Flexible(
                       child: Text(

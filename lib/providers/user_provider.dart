@@ -1,9 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import '../services/medicine_storage_service.dart';
 
 class UserProvider extends ChangeNotifier {
-  String _name = 'Omar H.';
+  String _name = '';
   String? _imagePath;
   int _selectedAvatar = 0;
   String? _token;
@@ -15,8 +17,20 @@ class UserProvider extends ChangeNotifier {
 
   void _loadPersistedSession() {
     final storedToken = MedicineStorageService.getSetting<String>('auth_token');
-    final storedUserId = MedicineStorageService.getSetting<String>('auth_user_id');
-    
+    final storedUserId = MedicineStorageService.getSetting<String>(
+      'auth_user_id',
+    );
+    _name =
+        MedicineStorageService.getSetting<String>('profile_display_name') ?? '';
+    _imagePath = MedicineStorageService.getSetting<String>(
+      'profile_image_path',
+    );
+    _selectedAvatar =
+        MedicineStorageService.getSetting<int>('profile_avatar_index') ?? 0;
+    if (_selectedAvatar < 0 || _selectedAvatar >= avatarIcons.length) {
+      _selectedAvatar = 0;
+    }
+
     if (storedToken != null && storedToken.isNotEmpty) {
       try {
         if (JwtDecoder.isExpired(storedToken)) {
@@ -105,8 +119,14 @@ class UserProvider extends ChangeNotifier {
     _userId = null;
     MedicineStorageService.removeSetting('auth_token');
     MedicineStorageService.removeSetting('auth_user_id');
+    MedicineStorageService.removeSetting('profile_display_name');
+    MedicineStorageService.removeSetting('profile_image_path');
+    MedicineStorageService.removeSetting('profile_avatar_index');
     MedicineStorageService.clearAllMedicines();
     MedicineStorageService.clearAllReminders();
+    _name = '';
+    _imagePath = null;
+    _selectedAvatar = 0;
     notifyListeners();
   }
 
@@ -115,9 +135,25 @@ class UserProvider extends ChangeNotifier {
     String? imagePath,
     required int selectedAvatar,
   }) {
-    _name = name;
+    _name = name.trim();
     _imagePath = imagePath;
     _selectedAvatar = selectedAvatar;
+    unawaited(
+      MedicineStorageService.saveSetting('profile_display_name', _name),
+    );
+    if (_imagePath == null || _imagePath!.isEmpty) {
+      unawaited(MedicineStorageService.removeSetting('profile_image_path'));
+    } else {
+      unawaited(
+        MedicineStorageService.saveSetting('profile_image_path', _imagePath),
+      );
+    }
+    unawaited(
+      MedicineStorageService.saveSetting(
+        'profile_avatar_index',
+        _selectedAvatar,
+      ),
+    );
     notifyListeners();
   }
 }

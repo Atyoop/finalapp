@@ -322,9 +322,11 @@ class ProfileScreen extends StatelessWidget {
                     Consumer<UserProvider>(
                       builder: (context, userProvider, child) {
                         return Text(
-                          context.l10n.t('helloName', {
-                            'name': userProvider.name,
-                          }),
+                          userProvider.name.trim().isEmpty
+                              ? context.l10n.t('hello')
+                              : context.l10n.t('helloName', {
+                                  'name': userProvider.name,
+                                }),
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -492,16 +494,19 @@ class ProfileScreen extends StatelessWidget {
               _buildTile(
                 icon: Icons.schedule_outlined,
                 title: '${context.l10n.t('testDelayedNotification')} (30s)',
-                subtitle: '${context.l10n.t('sendDelayedNotification')} (30s delay)',
+                subtitle:
+                    '${context.l10n.t('sendDelayedNotification')} (30s delay)',
                 onTap: () async {
-                  await context
+                  final scheduled = await context
                       .read<NotificationsProvider>()
                       .testNotificationAfterDelay();
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
+                      SnackBar(
                         content: Text(
-                          'Test notification scheduled for 30s from now. Please close/swipe away the app completely now!',
+                          scheduled
+                              ? 'Test notification scheduled for 30 seconds from now.'
+                              : 'Android rejected the schedule. Install the latest APK again, then retry.',
                         ),
                         duration: Duration(seconds: 5),
                       ),
@@ -577,26 +582,52 @@ class ProfileScreen extends StatelessWidget {
               PremiumProvider? premiumProv;
               SupportProvider? supportProv;
 
-              try { userProv = context.read<UserProvider>(); } catch (_) {}
-              try { medProv = context.read<MedicineProvider>(); } catch (_) {}
-              try { savedMedProv = context.read<SavedMedicinesProvider>(); } catch (_) {}
-              try { alertsProv = context.read<AlertsProvider>(); } catch (_) {}
-              try { notifProv = context.read<NotificationsProvider>(); } catch (_) {}
-              try { premiumProv = context.read<PremiumProvider>(); } catch (_) {}
-              try { supportProv = context.read<SupportProvider>(); } catch (_) {}
+              try {
+                userProv = context.read<UserProvider>();
+              } catch (_) {}
+              try {
+                medProv = context.read<MedicineProvider>();
+              } catch (_) {}
+              try {
+                savedMedProv = context.read<SavedMedicinesProvider>();
+              } catch (_) {}
+              try {
+                alertsProv = context.read<AlertsProvider>();
+              } catch (_) {}
+              try {
+                notifProv = context.read<NotificationsProvider>();
+              } catch (_) {}
+              try {
+                premiumProv = context.read<PremiumProvider>();
+              } catch (_) {}
+              try {
+                supportProv = context.read<SupportProvider>();
+              } catch (_) {}
 
               // Perform logout cleanup across all providers
-              try { userProv?.logout(); } catch (_) {}
-              try { medProv?.clearLocalData(); } catch (_) {}
-              try { savedMedProv?.clear(); } catch (_) {}
-              try { alertsProv?.clear(); } catch (_) {}
+              try {
+                userProv?.logout();
+              } catch (_) {}
+              try {
+                medProv?.clearLocalData();
+              } catch (_) {}
+              try {
+                savedMedProv?.clear();
+              } catch (_) {}
+              try {
+                alertsProv?.clear();
+              } catch (_) {}
               try {
                 if (notifProv != null) {
                   await notifProv.clearAll();
                 }
               } catch (_) {}
-              try { premiumProv?.clear(); } catch (_) {}
-              try { supportProv?.clear(); } catch (_) {}
+              try {
+                premiumProv?.clear();
+              } catch (_) {}
+              try {
+                supportProv?.clear();
+              } catch (_) {}
 
               navigator.pushAndRemoveUntil(
                 MaterialPageRoute(builder: (_) => const WelcomeScreen()),

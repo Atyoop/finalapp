@@ -264,7 +264,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     _advanceReminderEnabled = _advanceReminderMinutes != null;
 
     final initialMinutes = med?.advanceReminderMinutes;
-    final isPredefined = initialMinutes != null && const [15, 30, 45].contains(initialMinutes);
+    final isPredefined =
+        initialMinutes != null && const [15, 30, 45].contains(initialMinutes);
     _customAdvanceReminderMinutesController = TextEditingController(
       text: (initialMinutes != null && !isPredefined)
           ? initialMinutes.toString()
@@ -847,7 +848,10 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
           if (med.afterOpeningExpiryDate != null)
             row(
               context.l10n.t('afterOpeningExpiry'),
-              DateFormat('MMM d, yyyy', _locale).format(med.afterOpeningExpiryDate!),
+              DateFormat(
+                'MMM d, yyyy',
+                _locale,
+              ).format(med.afterOpeningExpiryDate!),
               icon: Icons.event_busy_outlined,
             ),
           row(
@@ -1112,35 +1116,43 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              getDoseQuantityFieldLabel(
-                                _selectedQuantityUnit,
-                                locale: _locale,
-                              ),
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textGrey,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              _locale == 'ar'
-                                  ? 'تخصم من الكمية عند تسجيل الجرعة'
-                                  : 'Deducted per scheduled dose',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textGrey.withValues(
-                                  alpha: 0.6,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                getDoseQuantityFieldLabel(
+                                  _selectedQuantityUnit,
+                                  locale: _locale,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textGrey,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 2),
+                              Text(
+                                _locale == 'ar'
+                                    ? 'تخصم من الكمية عند تسجيل الجرعة'
+                                    : 'Deducted per scheduled dose',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textGrey.withValues(
+                                    alpha: 0.6,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             GestureDetector(
                               onTap: _pillsPerDose > 1
@@ -1168,14 +1180,21 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                             ),
                             Padding(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
+                                horizontal: 8,
                               ),
-                              child: Text(
-                                _formattedDose,
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textDark,
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 72),
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    _formattedDose,
+                                    maxLines: 1,
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.textDark,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -1241,9 +1260,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                             Text(
                               _locale == 'ar'
                                   ? 'تاريخ البدء: ${DateFormat('MMM d, yyyy', _locale).format(_schedule.startDate)}'
-                                    '${_schedule.endDate != null ? ' • تاريخ الانتهاء: ${DateFormat('MMM d, yyyy', _locale).format(_schedule.endDate!)}' : ''}'
+                                        '${_schedule.endDate != null ? ' • تاريخ الانتهاء: ${DateFormat('MMM d, yyyy', _locale).format(_schedule.endDate!)}' : ''}'
                                   : 'Start: ${DateFormat('MMM d, yyyy', _locale).format(_schedule.startDate)}'
-                                    '${_schedule.endDate != null ? ' • End: ${DateFormat('MMM d, yyyy', _locale).format(_schedule.endDate!)}' : ''}',
+                                        '${_schedule.endDate != null ? ' • End: ${DateFormat('MMM d, yyyy', _locale).format(_schedule.endDate!)}' : ''}',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: AppColors.textGrey,
@@ -1747,8 +1766,11 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
           runSpacing: 4.0,
           children: [
             ...options.map((optionVal) {
-              final isSelected = !isCustom && _advanceReminderMinutes == optionVal;
-              final labelText = lang == 'ar' ? '$optionVal د' : '$optionVal min';
+              final isSelected =
+                  !isCustom && _advanceReminderMinutes == optionVal;
+              final labelText = lang == 'ar'
+                  ? '$optionVal د'
+                  : '$optionVal min';
 
               return ChoiceChip(
                 label: Text(labelText),
@@ -1756,7 +1778,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 selectedColor: AppColors.primaryTeal.withValues(alpha: 0.15),
                 checkmarkColor: AppColors.primaryTeal,
                 labelStyle: TextStyle(
-                  color: isSelected ? AppColors.primaryTeal : AppColors.textDark,
+                  color: isSelected
+                      ? AppColors.primaryTeal
+                      : AppColors.textDark,
                   fontSize: 13,
                 ),
                 onSelected: (selected) {
@@ -1782,9 +1806,15 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                 if (selected) {
                   setState(() {
                     _isCustomAdvanceReminder = true;
-                    final parsedCustom = int.tryParse(_customAdvanceReminderMinutesController.text);
-                    _advanceReminderMinutes = (parsedCustom != null && parsedCustom > 0) ? parsedCustom : 60;
-                    _customAdvanceReminderMinutesController.text = _advanceReminderMinutes.toString();
+                    final parsedCustom = int.tryParse(
+                      _customAdvanceReminderMinutesController.text,
+                    );
+                    _advanceReminderMinutes =
+                        (parsedCustom != null && parsedCustom > 0)
+                        ? parsedCustom
+                        : 60;
+                    _customAdvanceReminderMinutesController.text =
+                        _advanceReminderMinutes.toString();
                   });
                 }
               },
@@ -1802,7 +1832,10 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
             ),
             onChanged: (val) {
               final parsed = int.tryParse(val);
@@ -1963,7 +1996,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       final TimeOfDay firstDoseTime = _schedule.effectiveFirstDoseTime;
 
       // Build medicine object with all fields
-      final quantityUnit = normalizeQuantityUnit(_selectedQuantityUnit);
+      final mappedQuantityUnit = quantityUnitForDosageForm(_selectedDosageForm);
+      final quantityUnit = normalizeQuantityUnit(
+        _isCustomMedication && mappedQuantityUnit != 'unit'
+            ? mappedQuantityUnit
+            : _selectedQuantityUnit,
+      );
       final medicine = Medicine(
         id: widget.initialMedicine?.id ?? '',
         medicationId: _isCustomMedication ? null : _selectedMedicationId,
@@ -2293,10 +2331,10 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
                     Text(
                       _locale == 'ar'
                           ? (_intervalHours == 1
-                              ? 'ساعة واحدة'
-                              : _intervalHours == 2
-                                  ? 'ساعتين'
-                                  : '$_intervalHours ساعات')
+                                ? 'ساعة واحدة'
+                                : _intervalHours == 2
+                                ? 'ساعتين'
+                                : '$_intervalHours ساعات')
                           : '$_intervalHours hours',
                       style: const TextStyle(
                         fontSize: 16,
@@ -2442,7 +2480,10 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.redAccent),
+                          icon: const Icon(
+                            Icons.delete,
+                            color: Colors.redAccent,
+                          ),
                           onPressed: () {
                             setState(() {
                               _doseTimes.removeAt(entry.key);
@@ -2506,7 +2547,10 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
                     _locale == 'ar'
                         ? 'يرجى إضافة وقت جرعة واحد على الأقل.'
                         : 'Please add at least one dose time.',
-                    style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+                    style: const TextStyle(
+                      color: Colors.redAccent,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
               const SizedBox(height: 20),
@@ -2574,7 +2618,9 @@ class _ScheduleSelectorState extends State<_ScheduleSelector> {
             ),
             const SizedBox(height: 20),
             Text(
-              _locale == 'ar' ? 'تاريخ الانتهاء (اختياري)' : 'End Date (Optional)',
+              _locale == 'ar'
+                  ? 'تاريخ الانتهاء (اختياري)'
+                  : 'End Date (Optional)',
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,

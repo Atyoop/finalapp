@@ -34,21 +34,28 @@ class NotificationsProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Fetch schedules from backend
-      _schedules = await NotificationScheduleService.fetchNotificationSchedules(
-        token: token,
-      );
+      final fetchedSchedules =
+          await NotificationScheduleService.fetchNotificationSchedules(
+            token: token,
+          );
 
-      // Cancel all old notifications first
-      await _notificationService.cancelAllNotifications();
-
-      // Schedule new notifications for each pending or snoozed schedule
-      for (final schedule in _schedules) {
+      final activeBackendIds = <int>{};
+      for (final schedule in fetchedSchedules) {
         final statusLower = schedule.status.toLowerCase();
         if (statusLower == 'pending' || statusLower == 'snoozed') {
-          await _notificationService.scheduleNotifications(schedule);
+          activeBackendIds.addAll(
+            await _notificationService.scheduleNotifications(schedule),
+          );
         }
       }
+
+      // Scheduling the same IDs updates existing alarms in place. Only remove
+      // backend alarms that are no longer active; test and local alarms must
+      // survive background refreshes.
+      await _notificationService.cancelStaleBackendNotifications(
+        activeBackendIds,
+      );
+      _schedules = fetchedSchedules;
 
       _error = null;
       notifyListeners();
@@ -93,14 +100,20 @@ class NotificationsProvider extends ChangeNotifier {
   }
 
   /// Test notification after delay
-  Future<void> testNotificationAfterDelay() async {
+  Future<bool> testNotificationAfterDelay() async {
     try {
-      await _notificationService.testNotificationAfterDelay(
+      final scheduled = await _notificationService.testNotificationAfterDelay(
         const Duration(seconds: 30),
       );
+      if (!scheduled) {
+        _error = 'The Android system rejected the scheduled notification.';
+        notifyListeners();
+      }
+      return scheduled;
     } catch (e) {
       _error = e.toString();
       notifyListeners();
+      return false;
     }
   }
 

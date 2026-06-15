@@ -53,6 +53,7 @@
   "addMeds": "Add Meds",
   "setting": "Setting",
   "settings": "Settings",
+  "hello": "Hello",
   "helloName": "Hello, {name}",
   "welcome": "Welcome!",
   "editProfile": "Edit Profile",

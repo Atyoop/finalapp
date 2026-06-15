@@ -246,8 +246,11 @@ class Medicine {
     final effectiveCurrentQuantity =
         currentQuantity ?? currentPillCount ?? effectiveInitialQuantity;
     final effectiveDoseQuantity = doseQuantity ?? pillsPerDose ?? 1;
+    final mappedQuantityUnit = quantityUnitForDosageForm(dosageForm);
     final effectiveQuantityUnit = normalizeQuantityUnit(
-      quantityUnit ?? quantityUnitForDosageForm(dosageForm),
+      isCustomMedication && mappedQuantityUnit != 'unit'
+          ? mappedQuantityUnit
+          : (quantityUnit ?? mappedQuantityUnit),
     );
 
     final json = <String, dynamic>{

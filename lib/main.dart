@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:final88/screens/auth_screens.dart';
 import 'screens/home.dart';
 import 'services/hive_service.dart';
@@ -5,6 +7,7 @@ import 'services/medicine_storage_service.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'providers/medicine_provider.dart';
@@ -23,6 +26,15 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   // Initialize Flutter binding
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness: Brightness.light,
+      systemNavigationBarColor: Colors.white,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ),
+  );
 
   // Initialize Hive local database
   await HiveService.init();
@@ -34,35 +46,20 @@ void main() async {
   final notificationsProvider = NotificationsProvider();
   await notificationsProvider.initialize();
 
-  // Verify notification system
-  await notificationsProvider.verifyNotificationSystem();
-  await notificationsProvider.checkPendingNotifications();
-
-  // Reschedule any local reminders after app start / boot
-  await notificationsProvider.rescheduleAllAfterBoot();
-
-  // Automatically fetch notification schedules if a valid stored session exists.
-  // Awaited so that timezone is guaranteed initialized before zonedSchedule runs.
-  final String? token = MedicineStorageService.getSetting<String>('auth_token');
-  if (token != null && token.isNotEmpty) {
-    try {
-      if (!JwtDecoder.isExpired(token)) {
-        debugPrint('[Startup] 🔑 Stored token valid — fetching notification schedules...');
-        await notificationsProvider.fetchAndScheduleNotifications(token);
-        debugPrint('[Startup] ✅ Startup notification schedule complete');
-      } else {
-        debugPrint('[Startup] ⏳ Stored token is expired, skipping notifications fetch.');
-      }
-    } catch (e) {
-      debugPrint('[Startup] ❌ Error fetching notifications on startup: $e');
-    }
-  }
+  // Notification verification and backend reconciliation continue without
+  // delaying the first visible frame.
+  unawaited(_initializeNotificationsInBackground(notificationsProvider));
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => LanguageProvider()),
-        ChangeNotifierProvider(create: (_) => MedicineProvider()..onMedicationChanged = (token) => notificationsProvider.refreshNotifications(token)),
+        ChangeNotifierProvider(
+          create: (_) =>
+              MedicineProvider()
+                ..onMedicationChanged = (token) =>
+                    notificationsProvider.refreshNotifications(token),
+        ),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => SavedMedicinesProvider()),
         ChangeNotifierProvider(create: (_) => AlertsProvider()),
@@ -73,6 +70,27 @@ void main() async {
       child: const DrugSafeApp(),
     ),
   );
+}
+
+Future<void> _initializeNotificationsInBackground(
+  NotificationsProvider notificationsProvider,
+) async {
+  try {
+    await notificationsProvider.verifyNotificationSystem();
+    await notificationsProvider.checkPendingNotifications();
+    await notificationsProvider.rescheduleAllAfterBoot();
+
+    final token = MedicineStorageService.getSetting<String>('auth_token');
+    if (token == null || token.isEmpty || JwtDecoder.isExpired(token)) return;
+
+    await notificationsProvider.fetchAndScheduleNotifications(token);
+    debugPrint('[Startup] Notification schedule reconciliation complete');
+  } catch (error, stackTrace) {
+    debugPrint(
+      '[Startup] Background notification initialization failed: $error',
+    );
+    debugPrint('$stackTrace');
+  }
 }
 
 // --- 1. Colors & Theme ---
@@ -130,11 +148,26 @@ class DrugSafeApp extends StatelessWidget {
             scaffoldBackgroundColor: AppColors.backgroundCream,
             primaryColor: AppColors.primaryTeal,
             useMaterial3: true,
+            appBarTheme: const AppBarTheme(
+              systemOverlayStyle: SystemUiOverlayStyle.dark,
+            ),
           ),
-          home: const SplashScreen(),
+          home: const _AppEntry(),
         );
       },
     );
+  }
+}
+
+class _AppEntry extends StatelessWidget {
+  const _AppEntry();
+
+  @override
+  Widget build(BuildContext context) {
+    final userProvider = context.read<UserProvider>();
+    return userProvider.isLoggedIn
+        ? const MainNavScreen()
+        : const OnboardingScreen();
   }
 }
 

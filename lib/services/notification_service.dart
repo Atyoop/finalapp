@@ -21,17 +21,15 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-  // v3: bumped to force Android to recreate the channel with correct settings.
-  // If you previously had v2, Android cached it with sound=null. Changing the
-  // channel ID is the only way to get fresh settings without asking the user
-  // to clear app data.
-  static const String _channelId = 'medication_alarms_v3';
-  static const String _channelName = 'Medication Alarms';
-  static const String _channelDesc = 'Alarm-style medication reminders';
+  static const String _notificationIcon = 'ic_notification';
+  static const String _channelId = 'medication_alarms_v4';
+  static const String _channelName = 'Medication Reminders';
+  static const String _channelDesc = 'Scheduled medication reminders';
 
   // MethodChannel for native Android calls (battery optimization)
-  static const MethodChannel _androidChannel =
-      MethodChannel('com.example.final88/notifications');
+  static const MethodChannel _androidChannel = MethodChannel(
+    'com.example.final88/notifications',
+  );
 
   /// Complete initialization
   Future<void> initialize() async {
@@ -49,14 +47,8 @@ class NotificationService {
       tz.setLocalLocation(tz.UTC);
     }
 
-    if (Platform.isAndroid) {
-      await _createAlarmChannel();
-      await _requestAndroidPermissions();
-      await _requestBatteryOptimizationExemption();
-    }
-
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings(_notificationIcon);
 
     const DarwinInitializationSettings initializationSettingsDarwin =
         DarwinInitializationSettings(
@@ -75,6 +67,13 @@ class NotificationService {
       initializationSettings,
       onDidReceiveNotificationResponse: _onDidReceiveNotificationResponse,
     );
+
+    if (Platform.isAndroid) {
+      await _createAlarmChannel();
+      await _requestAndroidPermissions();
+      await _logAndroidNotificationState('initialize');
+      await _requestBatteryOptimizationExemption();
+    }
     _debugPrint('✅ NotificationService initialization complete');
   }
 
@@ -85,7 +84,11 @@ class NotificationService {
         >();
 
     // Clean up all old channel versions
-    for (final oldId in ['medication_reminders_v1', 'medication_alarms_v2']) {
+    for (final oldId in [
+      'medication_reminders_v1',
+      'medication_alarms_v2',
+      'medication_alarms_v3',
+    ]) {
       try {
         await android?.deleteNotificationChannel(oldId);
         _debugPrint('🗑️ Deleted old channel: $oldId');
@@ -120,13 +123,70 @@ class NotificationService {
       // Request POST_NOTIFICATIONS (Android 13+)
       final granted = await android.requestNotificationsPermission();
       _debugPrint('📲 POST_NOTIFICATIONS permission: $granted');
-
-      // Request exact alarm permission (Android 12+)
-      final exactAlarm = await android.requestExactAlarmsPermission();
-      _debugPrint('⏰ SCHEDULE_EXACT_ALARM permission: $exactAlarm');
-    } catch (e) {
-      _debugPrint('❌ Error requesting permissions: $e');
+    } catch (error, stackTrace) {
+      _logError(
+        'requesting Android notification permissions',
+        error,
+        stackTrace,
+      );
     }
+  }
+
+  Future<AndroidScheduleMode> _androidScheduleMode(String operation) async {
+    if (!Platform.isAndroid) {
+      return AndroidScheduleMode.exactAllowWhileIdle;
+    }
+
+    final exactAlarmAllowed = await _logAndroidNotificationState(operation);
+    if (exactAlarmAllowed) {
+      return AndroidScheduleMode.exactAllowWhileIdle;
+    }
+
+    final error = StateError(
+      'Exact alarms are unavailable for $operation. Reinstall the latest APK '
+      'so Android grants USE_EXACT_ALARM.',
+    );
+    _logError(operation, error, StackTrace.current);
+    throw error;
+  }
+
+  Future<bool> _logAndroidNotificationState(String operation) async {
+    if (!Platform.isAndroid) {
+      return true;
+    }
+
+    bool notificationsEnabled = false;
+    bool exactAlarmAllowed = false;
+    bool ignoringBatteryOptimizations = false;
+
+    try {
+      final android = _flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+      notificationsEnabled = await android?.areNotificationsEnabled() ?? false;
+      exactAlarmAllowed =
+          await android?.canScheduleExactNotifications() ?? false;
+      ignoringBatteryOptimizations =
+          await _androidChannel.invokeMethod<bool>(
+            'isIgnoringBatteryOptimizations',
+          ) ??
+          false;
+    } catch (error, stackTrace) {
+      _logError(
+        'reading Android notification state for $operation',
+        error,
+        stackTrace,
+      );
+    }
+
+    _debugPrint(
+      '[$operation] permissions: notifications=$notificationsEnabled, '
+      'exactAlarm=$exactAlarmAllowed, '
+      'batteryOptimizationIgnored=$ignoringBatteryOptimizations',
+    );
+
+    return exactAlarmAllowed;
   }
 
   /// Ask the user to exempt this app from battery optimization.
@@ -141,11 +201,13 @@ class NotificationService {
       // Use a MethodChannel to call the native Kotlin code that opens
       // ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS for this package.
       await _androidChannel.invokeMethod('requestBatteryOptimization');
-      _debugPrint('✅ Battery optimization exemption dialog shown (or already granted)');
-    } on PlatformException catch (e) {
-      _debugPrint('⚠️ Battery optimization request skipped: ${e.message}');
-    } catch (e) {
-      _debugPrint('⚠️ Battery optimization request failed: $e');
+      _debugPrint(
+        '✅ Battery optimization exemption dialog shown (or already granted)',
+      );
+    } on PlatformException catch (error, stackTrace) {
+      _logError('requesting battery optimization exemption', error, stackTrace);
+    } catch (error, stackTrace) {
+      _logError('requesting battery optimization exemption', error, stackTrace);
     }
   }
 
@@ -167,19 +229,21 @@ class NotificationService {
   /// Schedule a test alarm after a delay
   Future<void> scheduleTestAlarm(Duration delay) async {
     try {
+      final scheduleMode = await _androidScheduleMode('scheduleTestAlarm');
       await _flutterLocalNotificationsPlugin.zonedSchedule(
         996,
-        '🔔 DrugSafe Scheduled Test',
-        'This alarm was scheduled ${delay.inSeconds}s ago',
+        'DrugSafe notification test',
+        'This notification was scheduled ${delay.inSeconds} seconds ago.',
         tz.TZDateTime.now(tz.local).add(delay),
         _alarmNotificationDetails(),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: scheduleMode,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
       );
+      await _logPendingNotificationCount('scheduleTestAlarm');
       _debugPrint('✅ Test alarm scheduled in ${delay.inSeconds}s');
-    } catch (e) {
-      _debugPrint('❌ Error scheduling test alarm: $e');
+    } catch (error, stackTrace) {
+      _logError('scheduling test notification', error, stackTrace);
     }
   }
 
@@ -211,70 +275,82 @@ class NotificationService {
       final reminderId = schedule.scheduleId * 10 + 1;
       final doseId = schedule.scheduleId * 10 + 2;
 
-      _debugPrint('📋 Scheduling ${schedule.medName} (status: ${schedule.status})...');
+      _debugPrint(
+        '📋 Scheduling ${schedule.medName} (status: ${schedule.status})...',
+      );
 
       final isAr = LanguageService.isArabic;
       if (statusLower == 'snoozed') {
         // For snoozed doses, only schedule the snooze alarm at notificationTime (SnoozedUntil) if in the future
         if (localNotificationTime.isAfter(now)) {
-          await _scheduleAlarm(
+          final scheduled = await _scheduleAlarm(
             id: doseId,
             title: schedule.title.isNotEmpty
                 ? schedule.title
                 : (isAr ? '⏰ تذكير الغفوة' : '⏰ Snooze Reminder'),
             body: schedule.message.isNotEmpty
                 ? schedule.message
-                : (isAr ? 'حان وقت تناول ${schedule.medName}' : 'Time to take ${schedule.medName}'),
+                : (isAr
+                      ? 'حان وقت تناول ${schedule.medName}'
+                      : 'Time to take ${schedule.medName}'),
             scheduledDate: localNotificationTime,
             payload: 'dose_${schedule.scheduleId}',
           );
-          scheduledIds.add(doseId);
+          if (scheduled) scheduledIds.add(doseId);
         } else {
-          _debugPrint('⏭️ Skipping snoozed ${schedule.medName} - snooze time is in the past');
+          _debugPrint(
+            '⏭️ Skipping snoozed ${schedule.medName} - snooze time is in the past',
+          );
         }
       } else {
         // For normal pending doses:
         if (localScheduledAt.isBefore(now)) {
-          _debugPrint('⏭️ Skipping pending ${schedule.medName} - dose time in past');
+          _debugPrint(
+            '⏭️ Skipping pending ${schedule.medName} - dose time in past',
+          );
           return scheduledIds;
         }
 
         // 1. Schedule the advance reminder if it exists and is in the future
         if (localNotificationTime.isBefore(localScheduledAt)) {
           if (localNotificationTime.isAfter(now)) {
-            await _scheduleAlarm(
+            final reminderScheduled = await _scheduleAlarm(
               id: reminderId,
               title: schedule.title.isNotEmpty
                   ? schedule.title
                   : (isAr ? '🔔 تذكير مسبق' : '🔔 Advance Reminder'),
               body: schedule.message.isNotEmpty
                   ? schedule.message
-                  : (isAr ? 'تذكير بدواء ${schedule.medName}' : 'Reminder for ${schedule.medName}'),
+                  : (isAr
+                        ? 'تذكير بدواء ${schedule.medName}'
+                        : 'Reminder for ${schedule.medName}'),
               scheduledDate: localNotificationTime,
               payload: 'reminder_${schedule.scheduleId}',
             );
-            scheduledIds.add(reminderId);
+            if (reminderScheduled) scheduledIds.add(reminderId);
           } else {
-            _debugPrint('⏭️ Skipping advance reminder for ${schedule.medName} - time in past');
+            _debugPrint(
+              '⏭️ Skipping advance reminder for ${schedule.medName} - time in past',
+            );
           }
 
           // Since there is an advance reminder, the dose time alarm uses a default due title/body
           final dueTitle = isAr ? '🔔 تذكير الجرعة' : '🔔 Dose Reminder';
-          final dueBody = isAr 
+          final dueBody = isAr
               ? 'حان وقت تناول جرعتك من "${schedule.medName}"'
               : 'It\'s time to take your dose of "${schedule.medName}"';
 
-          await _scheduleAlarm(
+          final doseScheduled = await _scheduleAlarm(
             id: doseId,
             title: dueTitle,
             body: dueBody,
             scheduledDate: localScheduledAt,
             payload: 'dose_${schedule.scheduleId}',
           );
-          scheduledIds.add(doseId);
+          if (doseScheduled) scheduledIds.add(doseId);
         } else {
           // If no advance reminder (notificationTime == scheduledAt), schedule the single dose alarm with API text
-          await _scheduleAlarm(
+          final scheduled = await _scheduleAlarm(
             id: doseId,
             title: schedule.title.isNotEmpty
                 ? schedule.title
@@ -282,25 +358,29 @@ class NotificationService {
             body: schedule.message.isNotEmpty
                 ? schedule.message
                 : (isAr
-                    ? 'حان وقت تناول جرعتك من ${schedule.medName}'
-                    : 'It\'s time to take your dose of ${schedule.medName}'),
+                      ? 'حان وقت تناول جرعتك من ${schedule.medName}'
+                      : 'It\'s time to take your dose of ${schedule.medName}'),
             scheduledDate: localScheduledAt,
             payload: 'dose_${schedule.scheduleId}',
           );
-          scheduledIds.add(doseId);
+          if (scheduled) scheduledIds.add(doseId);
         }
       }
 
       _debugPrint('✅ Scheduled ${schedule.medName}: $scheduledIds');
-    } catch (e) {
-      _debugPrint('❌ Error scheduling: $e');
+    } catch (error, stackTrace) {
+      _logError(
+        'scheduling notifications for ${schedule.medName}',
+        error,
+        stackTrace,
+      );
     }
     return scheduledIds;
   }
 
   // ───── Core scheduling (all goes through this) ─────
 
-  Future<void> _scheduleAlarm({
+  Future<bool> _scheduleAlarm({
     required int id,
     required String title,
     required String body,
@@ -309,6 +389,9 @@ class NotificationService {
   }) async {
     try {
       final tzScheduled = tz.TZDateTime.from(scheduledDate, tz.local);
+      final scheduleMode = await _androidScheduleMode(
+        'scheduleAlarm(id=$id, payload=$payload)',
+      );
       _debugPrint('⏰ Alarm ID $id: "$title" at $scheduledDate');
 
       await _flutterLocalNotificationsPlugin.zonedSchedule(
@@ -317,14 +400,17 @@ class NotificationService {
         body,
         tzScheduled,
         _alarmNotificationDetails(),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: scheduleMode,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         payload: payload,
       );
+      await _logPendingNotificationCount('scheduleAlarm(id=$id)');
       _debugPrint('✅ Alarm ID $id scheduled');
-    } catch (e) {
-      _debugPrint('❌ Error scheduling alarm ID $id: $e');
+      return true;
+    } catch (error, stackTrace) {
+      _logError('scheduling alarm ID $id', error, stackTrace);
+      return false;
     }
   }
 
@@ -346,6 +432,9 @@ class NotificationService {
       }
 
       final tzScheduled = tz.TZDateTime.from(scheduledDate, tz.local);
+      final scheduleMode = await _androidScheduleMode(
+        'scheduleRepeatingReminder(id=$notifId)',
+      );
 
       _debugPrint(
         '⏰ Repeating alarm for $medicineName at '
@@ -358,13 +447,17 @@ class NotificationService {
         '$dosage - ${_formatTime(hour, minute)}',
         tzScheduled,
         _alarmNotificationDetails(),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: scheduleMode,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: repeatIntervalHours >= 24
             ? DateTimeComponents.time
             : null,
         payload: medicineId,
+      );
+
+      await _logPendingNotificationCount(
+        'scheduleRepeatingReminder(id=$notifId)',
       );
 
       await ReminderStorageService.saveReminder(
@@ -381,8 +474,12 @@ class NotificationService {
 
       _debugPrint('✅ Repeating alarm for $medicineName');
       return true;
-    } catch (e) {
-      _debugPrint('❌ Error scheduling repeating: $e');
+    } catch (error, stackTrace) {
+      _logError(
+        'scheduling repeating reminder for $medicineName',
+        error,
+        stackTrace,
+      );
       return false;
     }
   }
@@ -406,6 +503,9 @@ class NotificationService {
       final snoozeTime = tz.TZDateTime.now(
         tz.local,
       ).add(Duration(minutes: minutes));
+      final scheduleMode = await _androidScheduleMode(
+        'snoozeNotification(id=$notifId)',
+      );
 
       _debugPrint('⏰ Snoozing $medicineName for $minutes min (ID: $notifId)');
 
@@ -415,16 +515,17 @@ class NotificationService {
         '$dosage - Alarm in $minutes min',
         snoozeTime,
         _alarmNotificationDetails(),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: scheduleMode,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         payload: medicineId,
       );
+      await _logPendingNotificationCount('snoozeNotification(id=$notifId)');
 
       _debugPrint('✅ $medicineName snoozed $minutes min');
       return true;
-    } catch (e) {
-      _debugPrint('❌ Error snoozing: $e');
+    } catch (error, stackTrace) {
+      _logError('snoozing $medicineName', error, stackTrace);
       return false;
     }
   }
@@ -505,6 +606,29 @@ class NotificationService {
     }
   }
 
+  Future<void> cancelStaleBackendNotifications(Set<int> activeIds) async {
+    try {
+      final pending = await getPendingNotifications();
+      final stale = pending.where((notification) {
+        final payload = notification.payload ?? '';
+        final isBackendNotification =
+            payload.startsWith('dose_') || payload.startsWith('reminder_');
+        return isBackendNotification && !activeIds.contains(notification.id);
+      }).toList();
+
+      for (final notification in stale) {
+        await _flutterLocalNotificationsPlugin.cancel(notification.id);
+      }
+
+      _debugPrint(
+        '[BackendReconcile] active=${activeIds.length}, '
+        'cancelledStale=${stale.length}',
+      );
+    } catch (error, stackTrace) {
+      _logError('cancelling stale backend notifications', error, stackTrace);
+    }
+  }
+
   // ───── Testing & debug ─────
 
   Future<void> testInstantNotification() async {
@@ -516,11 +640,11 @@ class NotificationService {
     );
   }
 
-  Future<void> testNotificationAfterDelay(Duration delay) async {
+  Future<bool> testNotificationAfterDelay(Duration delay) async {
     final now = DateTime.now();
     final scheduledTime = now.add(delay);
     final notificationId = 998;
-    
+
     final tzNow = tz.TZDateTime.now(tz.local);
     final tzScheduled = tzNow.add(delay);
 
@@ -532,30 +656,38 @@ class NotificationService {
     _debugPrint('[NotifTest] tzScheduled: $tzScheduled');
     _debugPrint('[NotifTest] now (millis): ${now.millisecondsSinceEpoch}');
     _debugPrint('[NotifTest] tzNow (millis): ${tzNow.millisecondsSinceEpoch}');
-    _debugPrint('[NotifTest] tzScheduled (millis): ${tzScheduled.millisecondsSinceEpoch}');
-    _debugPrint('[NotifTest] Offset difference: ${tzNow.millisecondsSinceEpoch - now.millisecondsSinceEpoch} ms');
+    _debugPrint(
+      '[NotifTest] tzScheduled (millis): ${tzScheduled.millisecondsSinceEpoch}',
+    );
+    _debugPrint(
+      '[NotifTest] Offset difference: ${tzNow.millisecondsSinceEpoch - now.millisecondsSinceEpoch} ms',
+    );
     _debugPrint('[NotifTest] Notification ID: $notificationId');
-    
+
     try {
+      final scheduleMode = await _androidScheduleMode(
+        'testNotificationAfterDelay',
+      );
       await _flutterLocalNotificationsPlugin.zonedSchedule(
         notificationId,
-        '💊 DrugSafe Test Alarm',
-        'This is your 30-second test notification!',
+        'DrugSafe notification test',
+        'This is the 30-second local notification test.',
         tzScheduled,
         _alarmNotificationDetails(),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: scheduleMode,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
       );
       _debugPrint('[NotifTest] zonedSchedule completed successfully');
-    } catch (e) {
-      _debugPrint('[NotifTest] zonedSchedule failed with error: $e');
-      rethrow;
+
+      final count = await getPendingNotificationsCount();
+      _debugPrint('[NotifTest] Pending notifications count: $count');
+      _debugPrint('======================================================');
+      return true;
+    } catch (error, stackTrace) {
+      _logError('running the delayed notification test', error, stackTrace);
+      return false;
     }
-    
-    final count = await getPendingNotificationsCount();
-    _debugPrint('[NotifTest] Pending notifications count: $count');
-    _debugPrint('======================================================');
   }
 
   Future<int> getPendingNotificationsCount() async {
@@ -566,6 +698,11 @@ class NotificationService {
     } catch (_) {
       return 0;
     }
+  }
+
+  Future<void> _logPendingNotificationCount(String operation) async {
+    final count = await getPendingNotificationsCount();
+    _debugPrint('[$operation] Pending notification count: $count');
   }
 
   Future<List<PendingNotificationRequest>> getPendingNotifications() async {
@@ -598,16 +735,14 @@ class NotificationService {
         _channelId,
         _channelName,
         channelDescription: _channelDesc,
+        icon: _notificationIcon,
         importance: Importance.max,
         priority: Priority.high,
         enableVibration: true,
         enableLights: true,
         playSound: true,
-        fullScreenIntent: true,
-        category: AndroidNotificationCategory.alarm,
         visibility: NotificationVisibility.public,
         showWhen: true,
-        usesChronometer: true,
         sound: null, // uses default system alarm sound
       ),
       iOS: const DarwinNotificationDetails(
@@ -627,4 +762,9 @@ class NotificationService {
 
 void _debugPrint(String message) {
   debugPrint('[NotificationService] $message');
+}
+
+void _logError(String operation, Object error, StackTrace stackTrace) {
+  debugPrint('[NotificationService] ERROR while $operation: $error');
+  debugPrint('[NotificationService] STACK TRACE:\n$stackTrace');
 }
