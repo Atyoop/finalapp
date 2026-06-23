@@ -17,9 +17,11 @@ import '../services/user_medications_service.dart';
 import '../models/medicine.dart';
 import '../utils/quantity_helpers.dart';
 import 'chatbot_screen.dart';
+import 'insights_screen.dart';
 import 'notifications_screen.dart';
 import '../widgets/interaction_warning_badge.dart';
 import '../widgets/interaction_bottom_sheet.dart';
+import '../widgets/medication_feature_sheets.dart';
 
 // ─────────────────────────────────────────────
 // Schedule Model
@@ -671,7 +673,11 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }();
   }
 
-  Future<void> _skipSchedule(int scheduleId) async {
+  Future<void> _skipSchedule(
+    int scheduleId, {
+    String? reason,
+    String? note,
+  }) async {
     final token = context.read<UserProvider>().token;
     if (token == null) return;
     final alertsProvider = context.read<AlertsProvider>();
@@ -714,7 +720,12 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // 3. EXECUTE API SILENTLY IN BACKGROUND
     () async {
       try {
-        await SchedulesService.skipDose(token, scheduleId);
+        await SchedulesService.skipDose(
+          token,
+          scheduleId,
+          reason: reason,
+          note: note,
+        );
         if (mounted) {
           await _fetchSchedulesForDateSilently(_selectedDate);
           await alertsProvider.refreshUnreadCount(token);
@@ -853,6 +864,26 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             ),
                           ),
                           // Notifications icon with badge
+                          IconButton(
+                            tooltip: 'Insights',
+                            icon: const Icon(
+                              Icons.insights_outlined,
+                              color: AppColors.primaryTeal,
+                              size: 28,
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const InsightsScreen(),
+                                ),
+                              );
+                            },
+                            constraints: const BoxConstraints(
+                              minWidth: 48,
+                              minHeight: 48,
+                            ),
+                          ),
                           Stack(
                             children: [
                               IconButton(
@@ -1097,7 +1128,11 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               onTakeSuccess: () => _markAsTaken(s.id),
                               onSnoozeSuccess: (minutes) =>
                                   _snoozeSchedule(s.id, minutes),
-                              onSkipSuccess: () => _skipSchedule(s.id),
+                              onSkipSuccess: (reason, note) => _skipSchedule(
+                                s.id,
+                                reason: reason,
+                                note: note,
+                              ),
                             ),
                           );
                         },
@@ -1821,7 +1856,7 @@ class _TakeDoseBottomSheet extends StatefulWidget {
   final Future<void> Function(int minutes) onSnoozeSuccess;
 
   /// Called when user taps Skip. Parent handles API + refresh.
-  final Future<void> Function() onSkipSuccess;
+  final Future<void> Function(String? reason, String? note) onSkipSuccess;
 
   const _TakeDoseBottomSheet({
     required this.schedule,
@@ -1909,9 +1944,11 @@ class _TakeDoseBottomSheetState extends State<_TakeDoseBottomSheet> {
     widget.onSnoozeSuccess(finalMinutes);
   }
 
-  void _onSkipTapped() {
-    Navigator.pop(context);
-    widget.onSkipSuccess();
+  Future<void> _onSkipTapped() async {
+    final result = await showSkipReasonBottomSheet(context);
+    if (result == null) return;
+    if (mounted) Navigator.pop(context);
+    await widget.onSkipSuccess(result.reason, result.note);
   }
 
   // ── Compact Info Card Widget ──────────────────────────────────────────────

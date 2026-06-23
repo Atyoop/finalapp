@@ -162,6 +162,10 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   String _afterOpeningDurationUnit = 'days';
   bool _requiresOpeningTracking = false;
   String? _afterOpeningNote;
+  String _medicationUseType = 'Scheduled';
+  int? _maxDosesPerDay;
+  double? _minimumHoursBetweenDoses;
+  int? _refillReminderDaysBefore;
 
   // Pills per dose
   int _pillsPerDose = 1;
@@ -255,6 +259,10 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     );
     _requiresOpeningTracking = widget.requiresOpeningTracking;
     _afterOpeningNote = med?.afterOpeningWarning ?? widget.afterOpeningNote;
+    _medicationUseType = med?.medicationUseType ?? 'Scheduled';
+    _maxDosesPerDay = med?.maxDosesPerDay;
+    _minimumHoursBetweenDoses = med?.minimumHoursBetweenDoses;
+    _refillReminderDaysBefore = med?.refillReminderDaysBefore;
 
     // Initialize pills per dose
     _pillsPerDose = med?.doseQuantity ?? med?.pillsPerDose ?? 1;
@@ -312,13 +320,24 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         widget.initialDrugName != null) {
       return 'Please select a medication from the list';
     }
-    if (_schedule.type == ScheduleType.everyXHours &&
-        _schedule.intervalHours <= 0) {
-      return 'Interval hours must be greater than 0';
-    }
-    if (_schedule.type == ScheduleType.xTimesPerDay &&
-        _schedule.doseTimes.isEmpty) {
-      return 'Please add at least one dose time';
+    final isAsNeeded = _medicationUseType == 'AsNeeded';
+    if (!isAsNeeded) {
+      if (_schedule.type == ScheduleType.everyXHours &&
+          _schedule.intervalHours <= 0) {
+        return 'Interval hours must be greater than 0';
+      }
+      if (_schedule.type == ScheduleType.xTimesPerDay &&
+          _schedule.doseTimes.isEmpty) {
+        return 'Please add at least one dose time';
+      }
+    } else {
+      if (_maxDosesPerDay == null || _maxDosesPerDay! <= 0) {
+        return 'Max doses per day must be greater than 0';
+      }
+      if (_minimumHoursBetweenDoses == null ||
+          _minimumHoursBetweenDoses! <= 0) {
+        return 'Minimum hours between doses must be greater than 0';
+      }
     }
     if (_selectedQuantityUnit.trim().isEmpty) {
       _selectedQuantityUnit = 'unit';
@@ -877,6 +896,145 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     );
   }
 
+  Widget _buildMedicationUseTypeSection() {
+    final isAsNeeded = _medicationUseType == 'AsNeeded';
+    return _buildCardSection(
+      title: 'Medication use',
+      icon: Icons.tune_rounded,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: AppColors.primaryTeal.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                _buildUseTypeOption('Scheduled', 'Scheduled'),
+                _buildUseTypeOption('As needed', 'AsNeeded'),
+              ],
+            ),
+          ),
+          if (isAsNeeded) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Use this for medications taken only when symptoms happen. Schedule fields are hidden, and dose limits protect spacing and daily use.',
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.textGrey,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildPrnNumberRow(
+              label: 'Max doses per day',
+              value: _maxDosesPerDay?.toString() ?? 'Not set',
+              onTap: () => _showNumberInputDialog(
+                title: 'Max doses per day',
+                initialValue: _maxDosesPerDay,
+                onSave: (val) => setState(() => _maxDosesPerDay = val),
+              ),
+            ),
+            const SizedBox(height: 10),
+            _buildPrnNumberRow(
+              label: 'Minimum hours between doses',
+              value: _minimumHoursBetweenDoses == null
+                  ? 'Not set'
+                  : _minimumHoursBetweenDoses!.toStringAsFixed(0),
+              onTap: () => _showNumberInputDialog(
+                title: 'Minimum hours between doses',
+                initialValue: _minimumHoursBetweenDoses?.round(),
+                onSave: (val) =>
+                    setState(() => _minimumHoursBetweenDoses = val?.toDouble()),
+              ),
+            ),
+            const SizedBox(height: 10),
+            _buildPrnNumberRow(
+              label: 'Refill reminder days before',
+              value: _refillReminderDaysBefore?.toString() ?? 'Not set',
+              onTap: () => _showNumberInputDialog(
+                title: 'Refill reminder days before',
+                initialValue: _refillReminderDaysBefore,
+                onSave: (val) =>
+                    setState(() => _refillReminderDaysBefore = val),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUseTypeOption(String label, String value) {
+    final selected = _medicationUseType == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _medicationUseType = value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.primaryTeal : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: selected ? Colors.white : AppColors.textDark,
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPrnNumberRow({
+    required String label,
+    required String value,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.textGrey.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textGrey,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textDark,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1226,62 +1384,67 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             ),
             const SizedBox(height: 20),
 
+            _buildMedicationUseTypeSection(),
+            const SizedBox(height: 20),
+
             // 3. Schedule Card
-            _buildCardSection(
-              title: context.l10n.t('schedule'),
-              icon: Icons.schedule_rounded,
-              child: GestureDetector(
-                onTap: _showScheduleSheet,
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: AppColors.textGrey.withValues(alpha: 0.2),
+            if (_medicationUseType != 'AsNeeded') ...[
+              _buildCardSection(
+                title: context.l10n.t('schedule'),
+                icon: Icons.schedule_rounded,
+                child: GestureDetector(
+                  onTap: _showScheduleSheet,
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: AppColors.textGrey.withValues(alpha: 0.2),
+                      ),
                     ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _schedule.getDisplayText(context),
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textDark,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _schedule.getDisplayText(context),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textDark,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _locale == 'ar'
-                                  ? 'تاريخ البدء: ${DateFormat('MMM d, yyyy', _locale).format(_schedule.startDate)}'
-                                        '${_schedule.endDate != null ? ' • تاريخ الانتهاء: ${DateFormat('MMM d, yyyy', _locale).format(_schedule.endDate!)}' : ''}'
-                                  : 'Start: ${DateFormat('MMM d, yyyy', _locale).format(_schedule.startDate)}'
-                                        '${_schedule.endDate != null ? ' • End: ${DateFormat('MMM d, yyyy', _locale).format(_schedule.endDate!)}' : ''}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textGrey,
+                              const SizedBox(height: 8),
+                              Text(
+                                _locale == 'ar'
+                                    ? 'تاريخ البدء: ${DateFormat('MMM d, yyyy', _locale).format(_schedule.startDate)}'
+                                          '${_schedule.endDate != null ? ' • تاريخ الانتهاء: ${DateFormat('MMM d, yyyy', _locale).format(_schedule.endDate!)}' : ''}'
+                                    : 'Start: ${DateFormat('MMM d, yyyy', _locale).format(_schedule.startDate)}'
+                                          '${_schedule.endDate != null ? ' • End: ${DateFormat('MMM d, yyyy', _locale).format(_schedule.endDate!)}' : ''}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textGrey,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      Icon(
-                        Icons.edit_outlined,
-                        color: AppColors.primaryTeal,
-                        size: 20,
-                      ),
-                    ],
+                        Icon(
+                          Icons.edit_outlined,
+                          color: AppColors.primaryTeal,
+                          size: 20,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
+            ],
 
             // 4. Stock Card
             _buildCardSection(
@@ -1991,6 +2154,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     try {
       // Get schedule fields with new API format
       final scheduleFields = _schedule.toApiFields();
+      final isAsNeeded = _medicationUseType == 'AsNeeded';
 
       // Determine first dose time based on schedule type
       final TimeOfDay firstDoseTime = _schedule.effectiveFirstDoseTime;
@@ -2013,7 +2177,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         deadlineDate: DateTime.now(),
         expiryDate:
             _expiryDate ?? DateTime.now().add(const Duration(days: 365)),
-        frequency: _schedule.getDisplayText(context),
+        frequency: isAsNeeded ? 'As needed' : _schedule.getDisplayText(context),
         time: firstDoseTime,
         doseAmount: formatQuantityWithUnit(
           _pillsPerDose,
@@ -2033,18 +2197,30 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         currentPillCount: _stock,
         initialPillCount: _stock,
         lowStockThreshold: _lowStockThreshold,
-        dosesPerPeriod: scheduleFields['dosesPerPeriod'] as int?,
-        periodUnit: scheduleFields['periodUnit'] as String?,
-        periodValue: scheduleFields['periodValue'] as int?,
-        intervalHours: scheduleFields['intervalHours'] as int?,
+        dosesPerPeriod: isAsNeeded
+            ? null
+            : scheduleFields['dosesPerPeriod'] as int?,
+        periodUnit: isAsNeeded ? null : scheduleFields['periodUnit'] as String?,
+        periodValue: isAsNeeded ? null : scheduleFields['periodValue'] as int?,
+        intervalHours: isAsNeeded
+            ? null
+            : scheduleFields['intervalHours'] as int?,
         notificationActive: _notificationActive,
         advanceReminderMinutes: (_notificationActive && _advanceReminderEnabled)
             ? _advanceReminderMinutes
             : null,
         status: widget.initialMedicine?.status ?? MedicineStatus.scheduled,
-        scheduleType: scheduleFields['scheduleType'] as String?,
-        doseTimes: scheduleFields['doseTimes'] as List<String>?,
+        scheduleType: isAsNeeded
+            ? null
+            : scheduleFields['scheduleType'] as String?,
+        doseTimes: isAsNeeded
+            ? const <String>[]
+            : scheduleFields['doseTimes'] as List<String>?,
         pillsPerDose: _pillsPerDose,
+        medicationUseType: _medicationUseType,
+        maxDosesPerDay: isAsNeeded ? _maxDosesPerDay : null,
+        minimumHoursBetweenDoses: isAsNeeded ? _minimumHoursBetweenDoses : null,
+        refillReminderDaysBefore: _refillReminderDaysBefore,
         isOpened: _isOpened,
         openedDate: _isOpened ? _openedDate : null,
         afterOpeningDurationValue: _isOpened
