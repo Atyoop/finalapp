@@ -1,4 +1,6 @@
 import 'package:final88/models/medicine.dart';
+import 'package:final88/models/medication_features.dart';
+import 'package:final88/screens/cabinet_health_screen.dart';
 import 'package:final88/screens/add_reminder_screen.dart';
 import 'package:final88/utils/time_helpers.dart';
 import 'package:flutter/material.dart';
@@ -9,8 +11,10 @@ import '../main.dart';
 import '../providers/medicine_provider.dart';
 import '../providers/user_provider.dart';
 import '../providers/language_provider.dart';
+import '../services/user_medications_service.dart';
 import '../utils/quantity_helpers.dart';
 import '../widgets/interaction_warning_badge.dart';
+import '../widgets/medication_feature_sheets.dart';
 
 class SavedMedicinesScreen extends StatefulWidget {
   const SavedMedicinesScreen({super.key});
@@ -22,6 +26,8 @@ class SavedMedicinesScreen extends StatefulWidget {
 class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
   Medicine? selectedMedicine;
   String? _currentLanguage;
+  CabinetHealthModel? _cabinetHealth;
+  bool _cabinetLoading = false;
 
   String _formatDate(DateTime? date, {String locale = 'en'}) {
     if (date == null) return '';
@@ -53,8 +59,79 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
       final token = context.read<UserProvider>().token;
       if (token != null && token.isNotEmpty) {
         context.read<MedicineProvider>().fetchMedicinesFromApi(token);
+        _loadCabinetHealth(token);
       }
     });
+  }
+
+  Future<void> _loadCabinetHealth(String token) async {
+    setState(() => _cabinetLoading = true);
+    try {
+      final health = await UserMedicationsService.getCabinetHealth(token);
+      if (!mounted) return;
+      setState(() => _cabinetHealth = health);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _cabinetHealth = null);
+    } finally {
+      if (mounted) setState(() => _cabinetLoading = false);
+    }
+  }
+
+  int? _userMedicationId(Medicine med) => int.tryParse(med.id);
+
+  Future<void> _reloadMedicationData() async {
+    final token = context.read<UserProvider>().token;
+    if (token == null || token.isEmpty) return;
+    await context.read<MedicineProvider>().fetchMedicinesFromApi(token);
+    await _loadCabinetHealth(token);
+  }
+
+  Future<void> _handleTakeNow(Medicine med) async {
+    final token = context.read<UserProvider>().token;
+    final id = _userMedicationId(med);
+    if (token == null || token.isEmpty || id == null) return;
+    final result = await showTakeNowReasonBottomSheet(context);
+    if (result == null) return;
+    try {
+      await UserMedicationsService.takeNow(
+        token,
+        id,
+        reason: result.reason,
+        notes: result.note,
+      );
+      await _reloadMedicationData();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Dose recorded successfully')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e is ApiException ? e.message : e.toString())),
+      );
+    }
+  }
+
+  Future<void> _handleRefill(Medicine med) async {
+    final token = context.read<UserProvider>().token;
+    final id = _userMedicationId(med);
+    if (token == null || token.isEmpty || id == null) return;
+    final quantity = await showRefillBottomSheet(context);
+    if (quantity == null) return;
+    try {
+      await UserMedicationsService.refillMedication(token, id, quantity);
+      await _reloadMedicationData();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Refill added successfully')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e is ApiException ? e.message : e.toString())),
+      );
+    }
   }
 
   @override
@@ -123,31 +200,34 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
           }
 
           return savedMedicines.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.bookmark_border_rounded,
-                        size: 64,
-                        color: AppColors.textGrey.withValues(alpha: 0.3),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
+              ? ListView(
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    _buildMyPharmacyCard(),
+                    const SizedBox(height: 40),
+                    Icon(
+                      Icons.bookmark_border_rounded,
+                      size: 64,
+                      color: AppColors.textGrey.withValues(alpha: 0.3),
+                    ),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: Text(
                         context.l10n.t('noMedicinesAdded'),
                         style: TextStyle(
                           fontSize: 16,
                           color: AppColors.textGrey,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 )
               : ListView.builder(
                   padding: const EdgeInsets.all(20),
-                  itemCount: savedMedicines.length,
+                  itemCount: savedMedicines.length + 1,
                   itemBuilder: (context, index) {
-                    final med = savedMedicines[index];
+                    if (index == 0) return _buildMyPharmacyCard();
+                    final med = savedMedicines[index - 1];
                     return GestureDetector(
                       onTap: () {
                         Navigator.push(
@@ -220,12 +300,21 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                                       color: AppColors.textDark,
                                     ),
                                   ),
+                                  if (med.isAsNeeded) ...[
+                                    const SizedBox(height: 6),
+                                    _buildBadge(
+                                      'As needed',
+                                      AppColors.primaryTeal,
+                                    ),
+                                  ],
                                   const SizedBox(height: 4),
                                   Text(
-                                    buildScheduleSummary(
-                                      med,
-                                      locale: _currentLanguage ?? 'en',
-                                    ),
+                                    med.isAsNeeded
+                                        ? _buildAsNeededSummary(med)
+                                        : buildScheduleSummary(
+                                            med,
+                                            locale: _currentLanguage ?? 'en',
+                                          ),
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: AppColors.textGrey,
@@ -261,29 +350,77 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(height: 6),
-                                  TextButton.icon(
-                                    onPressed: () =>
-                                        _showMedicineDetailsSheet(med),
-                                    style: TextButton.styleFrom(
-                                      padding: EdgeInsets.zero,
-                                      minimumSize: Size.zero,
-                                      tapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                      visualDensity: VisualDensity.compact,
-                                      foregroundColor: AppColors.primaryTeal,
-                                    ),
-                                    icon: const Icon(
-                                      Icons.info_outline_rounded,
-                                      size: 16,
-                                    ),
-                                    label: Text(
-                                      context.l10n.t('moreInfo'),
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
+                                  if (_forecastText(med).isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Text(
+                                        _forecastText(med),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: med.refillWarning
+                                              ? Colors.orange
+                                              : AppColors.textGrey,
+                                          fontWeight: med.refillWarning
+                                              ? FontWeight.w700
+                                              : FontWeight.w400,
+                                        ),
                                       ),
                                     ),
+                                  const SizedBox(height: 6),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 4,
+                                    children: [
+                                      if (med.isAsNeeded)
+                                        TextButton.icon(
+                                          onPressed: () => _handleTakeNow(med),
+                                          style: TextButton.styleFrom(
+                                            padding: EdgeInsets.zero,
+                                            minimumSize: Size.zero,
+                                            tapTargetSize: MaterialTapTargetSize
+                                                .shrinkWrap,
+                                            visualDensity:
+                                                VisualDensity.compact,
+                                            foregroundColor:
+                                                AppColors.primaryTeal,
+                                          ),
+                                          icon: const Icon(
+                                            Icons.flash_on_rounded,
+                                            size: 16,
+                                          ),
+                                          label: const Text(
+                                            'Take Now',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      TextButton.icon(
+                                        onPressed: () =>
+                                            _showMedicineDetailsSheet(med),
+                                        style: TextButton.styleFrom(
+                                          padding: EdgeInsets.zero,
+                                          minimumSize: Size.zero,
+                                          tapTargetSize:
+                                              MaterialTapTargetSize.shrinkWrap,
+                                          visualDensity: VisualDensity.compact,
+                                          foregroundColor:
+                                              AppColors.primaryTeal,
+                                        ),
+                                        icon: const Icon(
+                                          Icons.info_outline_rounded,
+                                          size: 16,
+                                        ),
+                                        label: Text(
+                                          context.l10n.t('moreInfo'),
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -393,6 +530,118 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
         },
       ),
     );
+  }
+
+  Widget _buildMyPharmacyCard() {
+    final attention = _cabinetHealth?.attentionCount ?? 0;
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const CabinetHealthScreen()),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: AppColors.primaryTeal.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(
+                Icons.health_and_safety_rounded,
+                color: AppColors.primaryTeal,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'My Pharmacy',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _cabinetLoading
+                        ? 'Checking cabinet health...'
+                        : attention == 0
+                        ? 'No cabinet warnings right now'
+                        : '$attention medication(s) need attention',
+                    style: TextStyle(fontSize: 12, color: AppColors.textGrey),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: AppColors.textGrey),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBadge(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  String _buildAsNeededSummary(Medicine med) {
+    final parts = <String>[];
+    if (med.maxDosesPerDay != null) {
+      parts.add('max ${med.maxDosesPerDay}/day');
+    }
+    if (med.minimumHoursBetweenDoses != null) {
+      parts.add('every ${med.minimumHoursBetweenDoses!.toStringAsFixed(0)}h');
+    }
+    return parts.isEmpty ? 'Take only when needed' : parts.join(' - ');
+  }
+
+  String _forecastText(Medicine med) {
+    final parts = <String>[];
+    if (med.dosesRemaining != null) {
+      parts.add('${med.dosesRemaining!.toStringAsFixed(0)} doses left');
+    }
+    if (med.daysUntilEmpty != null) {
+      parts.add('runs out in ${med.daysUntilEmpty} days');
+    }
+    if (med.refillWarning) {
+      parts.add('refill soon');
+    }
+    return parts.join(' - ');
   }
 
   Widget _buildDetailRow(
@@ -546,6 +795,86 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
     );
   }
 
+  Widget _buildIntakeHistorySection(BuildContext context, Medicine med) {
+    final token = context.read<UserProvider>().token;
+    final id = _userMedicationId(med);
+    if (token == null || token.isEmpty || id == null) {
+      return const SizedBox.shrink();
+    }
+    return FutureBuilder<List<MedicationIntakeLogModel>>(
+      future: UserMedicationsService.getIntakeHistory(token, id),
+      builder: (context, snapshot) {
+        Widget child;
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          child = Center(
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: CircularProgressIndicator(color: AppColors.primaryTeal),
+            ),
+          );
+        } else if (snapshot.hasError) {
+          child = Text(
+            'Could not load intake history.',
+            style: TextStyle(fontSize: 12, color: AppColors.textGrey),
+          );
+        } else {
+          final logs = snapshot.data ?? const <MedicationIntakeLogModel>[];
+          if (logs.isEmpty) {
+            child = Text(
+              'No intake history yet.',
+              style: TextStyle(fontSize: 12, color: AppColors.textGrey),
+            );
+          } else {
+            child = Column(
+              children: logs.take(10).map((log) {
+                final date = log.takenAt == null
+                    ? ''
+                    : DateFormat('MMM d, h:mm a').format(log.takenAt!);
+                final detail = [
+                  if ((log.reason ?? '').isNotEmpty) log.reason,
+                  if ((log.notes ?? '').isNotEmpty) log.notes,
+                ].join(' - ');
+                return Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7FAFA),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        date.isEmpty ? 'Dose recorded' : date,
+                        style: TextStyle(
+                          color: AppColors.textDark,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
+                      if (detail.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          detail,
+                          style: TextStyle(
+                            color: AppColors.textGrey,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              }).toList(),
+            );
+          }
+        }
+        return _buildDetailSection(title: 'Intake history', children: [child]);
+      },
+    );
+  }
+
   Future<void> _showMedicineDetailsSheet(Medicine med) async {
     final locale = _currentLanguage ?? 'en';
     await showModalBottomSheet<void>(
@@ -687,6 +1016,90 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                               ),
                           ],
                         ),
+                        _buildDetailSection(
+                          title: 'Stock info',
+                          children: [
+                            _buildDetailRow(
+                              context,
+                              'Current quantity',
+                              formatQuantityWithUnit(
+                                med.currentQuantity ?? med.currentPillCount,
+                                med.quantityUnit,
+                                locale: locale,
+                              ),
+                            ),
+                            if (med.dosesRemaining != null)
+                              _buildDetailRow(
+                                context,
+                                'Doses remaining',
+                                med.dosesRemaining!.toStringAsFixed(0),
+                                valueColor: med.refillWarning
+                                    ? Colors.orange
+                                    : AppColors.textDark,
+                              ),
+                            if (med.daysUntilEmpty != null)
+                              _buildDetailRow(
+                                context,
+                                'Days until empty',
+                                '${med.daysUntilEmpty}',
+                                valueColor: med.refillWarning
+                                    ? Colors.orange
+                                    : AppColors.textDark,
+                              ),
+                            if (med.estimatedRunOutDate != null)
+                              _buildDetailRow(
+                                context,
+                                'Estimated run out',
+                                _formatDate(
+                                  med.estimatedRunOutDate,
+                                  locale: locale,
+                                ),
+                              ),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () => _handleRefill(med),
+                                icon: const Icon(Icons.add_rounded),
+                                label: const Text('Add Refill'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primaryTeal,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (med.isAsNeeded)
+                          _buildDetailSection(
+                            title: 'As needed',
+                            children: [
+                              if (med.maxDosesPerDay != null)
+                                _buildDetailRow(
+                                  context,
+                                  'Max doses per day',
+                                  '${med.maxDosesPerDay}',
+                                ),
+                              if (med.minimumHoursBetweenDoses != null)
+                                _buildDetailRow(
+                                  context,
+                                  'Minimum spacing',
+                                  '${med.minimumHoursBetweenDoses!.toStringAsFixed(0)} hours',
+                                ),
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: () => _handleTakeNow(med),
+                                  icon: const Icon(Icons.flash_on_rounded),
+                                  label: const Text('Take Now'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppColors.primaryTeal,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        if (med.isAsNeeded)
+                          _buildIntakeHistorySection(context, med),
                         _buildDetailSection(
                           title: context.l10n.t('fullInteractionDetails'),
                           children: [

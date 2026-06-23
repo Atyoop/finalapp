@@ -53,6 +53,14 @@ class Medicine {
   final String? scheduleType;
   final List<String>? doseTimes;
   final int? pillsPerDose;
+  final String medicationUseType;
+  final int? maxDosesPerDay;
+  final double? minimumHoursBetweenDoses;
+  final int? refillReminderDaysBefore;
+  final DateTime? estimatedRunOutDate;
+  final int? daysUntilEmpty;
+  final double? dosesRemaining;
+  final bool refillWarning;
   final bool hasInteractions;
   final List<MedicationInteraction> interactions;
   final bool isOpened;
@@ -102,6 +110,14 @@ class Medicine {
     this.scheduleType,
     this.doseTimes,
     this.pillsPerDose,
+    this.medicationUseType = 'Scheduled',
+    this.maxDosesPerDay,
+    this.minimumHoursBetweenDoses,
+    this.refillReminderDaysBefore,
+    this.estimatedRunOutDate,
+    this.daysUntilEmpty,
+    this.dosesRemaining,
+    this.refillWarning = false,
     this.hasInteractions = false,
     this.interactions = const [],
     this.isOpened = false,
@@ -121,6 +137,7 @@ class Medicine {
   });
 
   DateTime get actualExpiryDate => effectiveExpiryDate ?? expiryDate;
+  bool get isAsNeeded => medicationUseType.toLowerCase() == 'asneeded';
 
   Medicine copyWith({
     String? name,
@@ -153,6 +170,14 @@ class Medicine {
     String? scheduleType,
     List<String>? doseTimes,
     int? pillsPerDose,
+    String? medicationUseType,
+    int? maxDosesPerDay,
+    double? minimumHoursBetweenDoses,
+    int? refillReminderDaysBefore,
+    DateTime? estimatedRunOutDate,
+    int? daysUntilEmpty,
+    double? dosesRemaining,
+    bool? refillWarning,
     bool? hasInteractions,
     List<MedicationInteraction>? interactions,
     bool? isOpened,
@@ -203,6 +228,16 @@ class Medicine {
       scheduleType: scheduleType ?? this.scheduleType,
       doseTimes: doseTimes ?? this.doseTimes,
       pillsPerDose: pillsPerDose ?? this.pillsPerDose,
+      medicationUseType: medicationUseType ?? this.medicationUseType,
+      maxDosesPerDay: maxDosesPerDay ?? this.maxDosesPerDay,
+      minimumHoursBetweenDoses:
+          minimumHoursBetweenDoses ?? this.minimumHoursBetweenDoses,
+      refillReminderDaysBefore:
+          refillReminderDaysBefore ?? this.refillReminderDaysBefore,
+      estimatedRunOutDate: estimatedRunOutDate ?? this.estimatedRunOutDate,
+      daysUntilEmpty: daysUntilEmpty ?? this.daysUntilEmpty,
+      dosesRemaining: dosesRemaining ?? this.dosesRemaining,
+      refillWarning: refillWarning ?? this.refillWarning,
       hasInteractions: hasInteractions ?? this.hasInteractions,
       interactions: interactions ?? this.interactions,
       isOpened: isOpened ?? this.isOpened,
@@ -277,11 +312,23 @@ class Medicine {
       'intervalHours': intervalHours,
       'notificationActive': notificationActive,
       'advanceReminderMinutes': advanceReminderMinutes,
-      'scheduleType': scheduleType,
-      'doseTimes': doseTimesJson,
+      'medicationUseType': medicationUseType,
+      'maxDosesPerDay': maxDosesPerDay,
+      'minimumHoursBetweenDoses': minimumHoursBetweenDoses,
+      'refillReminderDaysBefore': refillReminderDaysBefore,
+      'scheduleType': isAsNeeded ? null : scheduleType,
+      'doseTimes': isAsNeeded ? <String>[] : doseTimesJson,
       'pillsPerDose': pillsPerDose ?? effectiveDoseQuantity,
       'isOpened': isOpened,
     };
+
+    if (isAsNeeded) {
+      json['firstDoseTime'] = null;
+      json['dosesPerPeriod'] = null;
+      json['periodUnit'] = null;
+      json['periodValue'] = null;
+      json['intervalHours'] = null;
+    }
 
     if (isOpened) {
       json['openedDate'] = openedDate == null
@@ -334,6 +381,13 @@ class Medicine {
       if (value is int) return value;
       if (value is num) return value.round();
       return int.tryParse(value.toString());
+    }
+
+    double? parseDouble(dynamic value) {
+      if (value == null) return null;
+      if (value is double) return value;
+      if (value is num) return value.toDouble();
+      return double.tryParse(value.toString());
     }
 
     dynamic readAny(List<String> keys) {
@@ -441,6 +495,25 @@ class Medicine {
       scheduleType: json['scheduleType'],
       doseTimes: parsedDoseTimes.isNotEmpty ? parsedDoseTimes : null,
       pillsPerDose: parseInt(json['pillsPerDose']) ?? parsedDoseQuantity,
+      medicationUseType:
+          readAny(['medicationUseType', 'MedicationUseType'])?.toString() ??
+          'Scheduled',
+      maxDosesPerDay: parseInt(readAny(['maxDosesPerDay', 'MaxDosesPerDay'])),
+      minimumHoursBetweenDoses: parseDouble(
+        readAny(['minimumHoursBetweenDoses', 'MinimumHoursBetweenDoses']),
+      ),
+      refillReminderDaysBefore: parseInt(
+        readAny(['refillReminderDaysBefore', 'RefillReminderDaysBefore']),
+      ),
+      estimatedRunOutDate: parseNullableDate(
+        readAny(['estimatedRunOutDate', 'EstimatedRunOutDate']),
+      ),
+      daysUntilEmpty: parseInt(readAny(['daysUntilEmpty', 'DaysUntilEmpty'])),
+      dosesRemaining: parseDouble(
+        readAny(['dosesRemaining', 'DosesRemaining']),
+      ),
+      refillWarning:
+          readAny(['refillWarning', 'RefillWarning']) as bool? ?? false,
       hasInteractions: json['hasInteractions'] as bool? ?? false,
       interactions: () {
         final raw = json['interactions'];

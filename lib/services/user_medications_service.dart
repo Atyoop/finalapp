@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../models/medication_features.dart';
 import '../models/medicine.dart';
 import 'language_service.dart';
 import '../main.dart';
@@ -115,6 +116,7 @@ class AddMedicineResponse {
 
 /// Service class for all UserMedications API calls
 class UserMedicationsService {
+  static const String _apiRoot = 'https://drugsafe.runasp.net/api';
   static const String _baseUrl =
       'https://drugsafe.runasp.net/api/UserMedications';
 
@@ -123,6 +125,57 @@ class UserMedicationsService {
     'Accept': '*/*',
     'Authorization': 'Bearer $token',
   };
+
+  static Map<String, dynamic> _decodeObject(String body) {
+    if (body.trim().isEmpty) return <String, dynamic>{};
+    final decoded = jsonDecode(body);
+    if (decoded is Map && decoded['data'] is Map<String, dynamic>) {
+      return decoded['data'] as Map<String, dynamic>;
+    }
+    if (decoded is Map<String, dynamic>) return decoded;
+    return <String, dynamic>{};
+  }
+
+  static List<dynamic> _decodeList(String body) {
+    if (body.trim().isEmpty) return const [];
+    final decoded = jsonDecode(body);
+    if (decoded is List) return decoded;
+    if (decoded is Map && decoded['data'] != null) {
+      return ApiParse.listValue(decoded['data']);
+    }
+    if (decoded is Map && decoded['\$values'] != null) {
+      return ApiParse.listValue(decoded['\$values']);
+    }
+    return const [];
+  }
+
+  static ApiException _parseFeatureError(
+    http.Response response,
+    String fallback,
+  ) {
+    try {
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map) {
+        final message =
+            decoded['message'] ?? decoded['error'] ?? decoded['title'];
+        if (message != null) {
+          return ApiException(
+            message.toString(),
+            response.statusCode,
+            response.body,
+          );
+        }
+      }
+    } catch (_) {}
+    if (response.statusCode == 400) {
+      return ApiException(
+        'This action is not available right now. Check dose limits, stock, or timing.',
+        response.statusCode,
+        response.body,
+      );
+    }
+    return ApiException(fallback, response.statusCode, response.body);
+  }
 
   /// GET /api/UserMedications/myusermeds — fetch all user medications
   static Future<List<Medicine>> fetchAll(String token) async {
@@ -333,6 +386,133 @@ class UserMedicationsService {
       );
     }
   }
+
+  static Future<AdherenceSummaryModel> getAdherenceSummary(String token) async {
+    final response = await http.get(
+      LanguageService.appendLanguageQuery(
+        Uri.parse('$_apiRoot/users/me/adherence-summary'),
+      ),
+      headers: _headers(token),
+    );
+
+    if (response.statusCode == 200) {
+      return AdherenceSummaryModel.fromJson(_decodeObject(response.body));
+    }
+    throw _parseFeatureError(response, 'Failed to load adherence summary');
+  }
+
+  static Future<List<DoseHistoryModel>> getDoseHistory(String token) async {
+    final response = await http.get(
+      LanguageService.appendLanguageQuery(
+        Uri.parse('$_apiRoot/users/me/dose-history'),
+      ),
+      headers: _headers(token),
+    );
+
+    if (response.statusCode == 200) {
+      return _decodeList(response.body)
+          .whereType<Map<String, dynamic>>()
+          .map(DoseHistoryModel.fromJson)
+          .toList();
+    }
+    throw _parseFeatureError(response, 'Failed to load dose history');
+  }
+
+  static Future<MedicationAdherenceModel> getMedicationAdherence(
+    String token,
+    int userMedicationId,
+  ) async {
+    final response = await http.get(
+      LanguageService.appendLanguageQuery(
+        Uri.parse('$_apiRoot/medications/$userMedicationId/adherence'),
+      ),
+      headers: _headers(token),
+    );
+
+    if (response.statusCode == 200) {
+      return MedicationAdherenceModel.fromJson(_decodeObject(response.body));
+    }
+    throw _parseFeatureError(response, 'Failed to load medication adherence');
+  }
+
+  static Future<CabinetHealthModel> getCabinetHealth(String token) async {
+    final response = await http.get(
+      LanguageService.appendLanguageQuery(
+        Uri.parse('$_apiRoot/users/me/cabinet-health'),
+      ),
+      headers: _headers(token),
+    );
+
+    if (response.statusCode == 200) {
+      return CabinetHealthModel.fromJson(_decodeObject(response.body));
+    }
+    throw _parseFeatureError(response, 'Failed to load cabinet health');
+  }
+
+  static Future<List<MedicationIntakeLogModel>> getIntakeHistory(
+    String token,
+    int userMedicationId,
+  ) async {
+    final response = await http.get(
+      LanguageService.appendLanguageQuery(
+        Uri.parse(
+          '$_apiRoot/user-medications/$userMedicationId/intake-history',
+        ),
+      ),
+      headers: _headers(token),
+    );
+
+    if (response.statusCode == 200) {
+      return _decodeList(response.body)
+          .whereType<Map<String, dynamic>>()
+          .map(MedicationIntakeLogModel.fromJson)
+          .toList();
+    }
+    throw _parseFeatureError(response, 'Failed to load intake history');
+  }
+
+  static Future<void> takeNow(
+    String token,
+    int userMedicationId, {
+    String? reason,
+    String? notes,
+  }) async {
+    final response = await http
+        .post(
+          Uri.parse('$_apiRoot/user-medications/$userMedicationId/take-now'),
+          headers: _headers(token),
+          body: jsonEncode({'reason': reason, 'notes': notes}),
+        )
+        .timeout(const Duration(seconds: 15));
+
+    if (response.statusCode == 200 ||
+        response.statusCode == 201 ||
+        response.statusCode == 204) {
+      return;
+    }
+    throw _parseFeatureError(response, 'Failed to record dose');
+  }
+
+  static Future<void> refillMedication(
+    String token,
+    int userMedicationId,
+    int quantity,
+  ) async {
+    final response = await http
+        .post(
+          Uri.parse('$_apiRoot/user-medications/$userMedicationId/refill'),
+          headers: _headers(token),
+          body: jsonEncode({'quantity': quantity}),
+        )
+        .timeout(const Duration(seconds: 15));
+
+    if (response.statusCode == 200 ||
+        response.statusCode == 201 ||
+        response.statusCode == 204) {
+      return;
+    }
+    throw _parseFeatureError(response, 'Failed to add refill');
+  }
 }
 
 /// Custom exception for API errors
@@ -490,7 +670,11 @@ class SchedulesService {
   ///
   /// Snoozes a pending dose by specified minutes.
   /// Backend keeps status as Pending, increments snoozeCount, and shifts scheduledAt.
-  static Future<SnoozeResult> snoozeDose(String token, int scheduleId, int minutes) async {
+  static Future<SnoozeResult> snoozeDose(
+    String token,
+    int scheduleId,
+    int minutes,
+  ) async {
     final response = await http
         .post(
           Uri.parse('$_baseUrl/$scheduleId/snooze?minutes=$minutes'),
@@ -522,12 +706,17 @@ class SchedulesService {
   ///
   /// Skips a pending dose. Backend marks status as Missed.
   /// Flutter treats this as Missed — there is no "Skipped" status.
-  static Future<void> skipDose(String token, int scheduleId) async {
+  static Future<void> skipDose(
+    String token,
+    int scheduleId, {
+    String? reason,
+    String? note,
+  }) async {
     final response = await http
         .post(
           Uri.parse('$_baseUrl/$scheduleId/skip'),
           headers: _headers(token),
-          body: '{}',
+          body: jsonEncode({'reason': reason, 'note': note}),
         )
         .timeout(const Duration(seconds: 15));
 
