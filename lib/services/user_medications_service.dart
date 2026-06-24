@@ -387,11 +387,26 @@ class UserMedicationsService {
     }
   }
 
-  static Future<AdherenceSummaryModel> getAdherenceSummary(String token) async {
+  static Uri _insightsUri(String path, {DateTime? from, DateTime? to}) {
+    final dateFormatter = RegExp(r'T.*');
+    final startDate = from?.toIso8601String().replaceFirst(dateFormatter, '');
+    final endDate = to?.toIso8601String().replaceFirst(dateFormatter, '');
+
+    return LanguageService.appendLanguageQuery(Uri.parse('$_apiRoot$path'), {
+      if (from != null) 'from': from.toIso8601String(),
+      if (to != null) 'to': to.toIso8601String(),
+      if (startDate != null) 'startDate': startDate,
+      if (endDate != null) 'endDate': endDate,
+    });
+  }
+
+  static Future<AdherenceSummaryModel> getAdherenceSummary(
+    String token, {
+    DateTime? from,
+    DateTime? to,
+  }) async {
     final response = await http.get(
-      LanguageService.appendLanguageQuery(
-        Uri.parse('$_apiRoot/users/me/adherence-summary'),
-      ),
+      _insightsUri('/users/me/adherence-summary', from: from, to: to),
       headers: _headers(token),
     );
 
@@ -401,11 +416,13 @@ class UserMedicationsService {
     throw _parseFeatureError(response, 'Failed to load adherence summary');
   }
 
-  static Future<List<DoseHistoryModel>> getDoseHistory(String token) async {
+  static Future<List<DoseHistoryModel>> getDoseHistory(
+    String token, {
+    DateTime? from,
+    DateTime? to,
+  }) async {
     final response = await http.get(
-      LanguageService.appendLanguageQuery(
-        Uri.parse('$_apiRoot/users/me/dose-history'),
-      ),
+      _insightsUri('/users/me/dose-history', from: from, to: to),
       headers: _headers(token),
     );
 

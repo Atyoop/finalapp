@@ -214,14 +214,23 @@ class DoseHistoryModel {
           '',
       status: ApiParse.readAny(json, ['status', 'Status'])?.toString() ?? '',
       scheduledAt: ApiParse.dateValue(
-        ApiParse.readAny(json, ['scheduledAt', 'notificationTime']),
+        ApiParse.readAny(json, [
+          'scheduledAt',
+          'ScheduledAt',
+          'notificationTime',
+          'NotificationTime',
+        ]),
       ),
       actionAt: ApiParse.dateValue(
         ApiParse.readAny(json, [
           'takenAt',
+          'TakenAt',
           'skippedAt',
+          'SkippedAt',
           'missedAt',
+          'MissedAt',
           'actionAt',
+          'ActionAt',
         ]),
       ),
       reason: ApiParse.readAny(json, [
