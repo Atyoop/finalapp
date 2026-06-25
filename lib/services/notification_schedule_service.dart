@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../models/notification_schedule.dart';
 import 'api_client.dart';
+import 'medicine_storage_service.dart';
 
 class NotificationScheduleService {
   /// Fetch notification schedules from the backend
@@ -22,6 +23,20 @@ class NotificationScheduleService {
             .map(
               (item) =>
                   NotificationSchedule.fromJson(item as Map<String, dynamic>),
+            )
+            .toList();
+      }
+
+      final inactiveUserMedIds = MedicineStorageService.getAllMedicines()
+          .where((medicine) => !medicine.notificationActive)
+          .map((medicine) => int.tryParse(medicine.id))
+          .whereType<int>()
+          .toSet();
+
+      if (inactiveUserMedIds.isNotEmpty) {
+        schedules = schedules
+            .where(
+              (schedule) => !inactiveUserMedIds.contains(schedule.userMedId),
             )
             .toList();
       }

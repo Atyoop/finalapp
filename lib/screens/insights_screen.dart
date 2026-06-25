@@ -47,8 +47,11 @@ class _InsightsScreenState extends State<InsightsScreen> {
       results[1] as List<DoseHistoryModel>,
       range,
     );
+    final scheduledHistory = filteredHistory
+        .where((item) => !item.isAsNeeded)
+        .toList();
     return _InsightsData(
-      summary: _buildSummaryFromHistory(filteredHistory),
+      summary: _buildSummaryFromHistory(scheduledHistory),
       history: filteredHistory,
     );
   }
@@ -688,10 +691,11 @@ class _DoseHistoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final date = item.actionAt ?? item.scheduledAt;
+    final date = (item.actionAt ?? item.scheduledAt)?.toLocal();
     final formatted = date == null
         ? ''
         : intl.DateFormat('MMM d, h:mm a').format(date);
+    final statusLabel = item.isAsNeeded ? 'Taken now - As Needed' : item.status;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
@@ -714,9 +718,9 @@ class _DoseHistoryTile extends StatelessWidget {
                 ),
               ),
               Text(
-                item.status,
+                statusLabel,
                 style: TextStyle(
-                  color: _statusColor(item.status),
+                  color: _statusColor(statusLabel),
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
                 ),
@@ -735,8 +739,9 @@ class _DoseHistoryTile extends StatelessWidget {
               padding: const EdgeInsets.only(top: 6),
               child: Text(
                 [
-                  if ((item.reason ?? '').isNotEmpty) item.reason,
-                  if ((item.note ?? '').isNotEmpty) item.note,
+                  if ((item.reason ?? '').isNotEmpty)
+                    'Reason: ${item.reason}',
+                  if ((item.note ?? '').isNotEmpty) 'Notes: ${item.note}',
                 ].join(' - '),
                 style: TextStyle(color: AppColors.textGrey, fontSize: 12),
               ),

@@ -121,6 +121,7 @@ class AddMedicineScreen extends StatefulWidget {
 
 class _AddMedicineScreenState extends State<AddMedicineScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   String _query = '';
 
   // API state
@@ -150,7 +151,27 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  Future<void> _openAddReminder(AddReminderScreen screen) async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    _searchFocusNode.unfocus();
+
+    final saved = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => screen),
+    );
+
+    if (!mounted) return;
+    FocusManager.instance.primaryFocus?.unfocus();
+    _searchFocusNode.unfocus();
+
+    if (saved == true) {
+      _searchController.clear();
+      setState(() => _query = '');
+    }
   }
 
   Future<void> _fetchMedications() async {
@@ -378,17 +399,14 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
 
     if (selected == null || !mounted) return;
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => AddReminderScreen(
+    await _openAddReminder(
+      AddReminderScreen(
           initialDrugName: medicationName,
           selectedDosageForm: selected.value,
           selectedQuantityUnit: selected.unit,
           selectedMedicationId: null,
           isCustomMedication: true,
           medicationSelectedFromCatalog: false,
-        ),
       ),
     );
   }
@@ -519,6 +537,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                       Expanded(
                         child: TextField(
                           controller: _searchController,
+                          focusNode: _searchFocusNode,
                           onChanged: (v) => setState(() => _query = v),
                           decoration: InputDecoration(
                             hintText: context.l10n.t(
@@ -679,10 +698,8 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
     final iconColor = _iconColorFor(index);
 
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => AddReminderScreen(
+      onTap: () => _openAddReminder(
+        AddReminderScreen(
             initialDrugName: med.tradeName,
             selectedDosageForm: med.dosageForm,
             selectedQuantityUnit: med.quantityUnit,
@@ -693,7 +710,6 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
             defaultAfterOpeningUnit: med.defaultAfterOpeningUnit,
             requiresOpeningTracking: med.requiresOpeningTracking,
             afterOpeningNote: med.afterOpeningNote,
-          ),
         ),
       ),
       child: Container(

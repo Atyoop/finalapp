@@ -390,6 +390,15 @@ class Medicine {
       return double.tryParse(value.toString());
     }
 
+    bool parseBool(dynamic value, {bool fallback = false}) {
+      if (value is bool) return value;
+      if (value == null) return fallback;
+      final text = value.toString().toLowerCase();
+      if (text == 'true') return true;
+      if (text == 'false') return false;
+      return fallback;
+    }
+
     dynamic readAny(List<String> keys) {
       for (final key in keys) {
         if (json.containsKey(key)) return json[key];
@@ -488,7 +497,10 @@ class Medicine {
       periodUnit: json['periodUnit'],
       periodValue: parseInt(json['periodValue']),
       intervalHours: parseInt(json['intervalHours']),
-      notificationActive: json['notificationActive'] ?? true,
+      notificationActive: parseBool(
+        readAny(['notificationActive', 'NotificationActive']),
+        fallback: true,
+      ),
       advanceReminderMinutes: parseInt(
         readAny(['advanceReminderMinutes', 'AdvanceReminderMinutes']),
       ),

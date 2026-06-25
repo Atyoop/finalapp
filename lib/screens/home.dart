@@ -18,24 +18,11 @@ class MainNavScreen extends StatefulWidget {
 
 class _MainNavScreenState extends State<MainNavScreen> {
   int _currentIndex = 0;
+  int _addMedsResetVersion = 0;
 
   /// Key lets us call HomeScreen's public refreshSchedules() whenever the
   /// user switches back to the Today tab after editing a medicine.
   final GlobalKey<HomeScreenState> _homeKey = GlobalKey<HomeScreenState>();
-
-  late final List<Widget> _pages;
-
-  @override
-  void initState() {
-    super.initState();
-    _pages = [
-      HomeScreen(key: _homeKey),
-      const SavedMedicinesScreen(),
-      const CheckInteractionsScreen(),
-      const AddMedicineScreen(),
-      const ProfileScreen(),
-    ];
-  }
 
   void _onTabTapped(int index) {
     // When switching back to Today (index 0), refresh schedules so statuses
@@ -46,10 +33,32 @@ class _MainNavScreenState extends State<MainNavScreen> {
     setState(() => _currentIndex = index);
   }
 
+  void _openAddMedsFromStart() {
+    setState(() {
+      _addMedsResetVersion++;
+      _currentIndex = 3;
+    });
+  }
+
+  void _refreshHome() {
+    _homeKey.currentState?.refreshSchedules();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final pages = [
+      HomeScreen(key: _homeKey),
+      SavedMedicinesScreen(
+        onOpenAddMeds: _openAddMedsFromStart,
+        onMedicationChanged: _refreshHome,
+      ),
+      const CheckInteractionsScreen(),
+      AddMedicineScreen(key: ValueKey(_addMedsResetVersion)),
+      const ProfileScreen(),
+    ];
+
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _pages),
+      body: IndexedStack(index: _currentIndex, children: pages),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(

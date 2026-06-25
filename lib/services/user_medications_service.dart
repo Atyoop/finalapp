@@ -318,7 +318,12 @@ class UserMedicationsService {
       if (response.body.isNotEmpty) {
         final decoded = jsonDecode(response.body);
         if (decoded is Map<String, dynamic>) {
-          return Medicine.fromJson(decoded);
+          final merged = <String, dynamic>{
+            ...medicine.toJson(),
+            ...decoded,
+            'id': decoded['id'] ?? decoded['Id'] ?? medicine.id,
+          };
+          return Medicine.fromJson(merged);
         }
       }
       return medicine; // 204 No Content — return the local copy
@@ -488,7 +493,7 @@ class UserMedicationsService {
     throw _parseFeatureError(response, 'Failed to load intake history');
   }
 
-  static Future<void> takeNow(
+  static Future<MedicationIntakeLogModel?> takeNow(
     String token,
     int userMedicationId, {
     String? reason,
@@ -505,7 +510,13 @@ class UserMedicationsService {
     if (response.statusCode == 200 ||
         response.statusCode == 201 ||
         response.statusCode == 204) {
-      return;
+      if (response.body.isEmpty) return null;
+      final decoded = _decodeObject(response.body);
+      final intake = decoded['intake'] ?? decoded['Intake'];
+      if (intake is Map<String, dynamic>) {
+        return MedicationIntakeLogModel.fromJson(intake);
+      }
+      return null;
     }
     throw _parseFeatureError(response, 'Failed to record dose');
   }

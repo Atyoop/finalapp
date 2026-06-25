@@ -34,6 +34,26 @@ class ApiParse {
     return DateTime.tryParse(value.toString());
   }
 
+  static DateTime? utcDateTimeValue(dynamic value) {
+    if (value == null) return null;
+    final text = value.toString();
+    final parsed = DateTime.tryParse(text);
+    if (parsed == null) return null;
+    if (parsed.isUtc || text.endsWith('Z') || text.contains(RegExp(r'[+-]\d\d:\d\d$'))) {
+      return parsed.toLocal();
+    }
+    return DateTime.utc(
+      parsed.year,
+      parsed.month,
+      parsed.day,
+      parsed.hour,
+      parsed.minute,
+      parsed.second,
+      parsed.millisecond,
+      parsed.microsecond,
+    ).toLocal();
+  }
+
   static List<dynamic> listValue(dynamic value) {
     if (value is List) return value;
     if (value is Map && value['\$values'] is List) {
@@ -185,6 +205,7 @@ class DoseHistoryModel {
   final DateTime? actionAt;
   final String? reason;
   final String? note;
+  final bool isAsNeeded;
 
   const DoseHistoryModel({
     this.scheduleId,
@@ -195,6 +216,7 @@ class DoseHistoryModel {
     this.actionAt,
     this.reason,
     this.note,
+    this.isAsNeeded = false,
   });
 
   factory DoseHistoryModel.fromJson(Map<String, dynamic> json) {
@@ -213,7 +235,7 @@ class DoseHistoryModel {
           ])?.toString() ??
           '',
       status: ApiParse.readAny(json, ['status', 'Status'])?.toString() ?? '',
-      scheduledAt: ApiParse.dateValue(
+      scheduledAt: ApiParse.utcDateTimeValue(
         ApiParse.readAny(json, [
           'scheduledAt',
           'ScheduledAt',
@@ -221,7 +243,7 @@ class DoseHistoryModel {
           'NotificationTime',
         ]),
       ),
-      actionAt: ApiParse.dateValue(
+      actionAt: ApiParse.utcDateTimeValue(
         ApiParse.readAny(json, [
           'takenAt',
           'TakenAt',
@@ -239,6 +261,9 @@ class DoseHistoryModel {
         'missedReason',
       ])?.toString(),
       note: ApiParse.readAny(json, ['note', 'notes', 'actionNote'])?.toString(),
+      isAsNeeded: ApiParse.boolValue(
+        ApiParse.readAny(json, ['isAsNeeded', 'IsAsNeeded']),
+      ),
     );
   }
 }
@@ -272,7 +297,9 @@ class MedicationIntakeLogModel {
       ),
       medicationName:
           ApiParse.readAny(json, ['medicationName', 'name'])?.toString() ?? '',
-      takenAt: ApiParse.dateValue(ApiParse.readAny(json, ['takenAt', 'date'])),
+      takenAt: ApiParse.utcDateTimeValue(
+        ApiParse.readAny(json, ['takenAt', 'date']),
+      ),
       quantityTaken: ApiParse.doubleValue(
         ApiParse.readAny(json, ['quantityTaken', 'doseQuantity']),
       ),

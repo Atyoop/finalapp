@@ -232,6 +232,26 @@ class NotificationsProvider extends ChangeNotifier {
     await _notificationService.cancelNotification(notifId);
   }
 
+  Future<void> cancelBackendNotificationsForUserMedication(
+    int userMedicationId,
+  ) async {
+    final schedulesToCancel = _schedules.where(
+      (schedule) => schedule.userMedId == userMedicationId,
+    );
+    for (final schedule in schedulesToCancel) {
+      await _notificationService.cancelNotification(
+        schedule.scheduleId * 10 + 1,
+      );
+      await _notificationService.cancelNotification(
+        schedule.scheduleId * 10 + 2,
+      );
+    }
+    _schedules = _schedules
+        .where((schedule) => schedule.userMedId != userMedicationId)
+        .toList();
+    notifyListeners();
+  }
+
   /// Get all local reminders from storage
   Future<List<LocalReminder>> getLocalReminders() async {
     return await ReminderStorageService.getReminders();

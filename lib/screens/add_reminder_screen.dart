@@ -5,6 +5,7 @@ import '../l10n/app_localizations.dart';
 import '../main.dart';
 import '../models/medicine.dart';
 import '../providers/medicine_provider.dart';
+import '../providers/notifications_provider.dart';
 import '../providers/user_provider.dart';
 import '../providers/language_provider.dart';
 import '../utils/quantity_helpers.dart';
@@ -2130,6 +2131,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   }
 
   Future<void> _saveMedicine() async {
+    FocusManager.instance.primaryFocus?.unfocus();
     final validation = _validate();
     if (validation != null) {
       ScaffoldMessenger.of(
@@ -2205,8 +2207,10 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         intervalHours: isAsNeeded
             ? null
             : scheduleFields['intervalHours'] as int?,
-        notificationActive: _notificationActive,
-        advanceReminderMinutes: (_notificationActive && _advanceReminderEnabled)
+        notificationActive: isAsNeeded ? false : _notificationActive,
+        advanceReminderMinutes: (!isAsNeeded &&
+                _notificationActive &&
+                _advanceReminderEnabled)
             ? _advanceReminderMinutes
             : null,
         status: widget.initialMedicine?.status ?? MedicineStatus.scheduled,
@@ -2244,12 +2248,21 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         // --- Edit existing medication ---
         final success = await medProvider.updateMedicineOnApi(token, medicine);
         if (success) {
+          if (isAsNeeded) {
+            final notificationsProvider = context.read<NotificationsProvider>();
+            final userMedicationId = int.tryParse(medicine.id);
+            if (userMedicationId != null) {
+              await notificationsProvider
+                  .cancelBackendNotificationsForUserMedication(userMedicationId);
+            }
+            await notificationsProvider.deleteLocalReminder(medicine.id);
+          }
           await medProvider.fetchMedicinesFromApi(token);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(context.l10n.t('medicineUpdated'))),
             );
-            Navigator.pop(context);
+            Navigator.pop(context, true);
           }
         } else {
           if (mounted) {
@@ -2287,7 +2300,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(context.l10n.t('medicineAdded'))),
             );
-            Navigator.pop(context);
+              Navigator.pop(context, true);
           }
         } else {
           if (mounted) {

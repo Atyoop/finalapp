@@ -146,6 +146,23 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _fetchSchedulesForDate(_selectedDate);
   }
 
+  List<TodaySchedule> _filterReminderActiveSchedules(
+    List<TodaySchedule> schedules,
+  ) {
+    final medicines = context.read<MedicineProvider>().medicines;
+    if (medicines.isEmpty) return schedules;
+
+    final activeUserMedIds = medicines
+        .where((medicine) => medicine.notificationActive && !medicine.isAsNeeded)
+        .map((medicine) => int.tryParse(medicine.id))
+        .whereType<int>()
+        .toSet();
+
+    return schedules
+        .where((schedule) => activeUserMedIds.contains(schedule.userMedId))
+        .toList();
+  }
+
   late DateTime _startOfWeek;
   late List<DateTime> _weeklyDates;
 
@@ -303,10 +320,11 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
       if (res.statusCode == 200) {
         final List<dynamic> data = json.decode(res.body) as List<dynamic>;
+        final fetchedSchedules = data
+            .map((e) => TodaySchedule.fromJson(e as Map<String, dynamic>))
+            .toList();
         setState(() {
-          _schedules = data
-              .map((e) => TodaySchedule.fromJson(e as Map<String, dynamic>))
-              .toList();
+          _schedules = _filterReminderActiveSchedules(fetchedSchedules);
           _isLoading = false;
         });
       } else if (res.statusCode == 401) {
@@ -402,7 +420,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             .toList();
         if (mounted) {
           setState(() {
-            _schedules = fetched;
+            _schedules = _filterReminderActiveSchedules(fetched);
           });
         }
       }
