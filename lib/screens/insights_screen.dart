@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../main.dart';
 import '../models/medication_features.dart';
 import '../providers/language_provider.dart';
@@ -67,7 +68,9 @@ class _InsightsScreenState extends State<InsightsScreen> {
     }).toList();
   }
 
-  AdherenceSummaryModel _buildSummaryFromHistory(List<DoseHistoryModel> history) {
+  AdherenceSummaryModel _buildSummaryFromHistory(
+    List<DoseHistoryModel> history,
+  ) {
     final medicationGroups = <String, List<DoseHistoryModel>>{};
     for (final item in history) {
       final key = item.userMedicationId?.toString() ?? item.medicationName;
@@ -87,8 +90,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
         total: total,
         adherenceRate: total == 0 ? 0 : (counts.taken / total) * 100,
       );
-    }).toList()
-      ..sort((a, b) => a.medicationName.compareTo(b.medicationName));
+    }).toList()..sort((a, b) => a.medicationName.compareTo(b.medicationName));
 
     final counts = _statusCounts(history);
     final total = counts.taken + counts.skipped + counts.missed;
@@ -212,20 +214,13 @@ class _InsightsScreenState extends State<InsightsScreen> {
     });
   }
 
-  String _text(String en, String ar) {
-    return context.read<LanguageProvider>().isArabic ? ar : en;
-  }
-
   String _rangeLabel(_InsightDateRangeOption option) {
-    final isAr = context.read<LanguageProvider>().isArabic;
     return switch (option) {
-      _InsightDateRangeOption.last7Days => isAr ? 'آخر 7 أيام' : 'Last 7 days',
-      _InsightDateRangeOption.last30Days =>
-        isAr ? 'آخر 30 يومًا' : 'Last 30 days',
-      _InsightDateRangeOption.last3Months =>
-        isAr ? 'آخر 3 أشهر' : 'Last 3 months',
-      _InsightDateRangeOption.lastYear => isAr ? 'آخر سنة' : 'Last year',
-      _InsightDateRangeOption.custom => isAr ? 'نطاق مخصص' : 'Custom range',
+      _InsightDateRangeOption.last7Days => context.l10n.t('last7Days'),
+      _InsightDateRangeOption.last30Days => context.l10n.t('last30Days'),
+      _InsightDateRangeOption.last3Months => context.l10n.t('last3Months'),
+      _InsightDateRangeOption.lastYear => context.l10n.t('lastYear'),
+      _InsightDateRangeOption.custom => context.l10n.t('customRange'),
     };
   }
 
@@ -246,7 +241,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
         elevation: 0,
         iconTheme: IconThemeData(color: AppColors.textDark),
         title: Text(
-          _text('Insights', 'التحليلات'),
+          context.l10n.t('insights'),
           style: TextStyle(
             color: AppColors.textDark,
             fontWeight: FontWeight.bold,
@@ -267,7 +262,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                 padding: const EdgeInsets.all(20),
                 children: [
                   _DateRangeFilterCard(
-                    title: _text('Analysis period', 'فترة التحليل'),
+                    title: context.l10n.t('analysisPeriod'),
                     label: _rangeLabel(_selectedRange),
                     subtitle: _rangeSubtitle(),
                     options: _InsightDateRangeOption.values,
@@ -276,15 +271,10 @@ class _InsightsScreenState extends State<InsightsScreen> {
                   ),
                   const SizedBox(height: 16),
                   if (snapshot.connectionState == ConnectionState.waiting)
-                    _LoadingCard(
-                      message: _text(
-                        'Loading insights...',
-                        'جاري تحميل التحليلات...',
-                      ),
-                    )
+                    _LoadingCard(message: context.l10n.t('loadingInsights'))
                   else if (snapshot.hasError)
                     _ErrorView(
-                      message: snapshot.error.toString(),
+                      message: context.l10n.t('somethingWentWrong'),
                       onRetry: () => setState(() => _future = _load()),
                     )
                   else
@@ -299,10 +289,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
   }
 
   List<Widget> _buildInsightsContent(_InsightsData data) {
-    final emptyMessage = _text(
-      'No medication activity found for this period.',
-      'لا يوجد نشاط دوائي في هذه الفترة.',
-    );
+    final emptyMessage = context.l10n.t('noMedicationActivityPeriod');
     final hasAnyActivity = data.summary.total > 0 || data.history.isNotEmpty;
 
     return [
@@ -312,15 +299,16 @@ class _InsightsScreenState extends State<InsightsScreen> {
       ],
       _SummaryCard(
         summary: data.summary,
-        title: _text('Adherence summary', 'ملخص الالتزام'),
-        takenLabel: _text('Taken', 'تم تناولها'),
-        skippedLabel: _text('Skipped', 'تم تخطيها'),
-        missedLabel: _text('Missed', 'فائتة'),
+        title: context.l10n.t('adherenceSummary'),
+        takenLabel: context.l10n.t('taken'),
+        skippedLabel: context.l10n.t('skipped'),
+        missedLabel: context.l10n.t('missed'),
       ),
       const SizedBox(height: 16),
       _SectionCard(
-        title: _text('Medication performance', 'أداء الأدوية'),
-        child: data.summary.medications.isEmpty ||
+        title: context.l10n.t('medicationPerformance'),
+        child:
+            data.summary.medications.isEmpty ||
                 data.summary.medications.every((med) => med.total == 0)
             ? _EmptyText(emptyMessage)
             : Column(
@@ -332,7 +320,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
       ),
       const SizedBox(height: 16),
       _DoseHistorySection(
-        title: _text('Dose History', 'سجل الجرعات'),
+        title: context.l10n.t('doseHistory'),
         emptyMessage: emptyMessage,
         history: data.history,
       ),
@@ -477,10 +465,7 @@ class _DateRangeFilterCard extends StatelessWidget {
               color: AppColors.primaryTeal.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(
-              Icons.date_range_rounded,
-              color: AppColors.primaryTeal,
-            ),
+            child: Icon(Icons.date_range_rounded, color: AppColors.primaryTeal),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -692,10 +677,13 @@ class _DoseHistoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final date = (item.actionAt ?? item.scheduledAt)?.toLocal();
+    final locale = Localizations.localeOf(context).languageCode;
     final formatted = date == null
         ? ''
-        : intl.DateFormat('MMM d, h:mm a').format(date);
-    final statusLabel = item.isAsNeeded ? 'Taken now - As Needed' : item.status;
+        : intl.DateFormat('MMM d, h:mm a', locale).format(date);
+    final statusLabel = item.isAsNeeded
+        ? context.l10n.t('takenNowAsNeeded')
+        : _localizedStatus(context, item.status);
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
@@ -720,7 +708,7 @@ class _DoseHistoryTile extends StatelessWidget {
               Text(
                 statusLabel,
                 style: TextStyle(
-                  color: _statusColor(statusLabel),
+                  color: _statusColor(item.status),
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
                 ),
@@ -740,8 +728,9 @@ class _DoseHistoryTile extends StatelessWidget {
               child: Text(
                 [
                   if ((item.reason ?? '').isNotEmpty)
-                    'Reason: ${item.reason}',
-                  if ((item.note ?? '').isNotEmpty) 'Notes: ${item.note}',
+                    context.l10n.t('reasonValue', {'reason': item.reason}),
+                  if ((item.note ?? '').isNotEmpty)
+                    context.l10n.t('notesValue', {'notes': item.note}),
                 ].join(' - '),
                 style: TextStyle(color: AppColors.textGrey, fontSize: 12),
               ),
@@ -757,6 +746,15 @@ class _DoseHistoryTile extends StatelessWidget {
     if (text.contains('skip')) return Colors.orange;
     if (text.contains('miss')) return Colors.red;
     return AppColors.textGrey;
+  }
+
+  String _localizedStatus(BuildContext context, String status) {
+    final normalized = status.toLowerCase();
+    if (normalized.contains('take')) return context.l10n.t('taken');
+    if (normalized.contains('skip')) return context.l10n.t('skipped');
+    if (normalized.contains('miss')) return context.l10n.t('missed');
+    if (normalized.contains('needed')) return context.l10n.t('asNeeded');
+    return status;
   }
 }
 
@@ -813,7 +811,7 @@ class _ErrorView extends StatelessWidget {
                 backgroundColor: AppColors.primaryTeal,
                 foregroundColor: Colors.white,
               ),
-              child: const Text('Retry'),
+              child: Text(context.l10n.t('retry')),
             ),
           ],
         ),

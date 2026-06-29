@@ -52,9 +52,9 @@ class NotificationService {
 
     const DarwinInitializationSettings initializationSettingsDarwin =
         DarwinInitializationSettings(
-          requestAlertPermission: true,
-          requestBadgePermission: true,
-          requestSoundPermission: true,
+          requestAlertPermission: false,
+          requestBadgePermission: false,
+          requestSoundPermission: false,
         );
 
     const InitializationSettings initializationSettings =
@@ -70,11 +70,36 @@ class NotificationService {
 
     if (Platform.isAndroid) {
       await _createAlarmChannel();
-      await _requestAndroidPermissions();
       await _logAndroidNotificationState('initialize');
-      await _requestBatteryOptimizationExemption();
     }
     _debugPrint('✅ NotificationService initialization complete');
+  }
+
+  Future<void> requestReminderPermissions() async {
+    if (Platform.isAndroid) {
+      await _createAlarmChannel();
+      await _requestAndroidPermissions();
+      await _logAndroidNotificationState('manualPermissionSetup');
+      await _requestBatteryOptimizationExemption();
+      return;
+    }
+
+    if (Platform.isIOS) {
+      try {
+        final ios = _flutterLocalNotificationsPlugin
+            .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin
+            >();
+        final granted = await ios?.requestPermissions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+        _debugPrint('iOS notification permission: $granted');
+      } catch (error, stackTrace) {
+        _logError('requesting iOS notification permissions', error, stackTrace);
+      }
+    }
   }
 
   Future<void> _createAlarmChannel() async {

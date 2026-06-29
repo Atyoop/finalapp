@@ -143,11 +143,11 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
           for (final log in history) {
             final takenAt = log.takenAt;
             if (takenAt == null) continue;
-            if (latest == null || takenAt.isAfter(latest!)) {
+            if (latest == null || takenAt.isAfter(latest)) {
               latest = takenAt;
             }
           }
-          if (latest != null) latestById[med.id] = latest!;
+          if (latest != null) latestById[med.id] = latest;
         } catch (_) {
           // Keep the card usable if one history request fails.
         }
@@ -189,7 +189,7 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
       }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Dose recorded successfully')),
+        SnackBar(content: Text(context.l10n.t('doseRecordedSuccessfully'))),
       );
     } catch (e) {
       if (!mounted) return;
@@ -198,14 +198,30 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
         await Future<void>.delayed(const Duration(milliseconds: 120));
       }
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e is ApiException ? e.message : e.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_localizedTakeNowError(e))));
     } finally {
       if (mounted) {
         setState(() => _takeNowInFlight.remove(med.id));
       }
     }
+  }
+
+  String _localizedTakeNowError(Object error) {
+    if (error is ApiException) {
+      final details = '${error.message} ${error.responseBody}'.toLowerCase();
+      if (details.contains('minimum time') ||
+          details.contains('minimumhoursbetweendoses')) {
+        return context.l10n.t('waitBeforeAnotherDose');
+      }
+      if (details.contains('maximum doses') ||
+          details.contains('maxdosesperday')) {
+        return context.l10n.t('maximumDailyDosesReached');
+      }
+      return error.message;
+    }
+    return context.l10n.t('connectionErrorTryAgain');
   }
 
   Future<void> _editMedicine(Medicine med) async {
@@ -283,7 +299,9 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
     messenger.showSnackBar(
       SnackBar(
         content: Text(
-          updated.notificationActive ? 'Reminders enabled' : 'Reminders disabled',
+          updated.notificationActive
+              ? context.l10n.t('remindersEnabled')
+              : context.l10n.t('remindersDisabled'),
         ),
         backgroundColor: AppColors.primaryTeal,
         duration: const Duration(seconds: 2),
@@ -308,8 +326,8 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
       if (!mounted) return;
       messenger.hideCurrentSnackBar();
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Could not update reminders'),
+        SnackBar(
+          content: Text(context.l10n.t('couldNotUpdateReminders')),
           backgroundColor: Colors.red,
         ),
       );
@@ -472,15 +490,14 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
   }
 
   String _filterLabel(_MyMedsFilter filter) {
-    final isAr = _currentLanguage == 'ar';
     return switch (filter) {
-      _MyMedsFilter.reminderOff => 'Reminder off',
-      _MyMedsFilter.all => isAr ? 'الكل' : 'All',
-      _MyMedsFilter.scheduled => isAr ? 'مجدولة' : 'Scheduled',
-      _MyMedsFilter.asNeeded => isAr ? 'عند الحاجة' : 'As Needed',
-      _MyMedsFilter.needsAttention => isAr ? 'تحتاج انتباه' : 'Needs attention',
-      _MyMedsFilter.lowStock => isAr ? 'قرب يخلص' : 'Low stock',
-      _MyMedsFilter.expired => isAr ? 'منتهية' : 'Expired',
+      _MyMedsFilter.reminderOff => context.l10n.t('reminderOff'),
+      _MyMedsFilter.all => context.l10n.t('all'),
+      _MyMedsFilter.scheduled => context.l10n.t('scheduled'),
+      _MyMedsFilter.asNeeded => context.l10n.t('asNeeded'),
+      _MyMedsFilter.needsAttention => context.l10n.t('needsAttention'),
+      _MyMedsFilter.lowStock => context.l10n.t('lowStock'),
+      _MyMedsFilter.expired => context.l10n.t('expired'),
     };
   }
 
@@ -528,9 +545,7 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
         borderRadius: BorderRadius.circular(18),
       ),
       child: Text(
-        _currentLanguage == 'ar'
-            ? 'لا توجد أدوية تطابق هذا الفلتر.'
-            : 'No medicines match this filter.',
+        context.l10n.t('noMedicinesMatchFilter'),
         textAlign: TextAlign.center,
         style: TextStyle(color: AppColors.textGrey),
       ),
@@ -588,11 +603,16 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                         runSpacing: 6,
                         children: [
                           _buildBadge(
-                            med.isAsNeeded ? 'As Needed' : 'Scheduled',
+                            med.isAsNeeded
+                                ? context.l10n.t('asNeeded')
+                                : context.l10n.t('scheduled'),
                             AppColors.primaryTeal,
                           ),
                           if (!med.notificationActive && !med.isAsNeeded)
-                            _buildBadge('Reminder off', Colors.orange),
+                            _buildBadge(
+                              context.l10n.t('reminderOff'),
+                              Colors.orange,
+                            ),
                         ],
                       ),
                     ],
@@ -626,7 +646,9 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
             if (isCoolingDown) ...[
               const SizedBox(height: 6),
               Text(
-                'Next allowed after ${_formatTime(nextAllowedAt)}',
+                context.l10n.t('nextAllowedAfter', {
+                  'time': _formatTime(nextAllowedAt),
+                }),
                 style: TextStyle(
                   color: AppColors.primaryTeal,
                   fontSize: 12,
@@ -658,13 +680,18 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                         : Icons.flash_on_rounded,
                     size: 18,
                   ),
-                  label: Text(isCoolingDown ? 'Taken Recently' : 'Take Now'),
+                  label: Text(
+                    isCoolingDown
+                        ? context.l10n.t('takenRecently')
+                        : context.l10n.t('takeNow'),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isCoolingDown
                         ? AppColors.textGrey.withValues(alpha: 0.18)
                         : AppColors.primaryTeal,
-                    disabledBackgroundColor:
-                        AppColors.textGrey.withValues(alpha: 0.18),
+                    disabledBackgroundColor: AppColors.textGrey.withValues(
+                      alpha: 0.18,
+                    ),
                     foregroundColor: Colors.white,
                     disabledForegroundColor: AppColors.textGrey,
                     elevation: 0,
@@ -709,7 +736,7 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
 
   Widget _buildMedicationMenu(Medicine med) {
     return PopupMenuButton<String>(
-      tooltip: 'Actions',
+      tooltip: context.l10n.t('actions'),
       icon: Icon(Icons.more_vert_rounded, color: AppColors.textGrey),
       onSelected: (value) {
         if (value == 'edit') _editMedicine(med);
@@ -717,17 +744,22 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
         if (value == 'delete') _deleteMedicine(med);
       },
       itemBuilder: (context) => [
-        const PopupMenuItem(value: 'edit', child: Text('Edit')),
+        PopupMenuItem(value: 'edit', child: Text(context.l10n.t('edit'))),
         if (!med.isAsNeeded)
           PopupMenuItem(
             value: 'toggleReminders',
             child: Text(
-              med.notificationActive ? 'Disable reminders' : 'Enable reminders',
+              med.notificationActive
+                  ? context.l10n.t('disableReminder')
+                  : context.l10n.t('enableReminder'),
             ),
           ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'delete',
-          child: Text('Delete', style: TextStyle(color: Colors.red)),
+          child: Text(
+            context.l10n.t('delete'),
+            style: const TextStyle(color: Colors.red),
+          ),
         ),
       ],
     );
@@ -765,19 +797,25 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
   List<String> _cardWarningLabels(Medicine med) {
     final warnings = <String>[];
     if (_isExpired(med)) {
-      warnings.add('Expired');
+      warnings.add(context.l10n.t('expired'));
     } else if (_expiresSoon(med)) {
-      warnings.add('Expires soon');
+      warnings.add(context.l10n.t('expiringSoon'));
     }
     if (med.refillWarning) {
       if (med.daysUntilEmpty != null && med.daysUntilEmpty! >= 0) {
-        warnings.add('Runs out in ${med.daysUntilEmpty}d');
+        warnings.add(
+          context.l10n.t('runsOutInDays', {'count': med.daysUntilEmpty}),
+        );
       } else {
-        warnings.add('Refill soon');
+        warnings.add(context.l10n.t('runningOutSoon'));
       }
     }
     if (med.interactions.isNotEmpty) {
-      warnings.add('${med.interactions.length} interaction(s)');
+      warnings.add(
+        context.l10n.t('interactionCountSummary', {
+          'count': med.interactions.length,
+        }),
+      );
     }
     return warnings;
   }
@@ -805,7 +843,10 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
   }
 
   String _formatTime(DateTime dateTime) {
-    return DateFormat('h:mm a').format(dateTime.toLocal());
+    return DateFormat(
+      'h:mm a',
+      _currentLanguage ?? 'en',
+    ).format(dateTime.toLocal());
   }
 
   String _compactScheduleSummary(Medicine med) {
@@ -828,21 +869,22 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
       0,
       (sum, med) => sum + med.interactions.length,
     );
-    final isAr = _currentLanguage == 'ar';
     final summary = _cabinetLoading
-        ? (isAr ? 'جاري فحص الصيدلية...' : 'Checking cabinet health...')
+        ? context.l10n.t('checkingCabinetHealth')
         : attention == 0 && interactions == 0
-        ? (isAr ? 'لا توجد تحذيرات الآن' : 'No cabinet warnings right now')
+        ? context.l10n.t('noCabinetWarnings')
         : [
             if (attention > 0)
-              isAr ? '$attention تحتاج انتباه' : '$attention need attention',
-            if (expired > 0) isAr ? '$expired منتهي' : '$expired expired',
+              context.l10n.t('needAttentionCount', {'count': attention}),
+            if (expired > 0) context.l10n.t('expiredCount', {'count': expired}),
             if (lowStock > 0)
-              isAr ? '$lowStock قرب يخلص' : '$lowStock low stock',
+              context.l10n.t('lowStockCount', {'count': lowStock}),
             if (runningOut > 0)
-              isAr ? '$runningOut قربوا يخلصوا' : '$runningOut running out',
+              context.l10n.t('runningOutCount', {'count': runningOut}),
             if (interactions > 0)
-              isAr ? '$interactions تفاعلات' : '$interactions interactions',
+              context.l10n.t('interactionCountSummary', {
+                'count': interactions,
+              }),
           ].join(' • ');
     return GestureDetector(
       onTap: () {
@@ -885,7 +927,7 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    isAr ? 'صيدليتي' : 'My Pharmacy',
+                    context.l10n.t('myPharmacy'),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -928,12 +970,20 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
   String _buildAsNeededSummary(Medicine med) {
     final parts = <String>[];
     if (med.maxDosesPerDay != null) {
-      parts.add('max ${med.maxDosesPerDay}/day');
+      parts.add(
+        context.l10n.t('maxDosesPerDayCompact', {'count': med.maxDosesPerDay}),
+      );
     }
     if (med.minimumHoursBetweenDoses != null) {
-      parts.add('every ${med.minimumHoursBetweenDoses!.toStringAsFixed(0)}h');
+      parts.add(
+        context.l10n.t('everyHoursCompact', {
+          'hours': med.minimumHoursBetweenDoses!.toStringAsFixed(0),
+        }),
+      );
     }
-    return parts.isEmpty ? 'Take only when needed' : parts.join(' - ');
+    return parts.isEmpty
+        ? context.l10n.t('takeOnlyWhenNeeded')
+        : parts.join(' • ');
   }
 
   Widget _buildDetailRow(
@@ -1119,14 +1169,14 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
           );
         } else if (snapshot.hasError) {
           child = Text(
-            'Could not load intake history.',
+            context.l10n.t('couldNotLoadIntakeHistory'),
             style: TextStyle(fontSize: 12, color: AppColors.textGrey),
           );
         } else {
           final logs = snapshot.data ?? const <MedicationIntakeLogModel>[];
           if (logs.isEmpty) {
             child = Text(
-              'No intake history yet.',
+              context.l10n.t('noIntakeHistory'),
               style: TextStyle(fontSize: 12, color: AppColors.textGrey),
             );
           } else {
@@ -1136,7 +1186,10 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                 ...logs.take(3).map((log) {
                   final date = log.takenAt == null
                       ? ''
-                      : DateFormat('MMM d, h:mm a').format(log.takenAt!);
+                      : DateFormat(
+                          'MMM d, h:mm a',
+                          _currentLanguage ?? 'en',
+                        ).format(log.takenAt!);
                   final detail = [
                     if ((log.reason ?? '').isNotEmpty) log.reason,
                     if ((log.notes ?? '').isNotEmpty) log.notes,
@@ -1153,7 +1206,7 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          date.isEmpty ? 'Dose recorded' : date,
+                          date.isEmpty ? context.l10n.t('doseRecorded') : date,
                           style: TextStyle(
                             color: AppColors.textDark,
                             fontWeight: FontWeight.w700,
@@ -1178,7 +1231,10 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
                     child: Text(
-                      'Showing latest 3 of ${logs.length} records',
+                      context.l10n.t('showingLatestRecords', {
+                        'shown': 3,
+                        'total': logs.length,
+                      }),
                       style: TextStyle(fontSize: 12, color: AppColors.textGrey),
                     ),
                   ),
@@ -1243,7 +1299,9 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                               runSpacing: 6,
                               children: [
                                 _buildBadge(
-                                  med.isAsNeeded ? 'As Needed' : 'Scheduled',
+                                  med.isAsNeeded
+                                      ? context.l10n.t('asNeeded')
+                                      : context.l10n.t('scheduled'),
                                   AppColors.primaryTeal,
                                 ),
                                 _buildBadge(
@@ -1269,7 +1327,7 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildExpandableDetailSection(
-                          title: 'Overview',
+                          title: context.l10n.t('overview'),
                           subtitle: med.isAsNeeded
                               ? _buildAsNeededSummary(med)
                               : _compactScheduleSummary(med),
@@ -1345,36 +1403,41 @@ class _SavedMedicinesScreenState extends State<SavedMedicinesScreen> {
                         ),
                         if (med.isAsNeeded)
                           _buildExpandableDetailSection(
-                            title: 'As Needed Settings',
+                            title: context.l10n.t('asNeededSettings'),
                             subtitle: _buildAsNeededSummary(med),
                             children: [
                               if (med.maxDosesPerDay != null)
                                 _buildDetailRow(
                                   context,
-                                  'Max doses per day',
+                                  context.l10n.t('maxDosesPerDay'),
                                   '${med.maxDosesPerDay}',
                                 ),
                               if (med.minimumHoursBetweenDoses != null)
                                 _buildDetailRow(
                                   context,
-                                  'Minimum spacing',
-                                  '${med.minimumHoursBetweenDoses!.toStringAsFixed(0)} hours',
+                                  context.l10n.t('minimumSpacing'),
+                                  context.l10n.t('hoursCount', {
+                                    'count': med.minimumHoursBetweenDoses!
+                                        .toStringAsFixed(0),
+                                  }),
                                 ),
                             ],
                           ),
                         if (med.isAsNeeded)
                           _buildExpandableDetailSection(
-                            title: 'Intake History',
-                            subtitle: 'Latest records',
+                            title: context.l10n.t('intakeHistory'),
+                            subtitle: context.l10n.t('latestRecords'),
                             children: [
                               _buildIntakeHistorySection(context, med),
                             ],
                           ),
                         _buildExpandableDetailSection(
-                          title: 'Warnings & Interactions',
+                          title: context.l10n.t('warningsAndInteractions'),
                           subtitle: warningCount == 0
-                              ? 'No interaction warnings found.'
-                              : '$warningCount warning(s) found',
+                              ? context.l10n.t('noInteractionWarnings')
+                              : context.l10n.t('warningsFound', {
+                                  'count': warningCount,
+                                }),
                           accentColor: warningCount == 0
                               ? AppColors.primaryTeal
                               : Colors.orange,

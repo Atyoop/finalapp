@@ -153,7 +153,9 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (medicines.isEmpty) return schedules;
 
     final activeUserMedIds = medicines
-        .where((medicine) => medicine.notificationActive && !medicine.isAsNeeded)
+        .where(
+          (medicine) => medicine.notificationActive && !medicine.isAsNeeded,
+        )
         .map((medicine) => int.tryParse(medicine.id))
         .whereType<int>()
         .toSet();
@@ -728,7 +730,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
 
     // 2. SHOW INSTANT TOP OVERLAY FEEDBACK
-    final skipText = context.l10n.t('doseSkipped');
+    final skipText = context.l10n.t('doseSkippedSuccessfully');
     TopOverlayNotification.show(
       context,
       message: skipText,
@@ -883,7 +885,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ),
                           // Notifications icon with badge
                           IconButton(
-                            tooltip: 'Insights',
+                            tooltip: context.l10n.t('insights'),
                             icon: const Icon(
                               Icons.insights_outlined,
                               color: AppColors.primaryTeal,

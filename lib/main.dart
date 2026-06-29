@@ -23,6 +23,11 @@ import 'l10n/app_localizations.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
+const String _hasSeenOnboardingKey = 'hasSeenOnboarding';
+const String _hasSeenFirstMedicationSetupKey = 'hasSeenFirstMedicationSetup';
+const String _hasSeenReminderPermissionSetupKey =
+    'hasSeenReminderPermissionSetup';
+
 void main() async {
   // Initialize Flutter binding
   WidgetsFlutterBinding.ensureInitialized();
@@ -152,23 +157,96 @@ class DrugSafeApp extends StatelessWidget {
               systemOverlayStyle: SystemUiOverlayStyle.dark,
             ),
           ),
-          home: const _AppEntry(),
+          home: const SplashScreen(),
         );
       },
     );
   }
 }
 
-class _AppEntry extends StatelessWidget {
-  const _AppEntry();
+Future<void> _showReminderPermissionSetupIfNeeded(BuildContext context) async {
+  final alreadyShown =
+      MedicineStorageService.getSetting<bool>(
+        _hasSeenReminderPermissionSetupKey,
+      ) ??
+      false;
+  if (alreadyShown || !context.mounted) return;
 
-  @override
-  Widget build(BuildContext context) {
-    final userProvider = context.read<UserProvider>();
-    return userProvider.isLoggedIn
-        ? const MainNavScreen()
-        : const OnboardingScreen();
+  final shouldRequest = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) => AlertDialog(
+      backgroundColor: AppColors.cardColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      title: Text(dialogContext.l10n.t('enableReminders')),
+      content: Text(
+        '${dialogContext.l10n.t('notificationPermissionExplanation')}\n\n'
+        '${dialogContext.l10n.t('batteryOptimizationExplanation')}',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, false),
+          child: Text(
+            dialogContext.l10n.t('notNow'),
+            style: TextStyle(color: AppColors.textGrey),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(dialogContext, true),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primaryTeal,
+          ),
+          child: Text(
+            dialogContext.l10n.t('continueLabel'),
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  await MedicineStorageService.saveSetting(
+    _hasSeenReminderPermissionSetupKey,
+    true,
+  );
+
+  if (shouldRequest == true && context.mounted) {
+    await context.read<NotificationsProvider>().requestReminderPermissions();
   }
+}
+
+Future<void> continueAfterAuth(
+  BuildContext context, {
+  required bool isNewRegistration,
+}) async {
+  await _showReminderPermissionSetupIfNeeded(context);
+  if (!context.mounted) return;
+
+  final token = context.read<UserProvider>().token;
+  if (token != null && token.isNotEmpty) {
+    unawaited(
+      context.read<NotificationsProvider>().fetchAndScheduleNotifications(
+        token,
+      ),
+    );
+  }
+
+  final showFirstMedicationSetup =
+      isNewRegistration &&
+      !(MedicineStorageService.getSetting<bool>(
+            _hasSeenFirstMedicationSetupKey,
+          ) ??
+          false);
+
+  Navigator.pushAndRemoveUntil(
+    context,
+    MaterialPageRoute(
+      builder: (_) => showFirstMedicationSetup
+          ? const FirstMedicationSetupScreen()
+          : const MainNavScreen(),
+    ),
+    (route) => false,
+  );
 }
 
 // --- 4. Splash Screen ---
@@ -183,27 +261,32 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 3), () {
+    Future.delayed(const Duration(milliseconds: 1200), () {
       if (!mounted) return;
-      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final userProvider = context.read<UserProvider>();
+      final hasSeenOnboarding =
+          MedicineStorageService.getSetting<bool>(_hasSeenOnboardingKey) ??
+          false;
+      final Widget nextScreen;
       if (userProvider.isLoggedIn) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const MainNavScreen()),
-        );
+        nextScreen = const MainNavScreen();
+      } else if (hasSeenOnboarding) {
+        nextScreen = const WelcomeScreen();
       } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-        );
+        nextScreen = const OnboardingScreen();
       }
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => nextScreen),
+      );
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primaryTeal,
+      backgroundColor: AppColors.backgroundCream,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -214,8 +297,15 @@ class _SplashScreenState extends State<SplashScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(60),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 24,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
               ),
-              child: Icon(
+              child: const Icon(
                 Icons.medication_liquid,
                 size: 60,
                 color: AppColors.primaryTeal,
@@ -225,7 +315,7 @@ class _SplashScreenState extends State<SplashScreen> {
             const Text(
               "DrugSafe",
               style: TextStyle(
-                color: Colors.white,
+                color: AppColors.textDark,
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
               ),
@@ -248,28 +338,87 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  final List<Map<String, String>> _data = const [
-    {"title": "staySafeTitle", "desc": "staySafeDesc"},
-    {"title": "alwaysHereTitle", "desc": "alwaysHereDesc"},
+  List<_OnboardingPageData> _pages(BuildContext context) => [
+    _OnboardingPageData(
+      title: context.l10n.t('neverMissDose'),
+      subtitle: context.l10n.t('smartReminderOnboarding'),
+      icon: Icons.notifications_active_outlined,
+      color: Color(0xFF2C6E72),
+    ),
+    _OnboardingPageData(
+      title: context.l10n.t('checkMedicationRisks'),
+      subtitle: context.l10n.t('checkMedicationRisksBody'),
+      icon: Icons.health_and_safety_outlined,
+      color: Color(0xFF5867B1),
+    ),
+    _OnboardingPageData(
+      title: context.l10n.t('manageYourPharmacy'),
+      subtitle: context.l10n.t('manageYourPharmacyBody'),
+      icon: Icons.inventory_2_outlined,
+      color: Color(0xFFB56F45),
+    ),
   ];
+
+  Future<void> _finishOnboarding() async {
+    await MedicineStorageService.saveSetting(_hasSeenOnboardingKey, true);
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final pages = _pages(context);
+    final page = pages[_currentPage];
+    final isLastPage = _currentPage == pages.length - 1;
+
     return Scaffold(
+      backgroundColor: AppColors.backgroundCream,
       body: SafeArea(
         child: Column(
           children: [
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: TextButton(
+                  onPressed: _finishOnboarding,
+                  child: Text(
+                    context.l10n.t('skip'),
+                    style: TextStyle(color: AppColors.textGrey),
+                  ),
+                ),
+              ),
+            ),
             const Spacer(),
             Expanded(
               flex: 3,
               child: PageView.builder(
                 controller: _pageController,
                 onPageChanged: (val) => setState(() => _currentPage = val),
-                itemCount: _data.length,
+                itemCount: pages.length,
                 itemBuilder: (context, index) => Padding(
-                  padding: const EdgeInsets.all(40.0),
-                  child: PlaceholderImageWidget(
-                    color: index == 0 ? Colors.blue : Colors.purple,
+                  padding: const EdgeInsets.all(36.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: pages[index].color.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Icon(
+                        pages[index].icon,
+                        size: 96,
+                        color: pages[index].color,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -277,7 +426,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
-                _data.length,
+                pages.length,
                 (index) => AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   margin: const EdgeInsets.only(right: 5),
@@ -294,7 +443,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
             const SizedBox(height: 30),
             Text(
-              context.l10n.t(_data[_currentPage]["title"]!),
+              page.title,
               style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
@@ -302,7 +451,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Text(
-                context.l10n.t(_data[_currentPage]["desc"]!),
+                page.subtitle,
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 14, color: AppColors.textGrey),
               ),
@@ -315,13 +464,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 height: 56,
                 child: ElevatedButton(
                   onPressed: () {
-                    if (_currentPage == _data.length - 1) {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const WelcomeScreen(),
-                        ),
-                      );
+                    if (isLastPage) {
+                      _finishOnboarding();
                     } else {
                       _pageController.nextPage(
                         duration: const Duration(milliseconds: 300),
@@ -333,8 +477,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     backgroundColor: AppColors.primaryTeal,
                   ),
                   child: Text(
-                    _currentPage == _data.length - 1
-                        ? context.l10n.t('getStartedLower')
+                    isLastPage
+                        ? context.l10n.t('getStarted')
                         : context.l10n.t('next'),
                     style: const TextStyle(color: Colors.white),
                   ),
@@ -342,6 +486,142 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OnboardingPageData {
+  const _OnboardingPageData({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+}
+
+class FirstMedicationSetupScreen extends StatelessWidget {
+  const FirstMedicationSetupScreen({super.key});
+
+  Future<void> _continue(
+    BuildContext context, {
+    required bool openAddMedication,
+  }) async {
+    await MedicineStorageService.saveSetting(
+      _hasSeenFirstMedicationSetupKey,
+      true,
+    );
+    if (!context.mounted) return;
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MainNavScreen(initialIndex: openAddMedication ? 3 : 0),
+      ),
+      (route) => false,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.backgroundCream,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Center(
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppColors.cardColor,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 24,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 86,
+                    height: 86,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryTeal.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.medication_outlined,
+                      color: AppColors.primaryTeal,
+                      size: 42,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    context.l10n.t('addFirstMedication'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    context.l10n.t('addFirstMedicationBody'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15,
+                      height: 1.45,
+                      color: AppColors.textGrey,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: ElevatedButton(
+                      onPressed: () =>
+                          _continue(context, openAddMedication: true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryTeal,
+                      ),
+                      child: Text(
+                        context.l10n.t('addMedicine'),
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: OutlinedButton(
+                      onPressed: () =>
+                          _continue(context, openAddMedication: false),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: AppColors.primaryTeal),
+                      ),
+                      child: Text(
+                        context.l10n.t('skipForNow'),
+                        style: const TextStyle(color: AppColors.primaryTeal),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );

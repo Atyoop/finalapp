@@ -6,8 +6,6 @@ import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../main.dart'; // Ù„Ø§Ø³ØªÙŠØ±Ø§Ø¯ Ø§Ù„Ø£Ù„ÙˆØ§Ù† ÙˆØ§Ù„ÙˆØ¯Ø¬Øª
 import '../providers/user_provider.dart';
-import '../providers/notifications_provider.dart';
-import 'home.dart'; // MainNavScreen
 
 // -----------------------------------------------------------------------------
 // 1. SIGNUP SCREEN
@@ -486,11 +484,8 @@ class SuccessVerifiedScreen extends StatelessWidget {
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: () => Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (_) => const MainNavScreen()),
-                  (r) => false,
-                ),
+                onPressed: () =>
+                    continueAfterAuth(context, isNewRegistration: true),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryTeal,
                 ),
@@ -581,7 +576,6 @@ class _LoginScreenState extends State<LoginScreen> {
             if (userId != null && userId.isNotEmpty) {
               context.read<UserProvider>().setUserId(userId);
             }
-            unawaited(context.read<NotificationsProvider>().fetchAndScheduleNotifications(token));
           } catch (_) {}
         }
 
@@ -592,12 +586,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
 
-        // Navigate to Home
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const MainNavScreen()),
-          (r) => false,
-        );
+        await continueAfterAuth(context, isNewRegistration: false);
       } else {
         // --- ERROR ---
         ScaffoldMessenger.of(context).showSnackBar(
@@ -618,7 +607,9 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

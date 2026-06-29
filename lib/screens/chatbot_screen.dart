@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../main.dart';
 import '../providers/language_provider.dart';
 
@@ -15,7 +16,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isAr = Provider.of<LanguageProvider>(context, listen: false).currentLanguage == 'ar';
+    final isAr = context.watch<LanguageProvider>().currentLanguage == 'ar';
     return _showChat
         ? _ChatConversation(onBack: () => setState(() => _showChat = false))
         : _buildIntro(isAr);
@@ -62,7 +63,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               ),
               const SizedBox(height: 28),
               Text(
-                isAr ? "مرحباً، أنا مايتي!" : "Hello, I'm Mighty!",
+                context.l10n.t('mighty'),
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
@@ -71,9 +72,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                isAr
-                    ? "مساعدك الذكي لسلامة الأدوية.\nاسألني أي شيء عن الأدوية!"
-                    : "Your AI drug safety assistant.\nAsk me anything about medications!",
+                context.l10n.t('mightyPrompt'),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -97,7 +96,9 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               _QuickActionCard(
                 icon: Icons.medication_rounded,
                 title: isAr ? "معلومات الدواء" : "Drug Information",
-                subtitle: isAr ? "اسأل عن دواء معين" : "Ask about a specific medication",
+                subtitle: isAr
+                    ? "اسأل عن دواء معين"
+                    : "Ask about a specific medication",
                 color: const Color(0xFFE3F2FD),
                 iconColor: const Color(0xFF2196F3),
               ),
@@ -105,7 +106,9 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               _QuickActionCard(
                 icon: Icons.health_and_safety_rounded,
                 title: isAr ? "الآثار الجانبية" : "Side Effects",
-                subtitle: isAr ? "تعرف على الآثار الجانبية المحتملة" : "Learn about possible side effects",
+                subtitle: isAr
+                    ? "تعرف على الآثار الجانبية المحتملة"
+                    : "Learn about possible side effects",
                 color: const Color(0xFFE8F5E9),
                 iconColor: const Color(0xFF4CAF50),
               ),
@@ -163,7 +166,9 @@ class _QuickActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isAr = Provider.of<LanguageProvider>(context, listen: false).currentLanguage == 'ar';
+    final isAr =
+        Provider.of<LanguageProvider>(context, listen: false).currentLanguage ==
+        'ar';
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -236,7 +241,9 @@ class _ChatConversationState extends State<_ChatConversation> {
   @override
   void initState() {
     super.initState();
-    final isAr = Provider.of<LanguageProvider>(context, listen: false).currentLanguage == 'ar';
+    final isAr =
+        Provider.of<LanguageProvider>(context, listen: false).currentLanguage ==
+        'ar';
     _messages = [
       {
         'text': isAr
@@ -251,7 +258,9 @@ class _ChatConversationState extends State<_ChatConversation> {
     final text = _msgController.text.trim();
     if (text.isEmpty) return;
 
-    final isAr = Provider.of<LanguageProvider>(context, listen: false).currentLanguage == 'ar';
+    final isAr =
+        Provider.of<LanguageProvider>(context, listen: false).currentLanguage ==
+        'ar';
 
     setState(() {
       _messages.add({'text': text, 'isBot': false});
@@ -285,14 +294,30 @@ class _ChatConversationState extends State<_ChatConversation> {
 
   String _getBotReply(String userMsg, bool isAr) {
     final msg = userMsg.toLowerCase();
-    final isInteraction = msg.contains('interaction') || msg.contains('mix') || 
-                          msg.contains('تفاعل') || msg.contains('خلط') || msg.contains('مع بعض');
-    final isSideEffect = msg.contains('side effect') || msg.contains('sideeffect') || 
-                         msg.contains('جانبي') || msg.contains('عرض') || msg.contains('أعراض');
-    final isDosage = msg.contains('dosage') || msg.contains('dose') || 
-                     msg.contains('جرعة') || msg.contains('كمية') || msg.contains('طريقة');
-    final isGreeting = msg.contains('hello') || msg.contains('hi') || 
-                      msg.contains('مرحبا') || msg.contains('أهلا') || msg.contains('سلام');
+    final isInteraction =
+        msg.contains('interaction') ||
+        msg.contains('mix') ||
+        msg.contains('تفاعل') ||
+        msg.contains('خلط') ||
+        msg.contains('مع بعض');
+    final isSideEffect =
+        msg.contains('side effect') ||
+        msg.contains('sideeffect') ||
+        msg.contains('جانبي') ||
+        msg.contains('عرض') ||
+        msg.contains('أعراض');
+    final isDosage =
+        msg.contains('dosage') ||
+        msg.contains('dose') ||
+        msg.contains('جرعة') ||
+        msg.contains('كمية') ||
+        msg.contains('طريقة');
+    final isGreeting =
+        msg.contains('hello') ||
+        msg.contains('hi') ||
+        msg.contains('مرحبا') ||
+        msg.contains('أهلا') ||
+        msg.contains('سلام');
 
     if (isInteraction) {
       return isAr
@@ -326,7 +351,9 @@ class _ChatConversationState extends State<_ChatConversation> {
 
   @override
   Widget build(BuildContext context) {
-    final isAr = Provider.of<LanguageProvider>(context, listen: false).currentLanguage == 'ar';
+    final isAr =
+        Provider.of<LanguageProvider>(context, listen: false).currentLanguage ==
+        'ar';
     return Scaffold(
       backgroundColor: AppColors.backgroundCream,
       appBar: AppBar(
@@ -356,7 +383,7 @@ class _ChatConversationState extends State<_ChatConversation> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isAr ? "مايتي" : "Mighty",
+                  context.l10n.t('mighty'),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -415,7 +442,7 @@ class _ChatConversationState extends State<_ChatConversation> {
                         controller: _msgController,
                         onSubmitted: (_) => _sendMessage(),
                         decoration: InputDecoration(
-                          hintText: isAr ? "اكتب رسالة..." : "Type a message...",
+                          hintText: context.l10n.t('typeMessage'),
                           hintStyle: TextStyle(color: AppColors.textGrey),
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.symmetric(
@@ -427,21 +454,24 @@ class _ChatConversationState extends State<_ChatConversation> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: _sendMessage,
-                    child: Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryTeal,
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: Transform.scale(
-                        scaleX: isAr ? -1 : 1,
-                        child: const Icon(
-                          Icons.send_rounded,
-                          color: Colors.white,
-                          size: 22,
+                  Tooltip(
+                    message: context.l10n.t('send'),
+                    child: GestureDetector(
+                      onTap: _sendMessage,
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryTeal,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: Transform.scale(
+                          scaleX: isAr ? -1 : 1,
+                          child: const Icon(
+                            Icons.send_rounded,
+                            color: Colors.white,
+                            size: 22,
+                          ),
                         ),
                       ),
                     ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../main.dart';
 import '../models/medication_features.dart';
 import '../providers/user_provider.dart';
@@ -45,7 +46,7 @@ class _CabinetHealthScreenState extends State<CabinetHealthScreen> {
         elevation: 0,
         iconTheme: IconThemeData(color: AppColors.textDark),
         title: Text(
-          'My Pharmacy',
+          context.l10n.t('myPharmacy'),
           style: TextStyle(
             color: AppColors.textDark,
             fontWeight: FontWeight.bold,
@@ -86,7 +87,7 @@ class _CabinetHealthScreenState extends State<CabinetHealthScreen> {
                         backgroundColor: AppColors.primaryTeal,
                         foregroundColor: Colors.white,
                       ),
-                      child: const Text('Retry'),
+                      child: Text(context.l10n.t('retry')),
                     ),
                   ],
                 ),
@@ -103,37 +104,37 @@ class _CabinetHealthScreenState extends State<CabinetHealthScreen> {
                 _buildSummary(data),
                 const SizedBox(height: 16),
                 _CabinetSection(
-                  title: 'Expired',
+                  title: context.l10n.t('expired'),
                   color: Colors.red,
                   items: data.expired,
                 ),
                 _CabinetSection(
-                  title: 'Expiring soon',
+                  title: context.l10n.t('expiringSoon'),
                   color: Colors.orange,
                   items: data.expiringSoon,
                 ),
                 _CabinetSection(
-                  title: 'After opening warnings',
+                  title: context.l10n.t('afterOpeningWarnings'),
                   color: Colors.orange,
                   items: data.afterOpeningExpiringSoon,
                 ),
                 _CabinetSection(
-                  title: 'Out of stock',
+                  title: context.l10n.t('outOfStock'),
                   color: Colors.red,
                   items: data.outOfStock,
                 ),
                 _CabinetSection(
-                  title: 'Low stock',
+                  title: context.l10n.t('lowStock'),
                   color: Colors.orange,
                   items: data.lowStock,
                 ),
                 _CabinetSection(
-                  title: 'Running out soon',
+                  title: context.l10n.t('runningOutSoon'),
                   color: Colors.orange,
                   items: data.runningOutSoon,
                 ),
                 _CabinetSection(
-                  title: 'Healthy',
+                  title: context.l10n.t('healthy'),
                   color: AppColors.primaryTeal,
                   items: data.healthy,
                 ),
@@ -177,8 +178,10 @@ class _CabinetHealthScreenState extends State<CabinetHealthScreen> {
               children: [
                 Text(
                   data.attentionCount == 0
-                      ? 'Your cabinet looks healthy'
-                      : '${data.attentionCount} item(s) need attention',
+                      ? context.l10n.t('cabinetLooksHealthy')
+                      : context.l10n.t('itemsNeedAttention', {
+                          'count': data.attentionCount,
+                        }),
                   style: TextStyle(
                     color: AppColors.textDark,
                     fontWeight: FontWeight.bold,
@@ -187,7 +190,9 @@ class _CabinetHealthScreenState extends State<CabinetHealthScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${data.healthy.length} healthy medication(s)',
+                  context.l10n.t('healthyMedicationCount', {
+                    'count': data.healthy.length,
+                  }),
                   style: TextStyle(color: AppColors.textGrey, fontSize: 12),
                 ),
               ],
@@ -259,9 +264,10 @@ class _CabinetMedicationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = Localizations.localeOf(context).languageCode;
     final expiry = item.effectiveExpiryDate == null
         ? null
-        : DateFormat('MMM d, yyyy').format(item.effectiveExpiryDate!);
+        : DateFormat('MMM d, yyyy', locale).format(item.effectiveExpiryDate!);
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
@@ -285,7 +291,7 @@ class _CabinetMedicationTile extends StatelessWidget {
               ),
               if ((item.status ?? '').isNotEmpty)
                 Text(
-                  item.status!,
+                  _localizedStatus(context, item.status!),
                   style: TextStyle(
                     color: color,
                     fontWeight: FontWeight.bold,
@@ -300,15 +306,30 @@ class _CabinetMedicationTile extends StatelessWidget {
               if (item.currentQuantity != null)
                 formatQuantityWithUnit(item.currentQuantity, item.quantityUnit),
               if (item.daysUntilEmpty != null)
-                'runs out in ${item.daysUntilEmpty} day(s)',
-              if (expiry != null) 'expires $expiry',
+                context.l10n.t('runsOutInDays', {'count': item.daysUntilEmpty}),
+              if (expiry != null) context.l10n.t('expiresOn', {'date': expiry}),
               if (item.daysUntilExpiry != null)
-                '${item.daysUntilExpiry} day(s) to expiry',
+                context.l10n.t('daysToExpiry', {'count': item.daysUntilExpiry}),
             ].join(' - '),
             style: TextStyle(color: AppColors.textGrey, fontSize: 12),
           ),
         ],
       ),
     );
+  }
+
+  String _localizedStatus(BuildContext context, String status) {
+    final normalized = status.toLowerCase().replaceAll('_', ' ');
+    if (normalized.contains('out of stock')) {
+      return context.l10n.t('outOfStock');
+    }
+    if (normalized.contains('low stock')) return context.l10n.t('lowStock');
+    if (normalized.contains('running out')) {
+      return context.l10n.t('runningOutSoon');
+    }
+    if (normalized.contains('expiring')) return context.l10n.t('expiringSoon');
+    if (normalized.contains('expired')) return context.l10n.t('expired');
+    if (normalized.contains('healthy')) return context.l10n.t('healthy');
+    return status;
   }
 }

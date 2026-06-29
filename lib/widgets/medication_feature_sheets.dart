@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../main.dart';
 
 class ReasonNoteResult {
@@ -11,36 +12,36 @@ class ReasonNoteResult {
 Future<ReasonNoteResult?> showSkipReasonBottomSheet(BuildContext context) {
   return _showReasonSheet(
     context,
-    title: 'Skip dose',
-    subtitle: 'Add why this dose was skipped. The note will appear in history.',
-    confirmLabel: 'Confirm skip',
-    reasons: const [
-      _ReasonOption('Forgot', 'forgot'),
-      _ReasonOption('Busy', 'busy'),
-      _ReasonOption('Outside', 'outside'),
-      _ReasonOption('Side effects', 'side_effects'),
-      _ReasonOption('Doctor advised', 'doctor_advised'),
-      _ReasonOption('Felt better', 'felt_better'),
-      _ReasonOption('Other', 'other'),
+    title: context.l10n.t('whySkippingDose'),
+    subtitle: context.l10n.t('skipDoseHelp'),
+    confirmLabel: context.l10n.t('confirmSkip'),
+    reasons: [
+      _ReasonOption(context.l10n.t('forgot'), 'forgot'),
+      _ReasonOption(context.l10n.t('busy'), 'busy'),
+      _ReasonOption(context.l10n.t('outside'), 'outside'),
+      _ReasonOption(context.l10n.t('sideEffects'), 'side_effects'),
+      _ReasonOption(context.l10n.t('doctorAdvised'), 'doctor_advised'),
+      _ReasonOption(context.l10n.t('feltBetter'), 'felt_better'),
+      _ReasonOption(context.l10n.t('other'), 'other'),
     ],
-    noteHint: 'Optional note',
+    noteHint: context.l10n.t('addNoteOptional'),
   );
 }
 
 Future<ReasonNoteResult?> showTakeNowReasonBottomSheet(BuildContext context) {
   return _showReasonSheet(
     context,
-    title: 'Take now',
-    subtitle: 'Record why you are taking this as-needed medication.',
-    confirmLabel: 'Record dose',
-    reasons: const [
-      _ReasonOption('Headache', 'headache'),
-      _ReasonOption('Pain', 'pain'),
-      _ReasonOption('Fever', 'fever'),
-      _ReasonOption('Allergy', 'allergy'),
-      _ReasonOption('Other', 'other'),
+    title: context.l10n.t('takeNow'),
+    subtitle: context.l10n.t('takeNowReasonPrompt'),
+    confirmLabel: context.l10n.t('recordDose'),
+    reasons: [
+      _ReasonOption(context.l10n.t('headache'), 'headache'),
+      _ReasonOption(context.l10n.t('pain'), 'pain'),
+      _ReasonOption(context.l10n.t('fever'), 'fever'),
+      _ReasonOption(context.l10n.t('allergy'), 'allergy'),
+      _ReasonOption(context.l10n.t('other'), 'other'),
     ],
-    noteHint: 'Optional notes',
+    noteHint: context.l10n.t('optionalNotes'),
   );
 }
 
@@ -82,7 +83,7 @@ Future<int?> showRefillBottomSheet(BuildContext context) async {
               ),
               const SizedBox(height: 18),
               Text(
-                'Add refill',
+                context.l10n.t('addRefill'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -94,7 +95,7 @@ Future<int?> showRefillBottomSheet(BuildContext context) async {
                 controller: controller,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
-                  labelText: 'Quantity',
+                  labelText: context.l10n.t('quantity'),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -114,7 +115,7 @@ Future<int?> showRefillBottomSheet(BuildContext context) async {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  child: const Text('Save refill'),
+                  child: Text(context.l10n.t('saveRefill')),
                 ),
               ),
             ],

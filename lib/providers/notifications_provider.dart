@@ -27,6 +27,16 @@ class NotificationsProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> requestReminderPermissions() async {
+    try {
+      await _notificationService.requestReminderPermissions();
+    } catch (e) {
+      _error = e.toString();
+      debugPrint('Error requesting reminder permissions: $e');
+      notifyListeners();
+    }
+  }
+
   /// Fetch and schedule notifications
   Future<bool> fetchAndScheduleNotifications(String token) async {
     _isLoading = true;

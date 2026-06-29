@@ -333,11 +333,11 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       }
     } else {
       if (_maxDosesPerDay == null || _maxDosesPerDay! <= 0) {
-        return 'Max doses per day must be greater than 0';
+        return context.l10n.t('maxDosesPositive');
       }
       if (_minimumHoursBetweenDoses == null ||
           _minimumHoursBetweenDoses! <= 0) {
-        return 'Minimum hours between doses must be greater than 0';
+        return context.l10n.t('minimumHoursPositive');
       }
     }
     if (_selectedQuantityUnit.trim().isEmpty) {
@@ -350,7 +350,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       return 'Quantity per dose must be greater than 0';
     }
     if (_pillsPerDose > _stock!) {
-      return 'Dose quantity cannot be greater than total quantity';
+      return context.l10n.t('doseQuantityExceedsTotal');
     }
     if (_lowStockThreshold != null && _lowStockThreshold! < 0) {
       return context.l10n.t('lowStockNegative');
@@ -900,7 +900,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   Widget _buildMedicationUseTypeSection() {
     final isAsNeeded = _medicationUseType == 'AsNeeded';
     return _buildCardSection(
-      title: 'Medication use',
+      title: context.l10n.t('medicationUseType'),
       icon: Icons.tune_rounded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -913,15 +913,15 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             ),
             child: Row(
               children: [
-                _buildUseTypeOption('Scheduled', 'Scheduled'),
-                _buildUseTypeOption('As needed', 'AsNeeded'),
+                _buildUseTypeOption(context.l10n.t('scheduled'), 'Scheduled'),
+                _buildUseTypeOption(context.l10n.t('asNeeded'), 'AsNeeded'),
               ],
             ),
           ),
           if (isAsNeeded) ...[
             const SizedBox(height: 12),
             Text(
-              'Use this for medications taken only when symptoms happen. Schedule fields are hidden, and dose limits protect spacing and daily use.',
+              context.l10n.t('asNeededLimitsHelp'),
               style: TextStyle(
                 fontSize: 12,
                 color: AppColors.textGrey,
@@ -930,22 +930,22 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             ),
             const SizedBox(height: 12),
             _buildPrnNumberRow(
-              label: 'Max doses per day',
-              value: _maxDosesPerDay?.toString() ?? 'Not set',
+              label: context.l10n.t('maxDosesPerDay'),
+              value: _maxDosesPerDay?.toString() ?? context.l10n.t('notSet'),
               onTap: () => _showNumberInputDialog(
-                title: 'Max doses per day',
+                title: context.l10n.t('maxDosesPerDay'),
                 initialValue: _maxDosesPerDay,
                 onSave: (val) => setState(() => _maxDosesPerDay = val),
               ),
             ),
             const SizedBox(height: 10),
             _buildPrnNumberRow(
-              label: 'Minimum hours between doses',
+              label: context.l10n.t('minimumHoursBetweenDoses'),
               value: _minimumHoursBetweenDoses == null
-                  ? 'Not set'
+                  ? context.l10n.t('notSet')
                   : _minimumHoursBetweenDoses!.toStringAsFixed(0),
               onTap: () => _showNumberInputDialog(
-                title: 'Minimum hours between doses',
+                title: context.l10n.t('minimumHoursBetweenDoses'),
                 initialValue: _minimumHoursBetweenDoses?.round(),
                 onSave: (val) =>
                     setState(() => _minimumHoursBetweenDoses = val?.toDouble()),
@@ -953,10 +953,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             ),
             const SizedBox(height: 10),
             _buildPrnNumberRow(
-              label: 'Refill reminder days before',
-              value: _refillReminderDaysBefore?.toString() ?? 'Not set',
+              label: context.l10n.t('refillReminderDaysBefore'),
+              value:
+                  _refillReminderDaysBefore?.toString() ??
+                  context.l10n.t('notSet'),
               onTap: () => _showNumberInputDialog(
-                title: 'Refill reminder days before',
+                title: context.l10n.t('refillReminderDaysBefore'),
                 initialValue: _refillReminderDaysBefore,
                 onSave: (val) =>
                     setState(() => _refillReminderDaysBefore = val),
@@ -1280,10 +1282,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                getDoseQuantityFieldLabel(
-                                  _selectedQuantityUnit,
-                                  locale: _locale,
-                                ),
+                                '${context.l10n.t('doseQuantity')} '
+                                '(${getQuantityUnitLabel(_selectedQuantityUnit, locale: _locale)})',
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -1294,9 +1294,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                _locale == 'ar'
-                                    ? 'تخصم من الكمية عند تسجيل الجرعة'
-                                    : 'Deducted per scheduled dose',
+                                context.l10n.t('deductedPerDose'),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -1456,10 +1454,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   GestureDetector(
                     onTap: () {
                       _showNumberInputDialog(
-                        title: getQuantityFieldLabel(
-                          _selectedQuantityUnit,
-                          locale: _locale,
-                        ),
+                        title:
+                            '${context.l10n.t('currentQuantity')} '
+                            '(${getQuantityUnitLabel(_selectedQuantityUnit, locale: _locale)})',
                         initialValue: _stock,
                         onSave: (val) => setState(() => _stock = val),
                       );
@@ -1480,10 +1477,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                getQuantityFieldLabel(
-                                  _selectedQuantityUnit,
-                                  locale: _locale,
-                                ),
+                                '${context.l10n.t('currentQuantity')} '
+                                '(${getQuantityUnitLabel(_selectedQuantityUnit, locale: _locale)})',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: AppColors.textGrey,
@@ -1520,9 +1515,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                   GestureDetector(
                     onTap: () {
                       _showNumberInputDialog(
-                        title: _locale == 'ar'
-                            ? 'حد التنبيه عند انخفاض الكمية'
-                            : context.l10n.t('lowStockThreshold'),
+                        title: context.l10n.t('lowStockThreshold'),
                         initialValue: _lowStockThreshold,
                         onSave: (val) =>
                             setState(() => _lowStockThreshold = val),
@@ -2142,6 +2135,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
     final userProvider = context.read<UserProvider>();
     final medProvider = context.read<MedicineProvider>();
+    final notificationsProvider = context.read<NotificationsProvider>();
     final token = userProvider.token;
 
     if (token == null || token.isEmpty) {
@@ -2208,9 +2202,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             ? null
             : scheduleFields['intervalHours'] as int?,
         notificationActive: isAsNeeded ? false : _notificationActive,
-        advanceReminderMinutes: (!isAsNeeded &&
-                _notificationActive &&
-                _advanceReminderEnabled)
+        advanceReminderMinutes:
+            (!isAsNeeded && _notificationActive && _advanceReminderEnabled)
             ? _advanceReminderMinutes
             : null,
         status: widget.initialMedicine?.status ?? MedicineStatus.scheduled,
@@ -2249,11 +2242,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         final success = await medProvider.updateMedicineOnApi(token, medicine);
         if (success) {
           if (isAsNeeded) {
-            final notificationsProvider = context.read<NotificationsProvider>();
             final userMedicationId = int.tryParse(medicine.id);
             if (userMedicationId != null) {
               await notificationsProvider
-                  .cancelBackendNotificationsForUserMedication(userMedicationId);
+                  .cancelBackendNotificationsForUserMedication(
+                    userMedicationId,
+                  );
             }
             await notificationsProvider.deleteLocalReminder(medicine.id);
           }
@@ -2300,7 +2294,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(context.l10n.t('medicineAdded'))),
             );
-              Navigator.pop(context, true);
+            Navigator.pop(context, true);
           }
         } else {
           if (mounted) {

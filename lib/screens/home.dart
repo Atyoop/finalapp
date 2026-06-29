@@ -11,18 +11,30 @@ import 'profile_screen.dart';
 // MAIN NAVIGATION SHELL — Bottom Nav with 5 tabs
 // =============================================================================
 class MainNavScreen extends StatefulWidget {
-  const MainNavScreen({super.key});
+  final int initialIndex;
+
+  const MainNavScreen({super.key, this.initialIndex = 0});
+
   @override
   State<MainNavScreen> createState() => _MainNavScreenState();
 }
 
 class _MainNavScreenState extends State<MainNavScreen> {
-  int _currentIndex = 0;
+  late int _currentIndex;
   int _addMedsResetVersion = 0;
 
   /// Key lets us call HomeScreen's public refreshSchedules() whenever the
   /// user switches back to the Today tab after editing a medicine.
   final GlobalKey<HomeScreenState> _homeKey = GlobalKey<HomeScreenState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex.clamp(0, 4) as int;
+    if (_currentIndex == 3) {
+      _addMedsResetVersion = 1;
+    }
+  }
 
   void _onTabTapped(int index) {
     // When switching back to Today (index 0), refresh schedules so statuses
