@@ -261,7 +261,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(milliseconds: 1200), () {
+    Future.delayed(const Duration(milliseconds: 6000), () {
       if (!mounted) return;
       final userProvider = context.read<UserProvider>();
       final hasSeenOnboarding =
@@ -295,7 +295,6 @@ class _SplashScreenState extends State<SplashScreen> {
               width: 120,
               height: 120,
               decoration: BoxDecoration(
-                color: Colors.white,
                 borderRadius: BorderRadius.circular(60),
                 boxShadow: [
                   BoxShadow(
@@ -305,10 +304,15 @@ class _SplashScreenState extends State<SplashScreen> {
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.medication_liquid,
-                size: 60,
-                color: AppColors.primaryTeal,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(60),
+                child: Image.asset(
+                  'assets/icon/drugsafe_logo.jpg',
+
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.error, size: 60, color: Colors.red),
+                ),
               ),
             ),
             const SizedBox(height: 20),
