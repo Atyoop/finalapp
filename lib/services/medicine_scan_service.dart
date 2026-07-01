@@ -12,11 +12,6 @@ import 'user_medications_service.dart';
 class MedicineScanService {
   static const String _scanUrl =
       'https://drugsafe.runasp.net/api/medicine-scan/image';
-  static const List<String> _imageFieldCandidates = [
-    'image',
-    'imageFile',
-    'file',
-  ];
 
   static Future<MedicineScanResponse> scanMedicineImage(
     String token,
@@ -27,48 +22,35 @@ class MedicineScanService {
     if (!await image.exists()) {
       throw const MedicineScanException('Selected image file was not found.');
     }
-    final imageFile = await _prepareImageFile(image);
 
     try {
-      http.Response? lastResponse;
-      dynamic lastDecoded;
+      final imageFile = await _prepareImageFile(image);
+      final response = await _sendMultipartRequest(
+        token: token,
+        image: image,
+        imageFile: imageFile,
+      );
 
-      for (final fieldName in _imageFieldCandidates) {
-        debugPrint('[MedicineScan] multipart image field: $fieldName');
-        final response = await _sendMultipartRequest(
-          token: token,
-          image: image,
-          imageFile: imageFile,
-          fieldName: fieldName,
-        );
+      debugPrint('[MedicineScan] response status: ${response.statusCode}');
+      debugPrint('[MedicineScan] response body: ${response.body}');
 
-        debugPrint('[MedicineScan] response status: ${response.statusCode}');
-        debugPrint('[MedicineScan] response body: ${response.body}');
-
-        final decoded = _tryDecodeJson(response.body);
-        lastResponse = response;
-        lastDecoded = decoded;
-
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          if (decoded is Map<String, dynamic>) {
-            return MedicineScanResponse.fromJson(decoded);
-          }
-          throw const MedicineScanException(
-            'Scan response was not in the expected format.',
+      final decoded = _tryDecodeJson(response.body);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        if (decoded is Map) {
+          return MedicineScanResponse.fromJson(
+            Map<String, dynamic>.from(decoded),
           );
         }
-
-        if (!_shouldRetryWithNextField(response.statusCode, decoded)) {
-          break;
-        }
+        throw const MedicineScanException(
+          'Scan response was not in the expected format.',
+        );
       }
 
-      final response = lastResponse;
       throw MedicineScanException(
-        _messageFromResponse(lastDecoded) ??
-            'Failed to scan medicine image (HTTP ${response?.statusCode ?? 'unknown'}).',
-        statusCode: response?.statusCode,
-        responseBody: response?.body,
+        _messageFromResponse(decoded) ??
+            'Failed to scan medicine image (HTTP ${response.statusCode}).',
+        statusCode: response.statusCode,
+        responseBody: response.body,
       );
     } on SocketException catch (e) {
       debugPrint('[MedicineScan] network error: $e');
@@ -82,6 +64,11 @@ class MedicineScanService {
       debugPrint('[MedicineScan] response parse error: $e');
       throw const MedicineScanException(
         'Could not read the scan response from the server.',
+      );
+    } on FileSystemException catch (e) {
+      debugPrint('[MedicineScan] image file read error: $e');
+      throw const MedicineScanException(
+        'Could not read the selected image. Please choose it again.',
       );
     } on MedicineScanException {
       rethrow;
@@ -109,11 +96,11 @@ class MedicineScanService {
     required String token,
     required File image,
     required _PreparedImageFile imageFile,
-    required String fieldName,
   }) async {
     debugPrint('[MedicineScan] file extension: ${imageFile.extension}');
     debugPrint('[MedicineScan] detected MIME type: ${imageFile.mimeType}');
     debugPrint('[MedicineScan] upload filename: ${imageFile.filename}');
+    debugPrint('[MedicineScan] multipart image field: file');
 
     final request = http.MultipartRequest('POST', Uri.parse(_scanUrl))
       ..headers.addAll({
@@ -122,14 +109,14 @@ class MedicineScanService {
       })
       ..files.add(
         await http.MultipartFile.fromPath(
-          fieldName,
+          'file',
           image.path,
           filename: imageFile.filename,
           contentType: imageFile.contentType,
         ),
       );
 
-    final streamed = await request.send().timeout(const Duration(seconds: 45));
+    final streamed = await request.send().timeout(const Duration(seconds: 90));
     return http.Response.fromStream(streamed);
   }
 
@@ -231,7 +218,7 @@ class MedicineScanService {
   }
 
   static String? _messageFromResponse(dynamic decoded) {
-    if (decoded is! Map<String, dynamic>) return null;
+    if (decoded is! Map) return null;
     final direct =
         (decoded['message'] ??
                 decoded['error'] ??
@@ -247,19 +234,6 @@ class MedicineScanService {
       return first.toString();
     }
     return null;
-  }
-
-  static bool _shouldRetryWithNextField(int statusCode, dynamic decoded) {
-    if (statusCode != 400 && statusCode != 415 && statusCode != 422) {
-      return false;
-    }
-
-    final message = _messageFromResponse(decoded)?.toLowerCase() ?? '';
-    if (message.isEmpty) return true;
-    return message.contains('file') ||
-        message.contains('image') ||
-        message.contains('form') ||
-        message.contains('required');
   }
 }
 

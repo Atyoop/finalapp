@@ -71,7 +71,9 @@ class _MedicineScanScreenState extends State<MedicineScanScreen>
     try {
       final pickedImage = await _picker.pickImage(
         source: source,
-        imageQuality: 90,
+        imageQuality: 85,
+        maxWidth: 1600,
+        maxHeight: 1600,
       );
 
       if (!mounted) return;
