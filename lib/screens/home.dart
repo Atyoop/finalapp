@@ -30,7 +30,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.initialIndex.clamp(0, 4) as int;
+    _currentIndex = widget.initialIndex.clamp(0, 4);
     if (_currentIndex == 3) {
       _addMedsResetVersion = 1;
     }
