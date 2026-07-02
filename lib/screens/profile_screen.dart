@@ -22,8 +22,46 @@ import 'support_screen.dart';
 import 'premium_screen.dart';
 import 'find_pharmacy_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      try {
+        await context.read<UserProvider>().refreshProfile();
+      } catch (_) {
+        // Keep showing the account-scoped cached profile while offline.
+      }
+    });
+  }
+
+  Widget _buildProfileAvatar(UserProvider userProvider, {double radius = 20}) {
+    final imagePath = userProvider.imagePath;
+    if (imagePath != null && File(imagePath).existsSync()) {
+      return CircleAvatar(
+        radius: radius,
+        backgroundImage: FileImage(File(imagePath)),
+      );
+    }
+
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: userProvider.currentAvatarColor.withValues(alpha: 0.15),
+      child: Icon(
+        userProvider.currentAvatarIcon,
+        color: userProvider.currentAvatarColor,
+        size: radius,
+      ),
+    );
+  }
 
   void _showAccountCenterBottomSheet(BuildContext context) {
     showModalBottomSheet(
@@ -80,21 +118,21 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const CircleAvatar(
-                        radius: 20,
-                        backgroundImage: NetworkImage(
-                          'https://randomuser.me/api/portraits/women/44.jpg',
+                    Consumer<UserProvider>(
+                      builder: (context, userProvider, child) => ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: _buildProfileAvatar(userProvider),
+                        title: Text(
+                          userProvider.displayName,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textDark,
+                          ),
                         ),
-                      ),
-                      title: Text(
-                        "El joo",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textDark,
-                        ),
+                        subtitle: userProvider.email.trim().isEmpty
+                            ? null
+                            : Text(userProvider.email),
                       ),
                     ),
                     ListTile(
@@ -286,33 +324,7 @@ class ProfileScreen extends StatelessWidget {
               children: [
                 Consumer<UserProvider>(
                   builder: (context, userProvider, child) {
-                    if (userProvider.imagePath != null) {
-                      return CircleAvatar(
-                        radius: 35,
-                        backgroundImage: FileImage(
-                          File(userProvider.imagePath!),
-                        ),
-                      );
-                    }
-                    return Container(
-                      width: 70,
-                      height: 70,
-                      decoration: BoxDecoration(
-                        color: userProvider.currentAvatarColor.withValues(
-                          alpha: 0.15,
-                        ),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.primaryTeal.withValues(alpha: 0.3),
-                          width: 2,
-                        ),
-                      ),
-                      child: Icon(
-                        userProvider.currentAvatarIcon,
-                        color: userProvider.currentAvatarColor,
-                        size: 36,
-                      ),
-                    );
+                    return _buildProfileAvatar(userProvider, radius: 35);
                   },
                 ),
                 const SizedBox(width: 16),
@@ -322,11 +334,9 @@ class ProfileScreen extends StatelessWidget {
                     Consumer<UserProvider>(
                       builder: (context, userProvider, child) {
                         return Text(
-                          userProvider.name.trim().isEmpty
-                              ? context.l10n.t('hello')
-                              : context.l10n.t('helloName', {
-                                  'name': userProvider.name,
-                                }),
+                          context.l10n.t('helloName', {
+                            'name': userProvider.displayName,
+                          }),
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -469,50 +479,6 @@ class ProfileScreen extends StatelessWidget {
                   context,
                   MaterialPageRoute(builder: (_) => const SupportScreen()),
                 ),
-              ),
-            ]),
-
-            const SizedBox(height: 24),
-            _buildSectionHeader(context.l10n.t('debugTest')),
-            _buildSettingsCard([
-              _buildTile(
-                icon: Icons.notifications_active_outlined,
-                title: context.l10n.t('testInstantNotification'),
-                subtitle: context.l10n.t('sendTestNotification'),
-                onTap: () {
-                  context
-                      .read<NotificationsProvider>()
-                      .testInstantNotification();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(context.l10n.t('testNotificationSent')),
-                    ),
-                  );
-                },
-              ),
-              const Divider(height: 1, indent: 56, color: Color(0xFFEEEEEE)),
-              _buildTile(
-                icon: Icons.schedule_outlined,
-                title: '${context.l10n.t('testDelayedNotification')} (30s)',
-                subtitle:
-                    '${context.l10n.t('sendDelayedNotification')} (30s delay)',
-                onTap: () async {
-                  final scheduled = await context
-                      .read<NotificationsProvider>()
-                      .testNotificationAfterDelay();
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          scheduled
-                              ? 'Test notification scheduled for 30 seconds from now.'
-                              : 'Android rejected the schedule. Install the latest APK again, then retry.',
-                        ),
-                        duration: Duration(seconds: 5),
-                      ),
-                    );
-                  }
-                },
               ),
             ]),
 

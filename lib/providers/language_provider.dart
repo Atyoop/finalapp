@@ -16,9 +16,8 @@ class LanguageProvider extends ChangeNotifier {
   /// Updates the preferred app language and notifies listeners to trigger UI rebuilds.
   Future<void> setLanguage(String langCode) async {
     if (!LanguageService.supportedLanguages.contains(langCode)) return;
-    if (LanguageService.currentLanguage == langCode) return;
-
+    final didChange = LanguageService.currentLanguage != langCode;
     await LanguageService.setLanguage(langCode);
-    notifyListeners();
+    if (didChange) notifyListeners();
   }
 }

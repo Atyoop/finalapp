@@ -4,6 +4,7 @@ import 'package:final88/screens/auth_screens.dart';
 import 'screens/home.dart';
 import 'services/hive_service.dart';
 import 'services/medicine_storage_service.dart';
+import 'services/api_client.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 
 import 'package:flutter/material.dart';
@@ -65,7 +66,9 @@ void main() async {
                 ..onMedicationChanged = (token) =>
                     notificationsProvider.refreshNotifications(token),
         ),
-        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(
+          create: (_) => UserProvider(onTokenChanged: ApiClient.setToken),
+        ),
         ChangeNotifierProvider(create: (_) => SavedMedicinesProvider()),
         ChangeNotifierProvider(create: (_) => AlertsProvider()),
         ChangeNotifierProvider(create: (_) => notificationsProvider),
@@ -272,6 +275,8 @@ class _SplashScreenState extends State<SplashScreen> {
         nextScreen = const MainNavScreen();
       } else if (hasSeenOnboarding) {
         nextScreen = const WelcomeScreen();
+      } else if (!LanguageService.hasSelectedLanguage) {
+        nextScreen = const LanguageSelectionScreen();
       } else {
         nextScreen = const OnboardingScreen();
       }
@@ -331,7 +336,303 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 }
 
-// --- 5. Onboarding Screen ---
+// --- 5. First-time Language Selection ---
+class LanguageSelectionScreen extends StatefulWidget {
+  const LanguageSelectionScreen({super.key});
+
+  @override
+  State<LanguageSelectionScreen> createState() =>
+      _LanguageSelectionScreenState();
+}
+
+class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
+  String? _selectedLanguage;
+  bool _isSaving = false;
+
+  Future<void> _continue() async {
+    final selectedLanguage = _selectedLanguage;
+    if (selectedLanguage == null || _isSaving) return;
+
+    setState(() => _isSaving = true);
+    try {
+      await context.read<LanguageProvider>().setLanguage(selectedLanguage);
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+      );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedLanguage = _selectedLanguage;
+    return Scaffold(
+      backgroundColor: AppColors.backgroundCream,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: constraints.maxHeight - 52,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Align(
+                    child: Container(
+                      width: 88,
+                      height: 88,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(28),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primaryTeal.withValues(
+                              alpha: 0.12,
+                            ),
+                            blurRadius: 24,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(28),
+                        child: Image.asset(
+                          'assets/icon/drugsafe_logo.jpg',
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  const Text(
+                    'Choose your language',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AppColors.textDark,
+                      fontSize: 27,
+                      height: 1.2,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  const Text(
+                    'اختر لغتك',
+                    textAlign: TextAlign.center,
+                    textDirection: TextDirection.rtl,
+                    style: TextStyle(
+                      color: AppColors.primaryTeal,
+                      fontSize: 23,
+                      height: 1.3,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Select your preferred language to continue.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AppColors.textGrey,
+                      fontSize: 14,
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  const Text(
+                    'اختر اللغة التي تفضل استخدامها داخل التطبيق.',
+                    textAlign: TextAlign.center,
+                    textDirection: TextDirection.rtl,
+                    style: TextStyle(
+                      color: AppColors.textGrey,
+                      fontSize: 14,
+                      height: 1.55,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  _LanguageChoiceCard(
+                    title: 'English',
+                    subtitle: 'Use DrugSafe in English',
+                    code: 'EN',
+                    isSelected: selectedLanguage == 'en',
+                    onTap: () => setState(() => _selectedLanguage = 'en'),
+                  ),
+                  const SizedBox(height: 14),
+                  _LanguageChoiceCard(
+                    title: 'العربية',
+                    subtitle: 'استخدم DrugSafe باللغة العربية',
+                    code: 'AR',
+                    textDirection: TextDirection.rtl,
+                    isSelected: selectedLanguage == 'ar',
+                    onTap: () => setState(() => _selectedLanguage = 'ar'),
+                  ),
+                  const SizedBox(height: 30),
+                  SizedBox(
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: selectedLanguage == null || _isSaving
+                          ? null
+                          : _continue,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryTeal,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: const Color(0xFFD6DEDD),
+                        disabledForegroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                      ),
+                      child: _isSaving
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              selectedLanguage == 'ar' ? 'متابعة' : 'Continue',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LanguageChoiceCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final String code;
+  final TextDirection textDirection;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _LanguageChoiceCard({
+    required this.title,
+    required this.subtitle,
+    required this.code,
+    this.textDirection = TextDirection.ltr,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      selected: isSelected,
+      button: true,
+      child: Material(
+        color: isSelected
+            ? AppColors.primaryTeal.withValues(alpha: 0.08)
+            : AppColors.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isSelected
+                    ? AppColors.primaryTeal
+                    : const Color(0xFFE3E7E6),
+                width: isSelected ? 2 : 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColors.primaryTeal
+                        : const Color(0xFFF0F4F3),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Text(
+                    code,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : AppColors.primaryTeal,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        textDirection: textDirection,
+                        style: const TextStyle(
+                          color: AppColors.textDark,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        textDirection: textDirection,
+                        style: const TextStyle(
+                          color: AppColors.textGrey,
+                          fontSize: 13,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  width: 26,
+                  height: 26,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColors.primaryTeal
+                        : Colors.transparent,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected
+                          ? AppColors.primaryTeal
+                          : const Color(0xFFBBC6C4),
+                    ),
+                  ),
+                  child: isSelected
+                      ? const Icon(Icons.check, size: 17, color: Colors.white)
+                      : null,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// --- 6. Onboarding Screen ---
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 

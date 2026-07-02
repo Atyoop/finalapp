@@ -862,11 +862,9 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  userProvider.name.trim().isEmpty
-                                      ? context.l10n.t('hello')
-                                      : context.l10n.t('helloName', {
-                                          'name': userProvider.name,
-                                        }),
+                                  context.l10n.t('helloName', {
+                                    'name': userProvider.displayName,
+                                  }),
                                   style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,

@@ -5,6 +5,7 @@ class HiveMedicine {
   String id;
   int? medicationId;
   String name;
+  String? canonicalName;
   String dosage;
   String? dosageForm;
   String? quantityUnit;
@@ -47,6 +48,7 @@ class HiveMedicine {
     this.id = '',
     this.medicationId,
     required this.name,
+    this.canonicalName,
     this.dosage = '',
     this.dosageForm,
     this.quantityUnit,
@@ -99,6 +101,7 @@ class HiveMedicine {
     'id': id,
     'medicationId': medicationId,
     'name': name,
+    'canonicalName': canonicalName,
     'dosage': dosage,
     'dosageForm': dosageForm,
     'quantityUnit': quantityUnit,
@@ -142,6 +145,7 @@ class HiveMedicine {
     id: m['id'] as String? ?? '',
     medicationId: _parseNullableInt(m['medicationId']),
     name: m['name'] as String? ?? '',
+    canonicalName: m['canonicalName'] as String?,
     dosage: m['dosage'] as String? ?? '',
     dosageForm: m['dosageForm'] as String?,
     quantityUnit: m['quantityUnit'] as String?,
@@ -185,6 +189,7 @@ class HiveMedicine {
     id: id,
     medicationId: medicationId,
     name: name,
+    canonicalName: canonicalName,
     dosage: dosage,
     dosageForm: dosageForm,
     quantityUnit: quantityUnit,
@@ -238,6 +243,7 @@ class HiveMedicine {
     id: m.id,
     medicationId: m.medicationId,
     name: m.name,
+    canonicalName: m.canonicalName,
     dosage: m.dosage ?? '',
     dosageForm: m.dosageForm,
     quantityUnit: m.quantityUnit,

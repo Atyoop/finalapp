@@ -1,18 +1,23 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import '../services/medicine_storage_service.dart';
+import '../services/user_profile_service.dart';
 
 class UserProvider extends ChangeNotifier {
+  final void Function(String? token)? onTokenChanged;
   String _name = '';
+  String _email = '';
+  String _phoneNumber = '';
+  DateTime? _dateOfBirth;
+  String _gender = '';
   String? _imagePath;
   int _selectedAvatar = 0;
   String? _token;
   String? _userId;
 
-  UserProvider() {
+  UserProvider({this.onTokenChanged}) {
     _loadPersistedSession();
+    onTokenChanged?.call(_token);
   }
 
   void _loadPersistedSession() {
@@ -20,17 +25,6 @@ class UserProvider extends ChangeNotifier {
     final storedUserId = MedicineStorageService.getSetting<String>(
       'auth_user_id',
     );
-    _name =
-        MedicineStorageService.getSetting<String>('profile_display_name') ?? '';
-    _imagePath = MedicineStorageService.getSetting<String>(
-      'profile_image_path',
-    );
-    _selectedAvatar =
-        MedicineStorageService.getSetting<int>('profile_avatar_index') ?? 0;
-    if (_selectedAvatar < 0 || _selectedAvatar >= avatarIcons.length) {
-      _selectedAvatar = 0;
-    }
-
     if (storedToken != null && storedToken.isNotEmpty) {
       try {
         if (JwtDecoder.isExpired(storedToken)) {
@@ -38,7 +32,8 @@ class UserProvider extends ChangeNotifier {
           _clearSessionStorage();
         } else {
           _token = storedToken;
-          _userId = storedUserId;
+          _userId = storedUserId ?? _readUserIdFromToken(storedToken);
+          _loadScopedProfile();
           debugPrint('[UserProvider] 🔑 Stored token loaded successfully');
         }
       } catch (e) {
@@ -46,6 +41,60 @@ class UserProvider extends ChangeNotifier {
         _clearSessionStorage();
       }
     }
+  }
+
+  String? _readUserIdFromToken(String token) {
+    try {
+      final claims = JwtDecoder.decode(token);
+      final value =
+          claims['nameid'] ??
+          claims['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] ??
+          claims['sub'];
+      final id = value?.toString();
+      return id == null || id.isEmpty ? null : id;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _profileKey(String field) => 'profile_${_userId ?? 'none'}_$field';
+
+  void _loadScopedProfile() {
+    if (_userId == null || _userId!.isEmpty) {
+      _resetProfileInMemory();
+      return;
+    }
+    _name =
+        MedicineStorageService.getSetting<String>(_profileKey('name')) ?? '';
+    _email =
+        MedicineStorageService.getSetting<String>(_profileKey('email')) ?? '';
+    _phoneNumber =
+        MedicineStorageService.getSetting<String>(_profileKey('phone')) ?? '';
+    _gender =
+        MedicineStorageService.getSetting<String>(_profileKey('gender')) ?? '';
+    _dateOfBirth = DateTime.tryParse(
+      MedicineStorageService.getSetting<String>(_profileKey('birth_date')) ??
+          '',
+    );
+    _imagePath = MedicineStorageService.getSetting<String>(
+      _profileKey('image_path'),
+    );
+    _selectedAvatar =
+        MedicineStorageService.getSetting<int>(_profileKey('avatar_index')) ??
+        0;
+    if (_selectedAvatar < 0 || _selectedAvatar >= avatarIcons.length) {
+      _selectedAvatar = 0;
+    }
+  }
+
+  void _resetProfileInMemory() {
+    _name = '';
+    _email = '';
+    _phoneNumber = '';
+    _dateOfBirth = null;
+    _gender = '';
+    _imagePath = null;
+    _selectedAvatar = 0;
   }
 
   void _clearSessionStorage() {
@@ -94,6 +143,17 @@ class UserProvider extends ChangeNotifier {
   ];
 
   String get name => _name;
+  String get email => _email;
+  String get phoneNumber => _phoneNumber;
+  DateTime? get dateOfBirth => _dateOfBirth;
+  String get gender => _gender;
+  String get displayName {
+    if (_name.trim().isNotEmpty) return _name.trim();
+    if (_email.contains('@')) return _email.split('@').first;
+    if (_email.trim().isNotEmpty) return _email.trim();
+    return 'User';
+  }
+
   String? get imagePath => _imagePath;
   int get selectedAvatar => _selectedAvatar;
   IconData get currentAvatarIcon => avatarIcons[_selectedAvatar];
@@ -102,15 +162,34 @@ class UserProvider extends ChangeNotifier {
   String? get userId => _userId;
   bool get isLoggedIn => _token != null && _token!.isNotEmpty;
 
-  void setToken(String token) {
+  Future<void> saveAuthSession({
+    required String token,
+    String? userId,
+    String? email,
+  }) async {
     _token = token;
-    MedicineStorageService.saveSetting('auth_token', token);
-    notifyListeners();
-  }
-
-  void setUserId(String id) {
-    _userId = id;
-    MedicineStorageService.saveSetting('auth_user_id', id);
+    _userId = userId ?? _readUserIdFromToken(token);
+    _resetProfileInMemory();
+    _loadScopedProfile();
+    if (email != null && email.trim().isNotEmpty) {
+      _email = email.trim();
+      await MedicineStorageService.saveSetting(_profileKey('email'), _email);
+    }
+    final tokenSaved = await MedicineStorageService.saveSetting(
+      'auth_token',
+      token,
+    );
+    if (!tokenSaved) {
+      _token = null;
+      _userId = null;
+      throw StateError('Could not persist the authentication token');
+    }
+    if (_userId != null && _userId!.isNotEmpty) {
+      await MedicineStorageService.saveSetting('auth_user_id', _userId);
+    } else {
+      await MedicineStorageService.removeSetting('auth_user_id');
+    }
+    onTokenChanged?.call(token);
     notifyListeners();
   }
 
@@ -119,41 +198,94 @@ class UserProvider extends ChangeNotifier {
     _userId = null;
     MedicineStorageService.removeSetting('auth_token');
     MedicineStorageService.removeSetting('auth_user_id');
+    // Remove obsolete unscoped keys so a previous account can never leak into
+    // a newly authenticated account. Scoped profile keys remain available when
+    // their owner signs back in on this device.
     MedicineStorageService.removeSetting('profile_display_name');
     MedicineStorageService.removeSetting('profile_image_path');
     MedicineStorageService.removeSetting('profile_avatar_index');
+    onTokenChanged?.call(null);
     MedicineStorageService.clearAllMedicines();
     MedicineStorageService.clearAllReminders();
-    _name = '';
-    _imagePath = null;
-    _selectedAvatar = 0;
+    _resetProfileInMemory();
     notifyListeners();
   }
 
-  void updateProfile({
+  Future<void> refreshProfile() async {
+    final currentToken = _token;
+    if (currentToken == null || currentToken.isEmpty) return;
+    final profile = await UserProfileService.getProfile(currentToken);
+    if (_userId == null || _userId!.isEmpty) {
+      _userId = profile.id;
+      await MedicineStorageService.saveSetting('auth_user_id', profile.id);
+      _loadScopedProfile();
+    }
+    if (_userId != null && profile.id != _userId) return;
+    _name = profile.fullName;
+    _email = profile.email;
+    _phoneNumber = profile.phoneNumber;
+    _dateOfBirth = profile.dateOfBirth;
+    _gender = profile.gender;
+    await _persistProfileFields();
+    notifyListeners();
+  }
+
+  Future<void> updateProfile({
     required String name,
+    required String phoneNumber,
+    required DateTime? dateOfBirth,
+    required String gender,
     String? imagePath,
     required int selectedAvatar,
-  }) {
-    _name = name.trim();
+  }) async {
+    final currentToken = _token;
+    if (currentToken == null || currentToken.isEmpty) {
+      throw const UserProfileException('Please sign in again.');
+    }
+    final profile = await UserProfileService.updateProfile(
+      currentToken,
+      fullName: name.trim(),
+      phoneNumber: phoneNumber.trim(),
+      dateOfBirth: dateOfBirth,
+      gender: gender,
+    );
+    _name = profile.fullName;
+    _email = profile.email;
+    _phoneNumber = profile.phoneNumber;
+    _dateOfBirth = profile.dateOfBirth;
+    _gender = profile.gender;
     _imagePath = imagePath;
     _selectedAvatar = selectedAvatar;
-    unawaited(
-      MedicineStorageService.saveSetting('profile_display_name', _name),
-    );
+    await _persistProfileFields();
     if (_imagePath == null || _imagePath!.isEmpty) {
-      unawaited(MedicineStorageService.removeSetting('profile_image_path'));
+      await MedicineStorageService.removeSetting(_profileKey('image_path'));
     } else {
-      unawaited(
-        MedicineStorageService.saveSetting('profile_image_path', _imagePath),
+      await MedicineStorageService.saveSetting(
+        _profileKey('image_path'),
+        _imagePath,
       );
     }
-    unawaited(
-      MedicineStorageService.saveSetting(
-        'profile_avatar_index',
-        _selectedAvatar,
-      ),
+    await MedicineStorageService.saveSetting(
+      _profileKey('avatar_index'),
+      _selectedAvatar,
     );
     notifyListeners();
+  }
+
+  Future<void> _persistProfileFields() async {
+    if (_userId == null || _userId!.isEmpty) return;
+    await Future.wait([
+      MedicineStorageService.saveSetting(_profileKey('name'), _name),
+      MedicineStorageService.saveSetting(_profileKey('email'), _email),
+      MedicineStorageService.saveSetting(_profileKey('phone'), _phoneNumber),
+      MedicineStorageService.saveSetting(_profileKey('gender'), _gender),
+      if (_dateOfBirth == null)
+        MedicineStorageService.removeSetting(_profileKey('birth_date'))
+      else
+        MedicineStorageService.saveSetting(
+          _profileKey('birth_date'),
+          _dateOfBirth!.toIso8601String(),
+        ),
+    ]);
   }
 }

@@ -5,9 +5,13 @@ class LanguageService {
   static const String _key = 'selected_language';
   static const Set<String> supportedLanguages = {'en', 'ar'};
   static String _currentLanguage = 'en';
+  static bool _hasSelectedLanguage = false;
 
   /// Returns the current selected language code ('en' or 'ar') synchronously.
   static String get currentLanguage => _currentLanguage;
+
+  /// Whether the user has explicitly chosen a language at least once.
+  static bool get hasSelectedLanguage => _hasSelectedLanguage;
 
   /// Returns true when the current selected language is Arabic.
   static bool get isArabic => _currentLanguage == 'ar';
@@ -34,7 +38,9 @@ class LanguageService {
   /// Initializes the service by reading the stored language from Hive.
   /// Call this in the main() function before running the app.
   static Future<void> init() async {
-    _currentLanguage = MedicineStorageService.getSetting<String>(_key) ?? 'en';
+    final storedLanguage = MedicineStorageService.getSetting<String>(_key);
+    _hasSelectedLanguage = supportedLanguages.contains(storedLanguage);
+    _currentLanguage = storedLanguage ?? 'en';
     if (!supportedLanguages.contains(_currentLanguage)) {
       _currentLanguage = 'en';
     }
@@ -45,5 +51,6 @@ class LanguageService {
     if (!supportedLanguages.contains(langCode)) return;
     _currentLanguage = langCode;
     await MedicineStorageService.saveSetting(_key, langCode);
+    _hasSelectedLanguage = true;
   }
 }

@@ -25,6 +25,7 @@ class Medicine {
   final String id;
   final int? medicationId;
   final String name;
+  final String? canonicalName;
   final String imageUrl;
   final DateTime startDate;
   final DateTime endDate;
@@ -82,6 +83,7 @@ class Medicine {
     this.id = '',
     this.medicationId,
     required this.name,
+    this.canonicalName,
     this.imageUrl = '',
     required this.startDate,
     required this.endDate,
@@ -141,6 +143,7 @@ class Medicine {
 
   Medicine copyWith({
     String? name,
+    String? canonicalName,
     String? imageUrl,
     DateTime? startDate,
     DateTime? endDate,
@@ -199,6 +202,7 @@ class Medicine {
       id: id,
       medicationId: medicationId ?? this.medicationId,
       name: name ?? this.name,
+      canonicalName: canonicalName ?? this.canonicalName,
       imageUrl: imageUrl ?? this.imageUrl,
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
@@ -290,7 +294,11 @@ class Medicine {
 
     final json = <String, dynamic>{
       'medicationId': isCustomMedication ? null : medicationId,
-      'medicationName': name,
+      'medicationName': isCustomMedication
+          ? name
+          : ((canonicalName?.trim().isNotEmpty ?? false)
+                ? canonicalName
+                : name),
       'isCustomMedication': isCustomMedication,
       'dosage': dosage,
       'dosageForm': dosageForm,
@@ -466,6 +474,10 @@ class Medicine {
         }
         return '';
       }(),
+      canonicalName: readAny([
+        'canonicalMedicationName',
+        'canonicalName',
+      ])?.toString(),
       imageUrl: json['imageUrl'] ?? '',
       startDate: parseDate(json['startDate'], now),
       endDate: parseDate(json['endDate'], now.add(const Duration(days: 30))),

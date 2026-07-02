@@ -95,6 +95,14 @@ class _CabinetHealthScreenState extends State<CabinetHealthScreen> {
             );
           }
           final data = snapshot.data!;
+          final isEmpty =
+              data.expired.isEmpty &&
+              data.expiringSoon.isEmpty &&
+              data.afterOpeningExpiringSoon.isEmpty &&
+              data.lowStock.isEmpty &&
+              data.outOfStock.isEmpty &&
+              data.runningOutSoon.isEmpty &&
+              data.healthy.isEmpty;
           return RefreshIndicator(
             color: AppColors.primaryTeal,
             onRefresh: _refresh,
@@ -103,6 +111,7 @@ class _CabinetHealthScreenState extends State<CabinetHealthScreen> {
               children: [
                 _buildSummary(data),
                 const SizedBox(height: 16),
+                if (isEmpty) _EmptyPharmacyCard(),
                 _CabinetSection(
                   title: context.l10n.t('expired'),
                   color: Colors.red,
@@ -319,7 +328,20 @@ class _CabinetMedicationTile extends StatelessWidget {
   }
 
   String _localizedStatus(BuildContext context, String status) {
-    final normalized = status.toLowerCase().replaceAll('_', ' ');
+    final normalized = status
+        .trim()
+        .toLowerCase()
+        .replaceAll('_', ' ')
+        .replaceAll(RegExp(r'\s+'), ' ');
+    if (normalized.contains('stock is low')) {
+      return context.l10n.t('medicationStockIsLow');
+    }
+    if (normalized.contains('expires within 7 days')) {
+      return context.l10n.t('medicationExpiresWithinSevenDays');
+    }
+    if (normalized.contains('opened medication expires soon')) {
+      return context.l10n.t('openedMedicationExpiresSoon');
+    }
     if (normalized.contains('out of stock')) {
       return context.l10n.t('outOfStock');
     }
@@ -330,6 +352,47 @@ class _CabinetMedicationTile extends StatelessWidget {
     if (normalized.contains('expiring')) return context.l10n.t('expiringSoon');
     if (normalized.contains('expired')) return context.l10n.t('expired');
     if (normalized.contains('healthy')) return context.l10n.t('healthy');
-    return status;
+    return Localizations.localeOf(context).languageCode == 'ar'
+        ? context.l10n.t('needsAttention')
+        : status;
+  }
+}
+
+class _EmptyPharmacyCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.medication_outlined,
+            size: 42,
+            color: AppColors.textGrey.withValues(alpha: 0.55),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            context.l10n.t('noMedicationsInPharmacy'),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.textDark,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            context.l10n.t('addMedicationToSeeHere'),
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.textGrey, fontSize: 12),
+          ),
+        ],
+      ),
+    );
   }
 }

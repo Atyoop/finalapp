@@ -1,7 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import '../l10n/app_localizations.dart';
 import '../main.dart';
 import '../providers/user_provider.dart';
@@ -13,25 +16,44 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  final _nameController = TextEditingController(text: 'User Name');
-  final _emailController = TextEditingController(text: 'user@email.com');
-  final _phoneController = TextEditingController(text: '+20 123 456 7890');
-  String _dob = '01 / January / 2000';
-  String _gender = 'Male';
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  DateTime? _dateOfBirth;
+  String _gender = '';
   int _selectedAvatar = 0;
   String? _imagePath;
   bool _isInit = true;
+  bool _isLoading = true;
+  bool _isSaving = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_isInit) {
-      final user = context.read<UserProvider>();
-      _nameController.text = user.name;
+      _isInit = false;
+      _loadProfile();
+    }
+  }
+
+  Future<void> _loadProfile() async {
+    final user = context.read<UserProvider>();
+    try {
+      await user.refreshProfile();
+    } catch (_) {
+      // Cached, user-scoped data remains available while offline.
+    }
+    if (!mounted) return;
+    _nameController.text = user.name;
+    _emailController.text = user.email;
+    _phoneController.text = user.phoneNumber;
+    setState(() {
+      _dateOfBirth = user.dateOfBirth;
+      _gender = user.gender;
       _selectedAvatar = user.selectedAvatar;
       _imagePath = user.imagePath;
-      _isInit = false;
-    }
+      _isLoading = false;
+    });
   }
 
   Future<void> _pickImage() async {
@@ -39,8 +61,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       source: ImageSource.gallery,
     );
     if (pickedFile != null) {
+      if (!mounted) return;
+      final userId = context.read<UserProvider>().userId ?? 'current_user';
+      final documentsDirectory = await getApplicationDocumentsDirectory();
+      final profileImagesDirectory = Directory(
+        '${documentsDirectory.path}${Platform.pathSeparator}profile_images',
+      );
+      await profileImagesDirectory.create(recursive: true);
+      final extension = pickedFile.path.contains('.')
+          ? pickedFile.path.substring(pickedFile.path.lastIndexOf('.'))
+          : '.jpg';
+      final permanentImage = await File(pickedFile.path).copy(
+        '${profileImagesDirectory.path}${Platform.pathSeparator}'
+        'profile_${userId}_${DateTime.now().millisecondsSinceEpoch}$extension',
+      );
+      if (!mounted) return;
       setState(() {
-        _imagePath = pickedFile.path;
+        _imagePath = permanentImage.path;
       });
     }
   }
@@ -84,178 +121,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     Color(0xFF8BC34A),
   ];
 
-  void _showDateOfBirthPicker() {
-    int selectedDay = 1;
-    int selectedMonthIndex = 0;
-    int selectedYear = 2000;
-    final months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-
-    showModalBottomSheet(
+  Future<void> _showDateOfBirthPicker() async {
+    final now = DateTime.now();
+    final selected = await showDatePicker(
       context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setModalState) {
-            return Container(
-              padding: const EdgeInsets.all(24),
-              height: 350,
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        context.l10n.t('dateOfBirth'),
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(ctx),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: Row(
-                      children: [
-                        // Day
-                        Expanded(
-                          child: ListWheelScrollView.useDelegate(
-                            itemExtent: 44,
-                            physics: const FixedExtentScrollPhysics(),
-                            onSelectedItemChanged: (i) =>
-                                setModalState(() => selectedDay = i + 1),
-                            childDelegate: ListWheelChildBuilderDelegate(
-                              childCount: 31,
-                              builder: (ctx, i) => Center(
-                                child: Text(
-                                  '${i + 1}',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    color: selectedDay == i + 1
-                                        ? AppColors.primaryTeal
-                                        : AppColors.textGrey,
-                                    fontWeight: selectedDay == i + 1
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        // Month
-                        Expanded(
-                          flex: 2,
-                          child: ListWheelScrollView.useDelegate(
-                            itemExtent: 44,
-                            physics: const FixedExtentScrollPhysics(),
-                            onSelectedItemChanged: (i) =>
-                                setModalState(() => selectedMonthIndex = i),
-                            childDelegate: ListWheelChildBuilderDelegate(
-                              childCount: 12,
-                              builder: (ctx, i) => Center(
-                                child: Text(
-                                  months[i],
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    color: selectedMonthIndex == i
-                                        ? AppColors.primaryTeal
-                                        : AppColors.textGrey,
-                                    fontWeight: selectedMonthIndex == i
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        // Year
-                        Expanded(
-                          child: ListWheelScrollView.useDelegate(
-                            itemExtent: 44,
-                            physics: const FixedExtentScrollPhysics(),
-                            onSelectedItemChanged: (i) =>
-                                setModalState(() => selectedYear = 1950 + i),
-                            childDelegate: ListWheelChildBuilderDelegate(
-                              childCount: 77,
-                              builder: (ctx, i) {
-                                final y = 1950 + i;
-                                return Center(
-                                  child: Text(
-                                    '$y',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      color: selectedYear == y
-                                          ? AppColors.primaryTeal
-                                          : AppColors.textGrey,
-                                      fontWeight: selectedYear == y
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          _dob =
-                              '${selectedDay.toString().padLeft(2, '0')} / ${months[selectedMonthIndex]} / $selectedYear';
-                        });
-                        Navigator.pop(ctx);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryTeal,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(26),
-                        ),
-                      ),
-                      child: Text(
-                        context.l10n.t('done'),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+      initialDate: _dateOfBirth ?? DateTime(now.year - 18),
+      firstDate: DateTime(now.year - 120),
+      lastDate: now,
     );
+    if (selected != null && mounted) {
+      setState(() => _dateOfBirth = selected);
+    }
   }
 
   void _showGenderPicker() {
@@ -271,7 +147,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           builder: (ctx, setModalState) {
             return Container(
               padding: const EdgeInsets.all(24),
-              height: 300,
+              height: 370,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -302,6 +178,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     label: context.l10n.t('female'),
                     isSelected: tempGender == 'Female',
                     onTap: () => setModalState(() => tempGender = 'Female'),
+                  ),
+                  const SizedBox(height: 12),
+                  _GenderOption(
+                    label: context.l10n.t('other'),
+                    isSelected: tempGender == 'Other',
+                    onTap: () => setModalState(() => tempGender = 'Other'),
                   ),
                   const Spacer(),
                   SizedBox(
@@ -460,6 +342,57 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
+  String _dateOfBirthText(BuildContext context) {
+    if (_dateOfBirth == null) return context.l10n.t('notSet');
+    return DateFormat.yMMMMd(
+      Localizations.localeOf(context).languageCode,
+    ).format(_dateOfBirth!);
+  }
+
+  String _genderText(BuildContext context) {
+    if (_gender.toLowerCase() == 'male') return context.l10n.t('male');
+    if (_gender.toLowerCase() == 'female') return context.l10n.t('female');
+    if (_gender.toLowerCase() == 'other') return context.l10n.t('other');
+    return context.l10n.t('notSet');
+  }
+
+  Future<void> _saveProfile() async {
+    final phone = _phoneController.text.trim();
+    if (phone.isNotEmpty && !RegExp(r'^\+?[0-9\s()-]+$').hasMatch(phone)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.t('invalidPhoneNumber'))),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      await context.read<UserProvider>().updateProfile(
+        name: _nameController.text,
+        phoneNumber: phone,
+        dateOfBirth: _dateOfBirth,
+        gender: _gender,
+        selectedAvatar: _selectedAvatar,
+        imagePath: _imagePath,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.l10n.t('profileUpdated')),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -485,205 +418,234 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          children: [
-            const SizedBox(height: 16),
-            // Avatar
-            GestureDetector(
-              onTap: _showAvatarPicker,
-              child: Stack(
-                alignment: Alignment.bottomRight,
+      body: _isLoading
+          ? Center(
+              child: CircularProgressIndicator(color: AppColors.primaryTeal),
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
                 children: [
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: _imagePath == null
-                          ? _avatarColors[_selectedAvatar].withValues(
-                              alpha: 0.15,
-                            )
-                          : AppColors.backgroundCream,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.primaryTeal.withValues(alpha: 0.3),
-                        width: 2,
+                  const SizedBox(height: 16),
+                  // Avatar
+                  GestureDetector(
+                    onTap: _showAvatarPicker,
+                    child: Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: _imagePath == null
+                                ? _avatarColors[_selectedAvatar].withValues(
+                                    alpha: 0.15,
+                                  )
+                                : AppColors.backgroundCream,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: AppColors.primaryTeal.withValues(
+                                alpha: 0.3,
+                              ),
+                              width: 2,
+                            ),
+                            image:
+                                _imagePath != null &&
+                                    File(_imagePath!).existsSync()
+                                ? DecorationImage(
+                                    image: FileImage(File(_imagePath!)),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
+                          ),
+                          child:
+                              _imagePath == null ||
+                                  !File(_imagePath!).existsSync()
+                              ? Icon(
+                                  _avatarIcons[_selectedAvatar],
+                                  color: _avatarColors[_selectedAvatar],
+                                  size: 52,
+                                )
+                              : null,
+                        ),
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryTeal,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  // Name
+                  _buildLabel(context.l10n.t('fullName')),
+                  _buildTextField(_nameController, Icons.person_outline),
+                  const SizedBox(height: 16),
+                  // Email
+                  _buildLabel(context.l10n.t('email')),
+                  _buildTextField(
+                    _emailController,
+                    Icons.email_outlined,
+                    readOnly: true,
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 16),
+                  // Phone
+                  _buildLabel(context.l10n.t('phoneNumber')),
+                  _buildTextField(
+                    _phoneController,
+                    Icons.phone_outlined,
+                    keyboardType: TextInputType.phone,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'[0-9+()\-\s]'),
                       ),
-                      image: _imagePath != null
-                          ? DecorationImage(
-                              image: FileImage(File(_imagePath!)),
-                              fit: BoxFit.cover,
+                      LengthLimitingTextInputFormatter(30),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // DOB
+                  _buildLabel(context.l10n.t('dateOfBirth')),
+                  GestureDetector(
+                    onTap: _showDateOfBirthPicker,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today_outlined,
+                            color: AppColors.textGrey,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            _dateOfBirthText(context),
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: AppColors.textDark,
+                            ),
+                          ),
+                          const Spacer(),
+                          Icon(
+                            Icons.keyboard_arrow_down,
+                            color: AppColors.textGrey,
+                            size: 22,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Gender
+                  _buildLabel(context.l10n.t('gender')),
+                  GestureDetector(
+                    onTap: _showGenderPicker,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.wc_outlined,
+                            color: AppColors.textGrey,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            _genderText(context),
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: AppColors.textDark,
+                            ),
+                          ),
+                          const Spacer(),
+                          Icon(
+                            Icons.keyboard_arrow_down,
+                            color: AppColors.textGrey,
+                            size: 22,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 36),
+                  // Save button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _isSaving ? null : _saveProfile,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryTeal,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(28),
+                        ),
+                        elevation: 3,
+                        shadowColor: AppColors.primaryTeal.withValues(
+                          alpha: 0.3,
+                        ),
+                      ),
+                      child: _isSaving
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white,
+                              ),
                             )
-                          : null,
-                    ),
-                    child: _imagePath == null
-                        ? Icon(
-                            _avatarIcons[_selectedAvatar],
-                            color: _avatarColors[_selectedAvatar],
-                            size: 52,
-                          )
-                        : null,
-                  ),
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryTeal,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    child: const Icon(
-                      Icons.camera_alt,
-                      color: Colors.white,
-                      size: 16,
+                          : Text(
+                              context.l10n.t('save'),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                     ),
                   ),
+                  const SizedBox(height: 32),
                 ],
               ),
             ),
-            const SizedBox(height: 28),
-            // Name
-            _buildLabel(context.l10n.t('fullName')),
-            _buildTextField(_nameController, Icons.person_outline),
-            const SizedBox(height: 16),
-            // Email
-            _buildLabel(context.l10n.t('email')),
-            _buildTextField(_emailController, Icons.email_outlined),
-            const SizedBox(height: 16),
-            // Phone
-            _buildLabel(context.l10n.t('phoneNumber')),
-            _buildTextField(_phoneController, Icons.phone_outlined),
-            const SizedBox(height: 16),
-            // DOB
-            _buildLabel(context.l10n.t('dateOfBirth')),
-            GestureDetector(
-              onTap: _showDateOfBirthPicker,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 16,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.calendar_today_outlined,
-                      color: AppColors.textGrey,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      _dob,
-                      style: TextStyle(fontSize: 15, color: AppColors.textDark),
-                    ),
-                    const Spacer(),
-                    Icon(
-                      Icons.keyboard_arrow_down,
-                      color: AppColors.textGrey,
-                      size: 22,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Gender
-            _buildLabel(context.l10n.t('gender')),
-            GestureDetector(
-              onTap: _showGenderPicker,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 16,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.wc_outlined,
-                      color: AppColors.textGrey,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      _gender,
-                      style: TextStyle(fontSize: 15, color: AppColors.textDark),
-                    ),
-                    const Spacer(),
-                    Icon(
-                      Icons.keyboard_arrow_down,
-                      color: AppColors.textGrey,
-                      size: 22,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 36),
-            // Save button
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: () {
-                  context.read<UserProvider>().updateProfile(
-                    name: _nameController.text,
-                    selectedAvatar: _selectedAvatar,
-                    imagePath: _imagePath,
-                  );
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(context.l10n.t('profileUpdated')),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryTeal,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                  elevation: 3,
-                  shadowColor: AppColors.primaryTeal.withValues(alpha: 0.3),
-                ),
-                child: Text(
-                  context.l10n.t('save'),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 32),
-          ],
-        ),
-      ),
     );
   }
 
@@ -704,7 +666,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, IconData icon) {
+  Widget _buildTextField(
+    TextEditingController controller,
+    IconData icon, {
+    bool readOnly = false,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -719,6 +687,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
       child: TextField(
         controller: controller,
+        readOnly: readOnly,
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: AppColors.textGrey, size: 20),
           border: InputBorder.none,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
@@ -11,6 +12,20 @@ import '../providers/language_provider.dart';
 import '../utils/quantity_helpers.dart';
 import '../utils/time_helpers.dart';
 import '../widgets/interaction_warning_dialog.dart';
+
+class _PositiveIntegerInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.isEmpty ||
+        RegExp(r'^[1-9][0-9]*$').hasMatch(newValue.text)) {
+      return newValue;
+    }
+    return oldValue;
+  }
+}
 
 class AddReminderScreen extends StatefulWidget {
   final String? initialDrugName;
@@ -150,6 +165,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   late TextEditingController _dosageController;
   late TextEditingController _noteController;
   late TextEditingController _afterOpeningDurationController;
+  late TextEditingController _doseQuantityController;
 
   // Schedule configuration
   late _ScheduleConfig _schedule;
@@ -267,6 +283,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
     // Initialize pills per dose
     _pillsPerDose = med?.doseQuantity ?? med?.pillsPerDose ?? 1;
+    _doseQuantityController = TextEditingController(
+      text: _pillsPerDose.toString(),
+    );
 
     _notificationActive = med?.notificationActive ?? true;
     _advanceReminderMinutes = med?.advanceReminderMinutes;
@@ -289,6 +308,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     _dosageController.dispose();
     _noteController.dispose();
     _afterOpeningDurationController.dispose();
+    _doseQuantityController.dispose();
     _customAdvanceReminderMinutesController.dispose();
     super.dispose();
   }
@@ -346,9 +366,13 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     if (_stock == null || _stock! <= 0) {
       return 'Total quantity must be greater than 0';
     }
-    if (_pillsPerDose <= 0) {
+    final enteredDoseQuantity = int.tryParse(
+      _doseQuantityController.text.trim(),
+    );
+    if (enteredDoseQuantity == null || enteredDoseQuantity <= 0) {
       return 'Quantity per dose must be greater than 0';
     }
+    _pillsPerDose = enteredDoseQuantity;
     if (_pillsPerDose > _stock!) {
       return context.l10n.t('doseQuantityExceedsTotal');
     }
@@ -384,11 +408,22 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   String get _unitLabel =>
       getQuantityUnitLabel(_selectedQuantityUnit, locale: _locale);
 
-  String get _formattedDose => formatQuantityWithUnit(
-    _pillsPerDose,
-    _selectedQuantityUnit,
-    locale: _locale,
-  );
+  void _setDoseQuantity(int value) {
+    if (value <= 0) return;
+    setState(() {
+      _pillsPerDose = value;
+      _doseQuantityController.value = TextEditingValue(
+        text: value.toString(),
+        selection: TextSelection.collapsed(offset: value.toString().length),
+      );
+    });
+  }
+
+  void _onDoseQuantityChanged(String text) {
+    final value = int.tryParse(text);
+    if (value == null || value <= 0) return;
+    setState(() => _pillsPerDose = value);
+  }
 
   int? _fallbackAfterOpeningDurationForForm(String? dosageForm) {
     final normalized = dosageForm?.toUpperCase().replaceAll(' ', '_') ?? '';
@@ -1313,7 +1348,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                           children: [
                             GestureDetector(
                               onTap: _pillsPerDose > 1
-                                  ? () => setState(() => _pillsPerDose--)
+                                  ? () => _setDoseQuantity(_pillsPerDose - 1)
                                   : null,
                               child: Container(
                                 width: 32,
@@ -1335,28 +1370,69 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                                 ),
                               ),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
+                            const SizedBox(width: 7),
+                            Container(
+                              width: 90,
+                              height: 40,
+                              padding: const EdgeInsetsDirectional.only(
+                                start: 8,
+                                end: 7,
                               ),
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(maxWidth: 72),
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Text(
-                                    _formattedDose,
-                                    maxLines: 1,
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.textDark,
-                                    ),
+                              decoration: BoxDecoration(
+                                color: AppColors.backgroundCream,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: AppColors.primaryTeal.withValues(
+                                    alpha: 0.22,
                                   ),
                                 ),
                               ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _doseQuantityController,
+                                      keyboardType: TextInputType.number,
+                                      textInputAction: TextInputAction.done,
+                                      textAlign: TextAlign.center,
+                                      inputFormatters: [
+                                        LengthLimitingTextInputFormatter(9),
+                                        _PositiveIntegerInputFormatter(),
+                                      ],
+                                      onChanged: _onDoseQuantityChanged,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.textDark,
+                                      ),
+                                      decoration: const InputDecoration(
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.zero,
+                                        border: InputBorder.none,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Flexible(
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text(
+                                        _unitLabel,
+                                        maxLines: 1,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.textGrey,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
+                            const SizedBox(width: 7),
                             GestureDetector(
-                              onTap: () => setState(() => _pillsPerDose++),
+                              onTap: () => _setDoseQuantity(_pillsPerDose + 1),
                               child: Container(
                                 width: 32,
                                 height: 32,

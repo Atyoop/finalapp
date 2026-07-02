@@ -7,6 +7,35 @@ import '../l10n/app_localizations.dart';
 import '../main.dart'; // Ù„Ø§Ø³ØªÙŠØ±Ø§Ø¯ Ø§Ù„Ø£Ù„ÙˆØ§Ù† ÙˆØ§Ù„ÙˆØ¯Ø¬Øª
 import '../providers/user_provider.dart';
 
+Future<bool> _saveAuthSession(BuildContext context, String responseBody) async {
+  final data = jsonDecode(responseBody);
+  if (data is! Map<String, dynamic>) return false;
+
+  final nestedData = data['data'];
+  final user = data['user'];
+  final token =
+      data['token']?.toString() ??
+      data['accessToken']?.toString() ??
+      (nestedData is Map ? nestedData['token']?.toString() : null);
+  final userId =
+      data['userId']?.toString() ??
+      data['user_id']?.toString() ??
+      (user is Map ? (user['id'] ?? user['userId'])?.toString() : null) ??
+      (nestedData is Map ? nestedData['userId']?.toString() : null);
+  final email =
+      (user is Map ? user['email']?.toString() : null) ??
+      data['email']?.toString() ??
+      (nestedData is Map ? nestedData['email']?.toString() : null);
+
+  if (token == null || token.isEmpty) return false;
+  await context.read<UserProvider>().saveAuthSession(
+    token: token,
+    userId: userId,
+    email: email,
+  );
+  return true;
+}
+
 // -----------------------------------------------------------------------------
 // 1. SIGNUP SCREEN
 // -----------------------------------------------------------------------------
@@ -407,6 +436,16 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
       if (!mounted) return;
 
       if (response.statusCode == 200) {
+        if (!widget.isReset) {
+          final sessionSaved = await _saveAuthSession(context, response.body);
+          if (!mounted) return;
+          if (!sessionSaved) {
+            throw const FormatException(
+              'Registration verification response did not contain a token',
+            );
+          }
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(context.l10n.t('verificationSuccessful')),
@@ -443,7 +482,9 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
         ),
       );
     } finally {
-      setState(() => _isVerifying = false);
+      if (mounted) {
+        setState(() => _isVerifying = false);
+      }
     }
   }
 
@@ -549,34 +590,10 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       if (response.statusCode == 200) {
-        // --- SUCCESS ---
-        String? token;
-        String? userId;
-        try {
-          final data = jsonDecode(response.body);
-          if (data is Map<String, dynamic>) {
-            token =
-                data['token']?.toString() ?? data['accessToken']?.toString();
-            // nested wrappers
-            token ??= (data['data'] is Map)
-                ? data['data']['token']?.toString()
-                : null;
-            userId = data['userId']?.toString() ?? data['user_id']?.toString();
-            userId ??= (data['data'] is Map)
-                ? data['data']['userId']?.toString()
-                : null;
-          }
-        } catch (_) {
-          token = null;
-        }
-
-        if (token != null && token.isNotEmpty) {
-          try {
-            context.read<UserProvider>().setToken(token);
-            if (userId != null && userId.isNotEmpty) {
-              context.read<UserProvider>().setUserId(userId);
-            }
-          } catch (_) {}
+        final sessionSaved = await _saveAuthSession(context, response.body);
+        if (!mounted) return;
+        if (!sessionSaved) {
+          throw const FormatException('Login response did not contain a token');
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -600,6 +617,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       // --- NETWORK ERROR ---
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(context.l10n.t('connectionErrorCors')),

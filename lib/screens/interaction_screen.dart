@@ -19,12 +19,14 @@ class InteractionResultScreen extends StatelessWidget {
   final String message;
   final List<dynamic> results; // each item: {med1, med2, interactions:[...]}
   final List<Map<String, dynamic>> selectedMeds;
+  final bool checkFailed;
 
   const InteractionResultScreen({
     super.key,
     required this.message,
     required this.results,
     required this.selectedMeds,
+    this.checkFailed = false,
   });
 
   @override
@@ -40,10 +42,12 @@ class InteractionResultScreen extends StatelessWidget {
     String getLocalizedMessage(String msg) {
       if (!isAr) return msg;
       final lower = msg.trim().toLowerCase();
-      if (lower.contains('no interaction') || lower.contains('no interactions')) {
+      if (lower.contains('no interaction') ||
+          lower.contains('no interactions')) {
         return 'لا توجد تداخلات دوائية بين الأدوية المحددة.';
       }
-      if (lower.contains('interaction found') || lower.contains('interactions found')) {
+      if (lower.contains('interaction found') ||
+          lower.contains('interactions found')) {
         return 'تم العثور على تداخلات دوائية!';
       }
       return msg;
@@ -140,12 +144,16 @@ class InteractionResultScreen extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: hasInteraction
+                color: checkFailed
+                    ? const Color(0xFFFFEBEE)
+                    : hasInteraction
                     ? const Color(0xFFFFF3E0)
                     : const Color(0xFFE8F5E9),
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
-                  color: hasInteraction
+                  color: checkFailed
+                      ? Colors.red.withValues(alpha: 0.5)
+                      : hasInteraction
                       ? const Color(0xFFFF9800).withValues(alpha: 0.5)
                       : const Color(0xFF4CAF50).withValues(alpha: 0.5),
                   width: 1.5,
@@ -157,16 +165,22 @@ class InteractionResultScreen extends StatelessWidget {
                     width: 52,
                     height: 52,
                     decoration: BoxDecoration(
-                      color: hasInteraction
+                      color: checkFailed
+                          ? Colors.red.withValues(alpha: 0.12)
+                          : hasInteraction
                           ? const Color(0xFFFF9800).withValues(alpha: 0.15)
                           : const Color(0xFF4CAF50).withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      hasInteraction
+                      checkFailed
+                          ? Icons.error_outline_rounded
+                          : hasInteraction
                           ? Icons.warning_amber_rounded
                           : Icons.check_circle_outline,
-                      color: hasInteraction
+                      color: checkFailed
+                          ? Colors.red
+                          : hasInteraction
                           ? const Color(0xFFFF9800)
                           : const Color(0xFF4CAF50),
                       size: 30,
@@ -178,13 +192,19 @@ class InteractionResultScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          hasInteraction
-                              ? (isAr ? 'تم العثور على تداخلات' : 'Interactions Found')
+                          checkFailed
+                              ? (isAr ? 'تعذر إكمال الفحص' : 'Check Failed')
+                              : hasInteraction
+                              ? (isAr
+                                    ? 'تم العثور على تداخلات'
+                                    : 'Interactions Found')
                               : (isAr ? 'لا توجد تداخلات' : 'No Interactions'),
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: hasInteraction
+                            color: checkFailed
+                                ? Colors.red[800]
+                                : hasInteraction
                                 ? const Color(0xFFE65100)
                                 : const Color(0xFF2E7D32),
                           ),
@@ -194,7 +214,9 @@ class InteractionResultScreen extends StatelessWidget {
                           getLocalizedMessage(message),
                           style: TextStyle(
                             fontSize: 13,
-                            color: hasInteraction
+                            color: checkFailed
+                                ? Colors.red[700]
+                                : hasInteraction
                                 ? const Color(0xFFBF360C)
                                 : const Color(0xFF388E3C),
                           ),
@@ -612,7 +634,10 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
     try {
       final data = await MedicationsService.fetchAllMeds();
       final List<Map<String, dynamic>> meds = data.map((j) {
-        final String name = (j['trade_name'] ?? '').toString();
+        final String name = (j['displayName'] ?? j['trade_name'] ?? '')
+            .toString();
+        final String canonicalName =
+            (j['canonicalName'] ?? j['trade_name'] ?? name).toString();
         final String form = (j['dosage_Form'] ?? '').toString();
 
         String type = '';
@@ -636,8 +661,9 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
         ].where((s) => s.isNotEmpty).join(' • ');
 
         return {
-          'id': j['id'],
+          'id': j['id'] ?? j['ID'],
           'name': name.isNotEmpty ? name : 'Unknown',
+          'canonicalName': canonicalName,
           'type': type,
           'form': displayForm,
           'imageUrl': (j['image_url'] ?? '').toString(),
@@ -647,7 +673,20 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
         };
       }).toList();
 
-      setState(() => _drugs = meds);
+      final selectedIds = _selectedMeds
+          .map((med) => med['id']?.toString())
+          .whereType<String>()
+          .toSet();
+      setState(() {
+        _drugs = meds;
+        if (selectedIds.isNotEmpty) {
+          _selectedMeds
+            ..clear()
+            ..addAll(
+              meds.where((med) => selectedIds.contains(med['id']?.toString())),
+            );
+        }
+      });
     } catch (_) {
       // show empty state on error
     } finally {
@@ -671,11 +710,19 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
     setState(() => _isCheckingInteraction = true);
 
     try {
-      // Build query params for all selected med names
-      // e.g. ?medNames=Panadol&medNames=Cataflam&medNames=Congestal
-      final queryParams = _selectedMeds
-          .map((m) => 'medNames=${Uri.encodeComponent(m['name'].toString())}')
-          .join('&');
+      final selectedIds = _selectedMeds
+          .map((med) => int.tryParse(med['id']?.toString() ?? ''))
+          .whereType<int>()
+          .toList();
+      final useIds = selectedIds.length == _selectedMeds.length;
+      final queryParams = useIds
+          ? selectedIds.map((id) => 'medIds=$id').join('&')
+          : _selectedMeds
+                .map(
+                  (med) =>
+                      'medNames=${Uri.encodeComponent(med['canonicalName']?.toString() ?? med['name'].toString())}',
+                )
+                .join('&');
 
       final uri = Uri.parse(
         'https://drugsafe.runasp.net/api/Medications/check-interaction'
@@ -693,6 +740,13 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
           .timeout(const Duration(seconds: 20));
 
       final body = json.decode(res.body) as Map<String, dynamic>;
+      if (res.statusCode < 200 || res.statusCode >= 300) {
+        throw Exception(
+          body['message']?.toString() ??
+              body['Message']?.toString() ??
+              'Interaction check failed',
+        );
+      }
 
       // Parse new response structure
       // { "message": "...", "results": [ { "med1", "med2", "interactions": [...] } ] }
@@ -722,6 +776,7 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
             message: context.l10n.t('failedCheckInteractions'),
             results: const [],
             selectedMeds: List.from(_selectedMeds),
+            checkFailed: true,
           ),
         ),
       );
@@ -819,10 +874,18 @@ class _CheckInteractionsScreenState extends State<CheckInteractionsScreen> {
                         decoration: BoxDecoration(
                           color: AppColors.primaryTeal,
                           borderRadius: BorderRadius.only(
-                            topLeft: isAr ? const Radius.circular(28) : Radius.zero,
-                            bottomLeft: isAr ? const Radius.circular(28) : Radius.zero,
-                            topRight: isAr ? Radius.zero : const Radius.circular(28),
-                            bottomRight: isAr ? Radius.zero : const Radius.circular(28),
+                            topLeft: isAr
+                                ? const Radius.circular(28)
+                                : Radius.zero,
+                            bottomLeft: isAr
+                                ? const Radius.circular(28)
+                                : Radius.zero,
+                            topRight: isAr
+                                ? Radius.zero
+                                : const Radius.circular(28),
+                            bottomRight: isAr
+                                ? Radius.zero
+                                : const Radius.circular(28),
                           ),
                         ),
                         child: const Icon(
