@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../main.dart'; // Ù„Ø§Ø³ØªÙŠØ±Ø§Ø¯ Ø§Ù„Ø£Ù„ÙˆØ§Ù† ÙˆØ§Ù„ÙˆØ¯Ø¬Øª
 import '../providers/user_provider.dart';
+import '../services/password_service.dart';
+import '../widgets/password_requirements.dart';
 
 Future<bool> _saveAuthSession(BuildContext context, String responseBody) async {
   final data = jsonDecode(responseBody);
@@ -47,7 +49,6 @@ class SignupScreen extends StatefulWidget {
 
 class _SignupScreenState extends State<SignupScreen> {
   bool _isPasswordVisible = false;
-  bool _hasMinLength = false, _hasMinNumber = false, _hasUppercase = false;
   // Controllers
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -56,11 +57,7 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _isLoading = false;
 
   void _checkPassword(String password) {
-    setState(() {
-      _hasMinLength = password.length >= 8;
-      _hasMinNumber = password.replaceAll(RegExp(r'[^0-9]'), '').length >= 2;
-      _hasUppercase = password.contains(RegExp(r'[A-Z]'));
-    });
+    setState(() {});
   }
 
   @override
@@ -138,9 +135,7 @@ class _SignupScreenState extends State<SignupScreen> {
             const SizedBox(height: 10),
 
             // Password Validations
-            _buildReqRow(context.l10n.t('min8Characters'), _hasMinLength),
-            _buildReqRow(context.l10n.t('min2Numbers'), _hasMinNumber),
-            _buildReqRow(context.l10n.t('min1Uppercase'), _hasUppercase),
+            PasswordRequirements(password: _passwordController.text),
 
             const SizedBox(height: 40),
             SizedBox(
@@ -252,21 +247,6 @@ class _SignupScreenState extends State<SignupScreen> {
     _passwordController.dispose();
     super.dispose();
   }
-
-  Widget _buildReqRow(String txt, bool ok) => Row(
-    children: [
-      Icon(
-        ok ? Icons.check : Icons.circle,
-        size: 16,
-        color: ok ? AppColors.primaryTeal : Colors.grey,
-      ),
-      const SizedBox(width: 8),
-      Text(
-        txt,
-        style: TextStyle(color: ok ? AppColors.primaryTeal : Colors.grey),
-      ),
-    ],
-  );
 }
 
 // -----------------------------------------------------------------------------
@@ -409,7 +389,7 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
     const String registerVerifyUrl =
         'https://drugsafe.runasp.net/api/Auth/verify-register-otp';
     const String resetVerifyUrl =
-        'https://drugsafe.runasp.net/api/Auth/verify-otp'; // adjust if different
+        'https://drugsafe.runasp.net/api/Auth/verify-reset-otp';
 
     final String apiUrl = widget.isReset ? resetVerifyUrl : registerVerifyUrl;
 
@@ -454,9 +434,25 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
         );
 
         if (widget.isReset) {
+          final data = jsonDecode(response.body);
+          final resetToken = data is Map<String, dynamic>
+              ? data['resetToken']?.toString()
+              : null;
+          if (resetToken == null ||
+              resetToken.isEmpty ||
+              widget.email == null) {
+            throw const FormatException(
+              'Reset verification response did not contain a reset token',
+            );
+          }
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (c) => const NewPasswordScreen()),
+            MaterialPageRoute(
+              builder: (c) => NewPasswordScreen(
+                email: widget.email!,
+                resetToken: resetToken,
+              ),
+            ),
           );
         } else {
           Navigator.pushReplacement(
@@ -468,7 +464,9 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              context.l10n.t('failedWithBody', {'body': response.body}),
+              widget.isReset
+                  ? context.l10n.t('invalidOrExpiredOtp')
+                  : context.l10n.t('failedWithBody', {'body': response.body}),
             ),
             backgroundColor: Colors.red,
           ),
@@ -751,8 +749,54 @@ class _LoginScreenState extends State<LoginScreen> {
 // -----------------------------------------------------------------------------
 // 5. FORGOT PASSWORD SCREEN
 // -----------------------------------------------------------------------------
-class ForgotPasswordScreen extends StatelessWidget {
+class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
+
+  @override
+  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+}
+
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+  final _emailController = TextEditingController();
+  bool _isSending = false;
+
+  Future<void> _sendOtp() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      _showMessage(context.l10n.t('enterValidEmail'), Colors.red);
+      return;
+    }
+
+    setState(() => _isSending = true);
+    try {
+      await PasswordService.requestResetOtp(email);
+      if (!mounted) return;
+      _showMessage(context.l10n.t('resetOtpSent'), Colors.green);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OtpVerifyScreen(isReset: true, email: email),
+        ),
+      );
+    } catch (_) {
+      if (mounted) _showMessage(context.l10n.t('failedToSendOtp'), Colors.red);
+    } finally {
+      if (mounted) setState(() => _isSending = false);
+    }
+  }
+
+  void _showMessage(String message, Color color) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -771,6 +815,8 @@ class ForgotPasswordScreen extends StatelessWidget {
             ),
             const SizedBox(height: 40),
             TextField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.white,
@@ -786,19 +832,16 @@ class ForgotPasswordScreen extends StatelessWidget {
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const OtpVerifyScreen(isReset: true),
-                  ),
-                ),
+                onPressed: _isSending ? null : _sendOtp,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryTeal,
                 ),
-                child: Text(
-                  context.l10n.t('resetPasswordLower'),
-                  style: TextStyle(color: Colors.white),
-                ),
+                child: _isSending
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Text(
+                        context.l10n.t('resetPasswordLower'),
+                        style: const TextStyle(color: Colors.white),
+                      ),
               ),
             ),
           ],
@@ -811,8 +854,90 @@ class ForgotPasswordScreen extends StatelessWidget {
 // -----------------------------------------------------------------------------
 // 6. NEW PASSWORD SCREEN
 // -----------------------------------------------------------------------------
-class NewPasswordScreen extends StatelessWidget {
-  const NewPasswordScreen({super.key});
+class NewPasswordScreen extends StatefulWidget {
+  const NewPasswordScreen({
+    super.key,
+    required this.email,
+    required this.resetToken,
+  });
+
+  final String email;
+  final String resetToken;
+
+  @override
+  State<NewPasswordScreen> createState() => _NewPasswordScreenState();
+}
+
+class _NewPasswordScreenState extends State<NewPasswordScreen> {
+  final _newPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  bool _obscureNew = true;
+  bool _obscureConfirm = true;
+  bool _isSaving = false;
+
+  Future<void> _resetPassword() async {
+    final password = _newPasswordController.text;
+    final confirmation = _confirmPasswordController.text;
+    if (password.isEmpty || confirmation.isEmpty) {
+      _showError(context.l10n.t('pleaseFillAllFields'));
+      return;
+    }
+    if (password != confirmation) {
+      _showError(context.l10n.t('passwordsDoNotMatch'));
+      return;
+    }
+    if (!PasswordRules.isValid(password)) {
+      _showError(context.l10n.t('passwordRequirementsError'));
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      await PasswordService.resetPassword(
+        email: widget.email,
+        resetToken: widget.resetToken,
+        newPassword: password,
+        confirmPassword: confirmation,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.l10n.t('passwordResetSuccessful')),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    } on PasswordServiceException catch (error) {
+      if (!mounted) return;
+      _showError(
+        error.message.toLowerCase().contains('expired')
+            ? context.l10n.t('resetVerificationExpired')
+            : context.l10n.t('passwordResetFailed'),
+      );
+    } catch (_) {
+      if (mounted) _showError(context.l10n.t('passwordResetFailed'));
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
+
+  @override
+  void dispose() {
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -831,6 +956,9 @@ class NewPasswordScreen extends StatelessWidget {
             ),
             const SizedBox(height: 40),
             TextField(
+              controller: _newPasswordController,
+              obscureText: _obscureNew,
+              onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.white,
@@ -839,10 +967,20 @@ class NewPasswordScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
                 ),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureNew ? Icons.visibility_off : Icons.visibility,
+                  ),
+                  onPressed: () => setState(() => _obscureNew = !_obscureNew),
+                ),
               ),
             ),
+            const SizedBox(height: 10),
+            PasswordRequirements(password: _newPasswordController.text),
             const SizedBox(height: 20),
             TextField(
+              controller: _confirmPasswordController,
+              obscureText: _obscureConfirm,
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.white,
@@ -851,6 +989,13 @@ class NewPasswordScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
                 ),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureConfirm ? Icons.visibility_off : Icons.visibility,
+                  ),
+                  onPressed: () =>
+                      setState(() => _obscureConfirm = !_obscureConfirm),
+                ),
               ),
             ),
             const SizedBox(height: 40),
@@ -858,28 +1003,16 @@ class NewPasswordScreen extends StatelessWidget {
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(context.l10n.t('passwordChanged')),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const LoginScreen(),
-                    ),
-                    (r) => false,
-                  );
-                },
+                onPressed: _isSaving ? null : _resetPassword,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryTeal,
                 ),
-                child: Text(
-                  context.l10n.t('createNewPassword'),
-                  style: TextStyle(color: Colors.white),
-                ),
+                child: _isSaving
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Text(
+                        context.l10n.t('createNewPassword'),
+                        style: const TextStyle(color: Colors.white),
+                      ),
               ),
             ),
           ],

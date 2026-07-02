@@ -259,8 +259,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.backgroundCream,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.backgroundCream,
         elevation: 0,
         leading: IconButton(
           icon: const BackButtonIcon(),
@@ -314,20 +315,25 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               // Delete all button
               if (alertsProvider.alerts.isNotEmpty)
                 Padding(
-                  padding: const EdgeInsets.all(12.0),
+                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
                   child: SizedBox(
                     width: double.infinity,
-                    child: ElevatedButton(
+                    child: OutlinedButton(
                       onPressed: alertsProvider.isDeletingAll
                           ? null
                           : _deleteAllAlerts,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.withValues(alpha: 0.1),
-                        foregroundColor: Colors.red,
-                        disabledForegroundColor: Colors.grey,
-                        disabledBackgroundColor: Colors.grey.withValues(
-                          alpha: 0.1,
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: AppColors.primaryTeal,
+                        side: BorderSide(
+                          color: AppColors.primaryTeal.withValues(alpha: 0.55),
                         ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        disabledForegroundColor: Colors.grey,
+                        disabledBackgroundColor: Colors.white,
                       ),
                       child: alertsProvider.isDeletingAll
                           ? const SizedBox(
@@ -335,10 +341,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation(Colors.red),
+                                valueColor: AlwaysStoppedAnimation(
+                                  AppColors.primaryTeal,
+                                ),
                               ),
                             )
-                          : Text(context.l10n.t('deleteAllNotifications')),
+                          : Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.delete_outline_rounded,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(context.l10n.t('deleteAllNotifications')),
+                              ],
+                            ),
                     ),
                   ),
                 ),
@@ -349,7 +367,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   color: AppColors.primaryTeal,
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 12.0,
+                      horizontal: 24.0,
                       vertical: 8.0,
                     ),
                     itemCount: alertsProvider.alerts.length,
@@ -357,16 +375,27 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       final alert = alertsProvider.alerts[index];
                       final typeColor = _getAlertTypeColor(alert.type);
                       final typeIcon = _getAlertTypeIcon(alert.type);
+                      final accentColor = Color.lerp(
+                        AppColors.primaryTeal,
+                        typeColor,
+                        0.25,
+                      )!;
 
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12.0),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: Colors.grey[200]!, width: 1),
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.all(12.0),
+                          padding: const EdgeInsets.all(16),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -376,18 +405,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 children: [
                                   // Type icon
                                   Container(
-                                    padding: const EdgeInsets.all(8),
+                                    width: 52,
+                                    height: 52,
                                     decoration: BoxDecoration(
-                                      color: typeColor.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(8),
+                                      color: AppColors.backgroundCream,
+                                      borderRadius: BorderRadius.circular(16),
                                     ),
                                     child: Icon(
                                       typeIcon,
-                                      color: typeColor,
-                                      size: 20,
+                                      color: accentColor,
+                                      size: 26,
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
+                                  const SizedBox(width: 14),
                                   // Title and medication name
                                   Expanded(
                                     child: Column(
@@ -399,7 +429,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                             _getAlertTitle(alert),
                                             style: const TextStyle(
                                               fontSize: 16,
-                                              fontWeight: FontWeight.w600,
+                                              fontWeight: FontWeight.bold,
                                               color: AppColors.textDark,
                                             ),
                                             maxLines: 1,
@@ -411,7 +441,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                             alert.medicationName!,
                                             style: TextStyle(
                                               fontSize: 12,
-                                              color: Colors.grey[600],
+                                              color: AppColors.textGrey,
                                             ),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
@@ -422,9 +452,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                   const SizedBox(width: 8),
                                   // Delete button
                                   IconButton(
-                                    icon: const Icon(
+                                    icon: Icon(
                                       Icons.delete_outline,
-                                      color: Colors.red,
+                                      color: Colors.red.shade400,
                                       size: 20,
                                     ),
                                     onPressed: () => _deleteAlert(alert.id),
@@ -444,9 +474,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                   alert.message!,
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: AppColors.textDark.withValues(
-                                      alpha: 0.8,
-                                    ),
+                                    color: AppColors.textGrey,
                                     height: 1.5,
                                   ),
                                 ),
@@ -456,12 +484,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(
-                                    _formatDateTime(alert.createdAt),
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey[500],
-                                    ),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.schedule_rounded,
+                                        size: 13,
+                                        color: AppColors.textGrey,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        _formatDateTime(alert.createdAt),
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.textGrey,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                   if (!alert.isRead)
                                     Container(
@@ -473,7 +512,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                         color: AppColors.primaryTeal.withValues(
                                           alpha: 0.1,
                                         ),
-                                        borderRadius: BorderRadius.circular(4),
+                                        borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: Text(
                                         context.l10n.t('newLabel'),

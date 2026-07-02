@@ -49,7 +49,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _phoneController.text = user.phoneNumber;
     setState(() {
       _dateOfBirth = user.dateOfBirth;
-      _gender = user.gender;
+      _gender = _supportedGender(user.gender);
       _selectedAvatar = user.selectedAvatar;
       _imagePath = user.imagePath;
       _isLoading = false;
@@ -178,12 +178,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     label: context.l10n.t('female'),
                     isSelected: tempGender == 'Female',
                     onTap: () => setModalState(() => tempGender = 'Female'),
-                  ),
-                  const SizedBox(height: 12),
-                  _GenderOption(
-                    label: context.l10n.t('other'),
-                    isSelected: tempGender == 'Other',
-                    onTap: () => setModalState(() => tempGender = 'Other'),
                   ),
                   const Spacer(),
                   SizedBox(
@@ -352,8 +346,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String _genderText(BuildContext context) {
     if (_gender.toLowerCase() == 'male') return context.l10n.t('male');
     if (_gender.toLowerCase() == 'female') return context.l10n.t('female');
-    if (_gender.toLowerCase() == 'other') return context.l10n.t('other');
     return context.l10n.t('notSet');
+  }
+
+  String _supportedGender(String gender) {
+    if (gender.toLowerCase() == 'male') return 'Male';
+    if (gender.toLowerCase() == 'female') return 'Female';
+    return '';
   }
 
   Future<void> _saveProfile() async {
